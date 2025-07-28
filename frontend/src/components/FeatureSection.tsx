@@ -1,31 +1,33 @@
 // src/components/FeatureSection.tsx
 import { CalendarCheck, BarChart2, FileText, MessageCircle } from "lucide-react";
 import FeatureCard from "@/components/FeatureCard";
+import { useTranslation } from "react-i18next";
 
 const coreFeatures = [
   {
     icon: <CalendarCheck size={30} strokeWidth={1.8} />,
-    title: "Penjadwalan Pintar",
-    desc: "Tambah, ubah, dan sinkron otomatis dengan Google Calendar.",
+    title: "features.item_1.title",
+    desc: "features.item_1.desc",
   },
   {
     icon: <BarChart2 size={30} strokeWidth={1.8} />,
-    title: "Wawasan Keuangan",
-    desc: "Lacak pemasukan & pengeluaran, ringkasan AI tiap bulan.",
+    title: "features.item_2.title",
+    desc: "features.item_2.desc",
   },
   {
     icon: <FileText size={30} strokeWidth={1.8} />,
-    title: "Dokumen Cerdas",
-    desc: "Unggah PDF lalu ajukan pertanyaan—jawaban instan dari LLM.",
+    title: "features.item_3.title",
+    desc: "features.item_3.desc",
   },
   {
     icon: <MessageCircle size={30} strokeWidth={1.8} />,
-    title: "Kendali Satu Chat",
-    desc: "Semua aksi cukup melalui satu percakapan intuitif.",
+    title: "features.item_4.title",
+    desc: "features.item_4.desc",
   },
 ];
 
 export default function FeatureSection() {
+  const { t } = useTranslation();
   return (
     <section 
       className="
@@ -36,7 +38,7 @@ export default function FeatureSection() {
       " id="features">
       <div className="max-w-6xl mx-auto">
         <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 dark:text-zinc-100">
-          Fitur&nbsp;Inti
+          {t("features.title")}
         </h2>
 
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">

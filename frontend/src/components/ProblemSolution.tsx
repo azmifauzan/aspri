@@ -1,4 +1,5 @@
 // src/components/ProblemSolution.tsx
+import { useTranslation } from "react-i18next";
 import { CalendarX, FileWarning, Wallet } from "lucide-react";
 import FeatureCard from "@/components/FeatureCard";
 
@@ -6,23 +7,24 @@ import FeatureCard from "@/components/FeatureCard";
 const features = [
   {
     icon: <CalendarX size={32} strokeWidth={1.8} />,
-    title: "Jadwal Berantakan",
-    desc: "Sering lupa meeting? ASPRI menyinkron & mengingatkan secara otomatis.",
+    title: "problem.item_1.title",
+    desc: "problem.item_1.desc",
   },
   {
     icon: <Wallet size={32} strokeWidth={1.8} />,
-    title: "Pengeluaran Tak Tercatat",
-    desc: "Catat setiap transaksi lewat chat, dapatkan ringkasan bulanan cerdas.",
+    title: "problem.item_2.title",
+    desc: "problem.item_2.desc",
   },
   {
     icon: <FileWarning size={32} strokeWidth={1.8} />,
-    title: "Dokumen Berserakan",
-    desc: "Unggah sekali, tanya kapan saja. Pencarian semantik & ringkasan instan.",
+    title: "problem.item_3.title",
+    desc: "problem.item_3.desc",
   },
 ];
 
 /* ── komponen ─────────────────────────────────────────── */
 export default function ProblemSolution() {
+  const { t } = useTranslation();
   return (
     <section
       id="problem"
@@ -35,7 +37,7 @@ export default function ProblemSolution() {
     >
       <div className="max-w-5xl mx-auto">
         <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-zinc-800 dark:text-zinc-100">
-          Dari&nbsp;Masalah&nbsp;Harian&nbsp;→&nbsp;Solusi&nbsp;AI
+          {t("problem.title")}
         </h2>
 
         <div className="grid gap-8 md:grid-cols-3">
@@ -47,8 +49,8 @@ export default function ProblemSolution() {
                   {icon}
                 </div>
               }
-              title={title}
-              desc={desc}
+              title={t(title)}
+              desc={t(desc)}
             />
           ))}
         </div>

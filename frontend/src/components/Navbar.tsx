@@ -3,12 +3,13 @@ import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import LangToggle from "@/components/LangToggle";
+import { useTranslation } from "react-i18next";
 
 const links = [
-  { id: "home", label: "Beranda" },
-  { id: "problem", label: "Fitur" },
-  { id: "chat",    label: "Preview" },
-  { id: "contact", label: "Kontak" },
+  { id: "home", label: "nav.home" },
+  { id: "problem", label: "nav.features" },
+  { id: "chat",    label: "nav.preview" },
+  { id: "contact", label: "nav.contact" },
 ];
 
 /* ✅ hanya satu itemClass */
@@ -17,6 +18,7 @@ const itemClass =
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const { t } = useTranslation();
 
   return (
     <header className="fixed top-0 w-full bg-white/70 dark:bg-zinc-900/80 backdrop-blur z-50 shadow-sm">
@@ -30,7 +32,7 @@ export default function Navbar() {
         <nav className="hidden md:flex items-center gap-2">
           {links.map((l) => (
             <a key={l.id} href={`#${l.id}`} className={itemClass}>
-              {l.label}
+              {t(l.label)}
             </a>
           ))}
           <LangToggle />

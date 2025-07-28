@@ -1,6 +1,8 @@
-import { Mail, Phone, Github } from "lucide-react";
+import { Mail, Github } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function Footer() {
+  const { t } = useTranslation();
   return (
     <footer className="bg-zinc-900 text-zinc-300 pt-12 pb-8" id="contact">
       <div className="max-w-6xl mx-auto px-4">
@@ -10,21 +12,13 @@ export default function Footer() {
           <div>
             <h3 className="text-2xl font-bold text-white mb-3">ASPRI</h3>
             <p className="text-sm leading-relaxed">
-              Asisten pribadi berbasis AI untuk membantu Anda merapikan jadwal,
-              keuangan, dan dokumen melalui sebuah percakapan.
+              {t("footer.description")}
             </p>
           </div>
 
           {/* — Kontak — */}
           <div className="space-y-4">
-            <h4 className="text-lg font-semibold text-white">Hubungi Kami</h4>
-
-            <div className="flex items-center gap-3">
-              <Phone size={18} /> 
-              <a href="https://wa.me/6287716326524" className="hover:text-white">
-                +62 877-1632-6524 (WhatsApp)
-              </a>
-            </div>
+            <h4 className="text-lg font-semibold text-white">{t("footer.contact")}</h4>
 
             <div className="flex items-center gap-3">
               <Mail size={18} />

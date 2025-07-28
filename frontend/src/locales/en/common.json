@@ -1,34 +1,73 @@
 {
-  "nav": {
-    "home": "Home",
-    "problem": "Problems",
-    "features": "Features",
-    "workflow": "Workflow",
-    "preview": "Preview",
-    "contact": "Contact"
-  },
-  "hero": {
-    "heading": "ASPRI — AI-Powered Personal Assistant",
-    "tagline": "One chat to organise schedules, finance, and documents. Powered by cutting-edge LLM!",
-    "cta_demo": "Try it Now",
-    "cta_feature": "See Features",
-    "bullet_1": "Auto-sync with Google Calendar",
-    "bullet_2": "AI monthly finance insights",
-    "bullet_3": "Instant document search & summary"
-  },
-  "problem": {
-    "title": "From Daily Pain → AI Solution",
-    "item_1": {
-      "title": "Chaotic Schedules",
-      "desc": "Missed meetings? ASPRI auto-syncs & reminds you."
+    "nav": {
+        "home": "Home",
+        "problem": "Problems",
+        "features": "Features",
+        "workflow": "Workflow",
+        "preview": "Preview",
+        "contact": "Contact"
     },
-    "item_2": {
-      "title": "Untracked Expenses",
-      "desc": "Log every transaction via chat; get smart monthly reports."
+    "hero": {
+        "heading": "ASPRI — AI-Powered Personal Assistant",
+        "tagline": "One chat to organise schedules, finance, and documents. Powered by cutting-edge LLM!",
+        "cta_demo": "Try it Now",
+        "cta_feature": "See Features",
+        "bullet_1": "Auto-sync with Google Calendar",
+        "bullet_2": "AI monthly finance insights",
+        "bullet_3": "Instant document search & summary",
+        "chat": {
+            "date": "Today",
+            "user1": "Record the expenditure of $25 for coffee.",
+            "user2": "Make a meeting schedule for tomorrow at 10 am.",
+            "aspri1": "✅ Recorded!",
+            "aspri2": "📅 The meeting schedule for tomorrow at 10 am has been made."
+        }
     },
-    "item_3": {
-      "title": "Scattered Docs",
-      "desc": "Upload once, ask anytime. Semantic search & summaries."
+    "problem": {
+        "title": "From Daily Pain → AI Solution",
+        "item_1": {
+        "title": "Chaotic Schedules",
+        "desc": "Missed meetings? ASPRI auto-syncs & reminds you."
+        },
+        "item_2": {
+        "title": "Untracked Expenses",
+        "desc": "Log every transaction via chat; get smart monthly reports."
+        },
+        "item_3": {
+        "title": "Scattered Docs",
+        "desc": "Upload once, ask anytime. Semantic search & summaries."
+        }
+    },
+    "features": {
+        "title": "Key Features",
+        "item_1": {
+            "title": "Automatic Sync",
+            "desc": "Seamless integration with Gmail, Google Calendar, and Google Contacts."
+        },
+        "item_2": {
+            "title": "AI Finance Analysis",
+            "desc": "Get easy-to-understand monthly financial insights."
+        },
+        "item_3": {
+            "title": "Smart Document Search",
+            "desc": "Find important information in seconds."
+        },
+        "item_4": {
+            "title": "Smart Reminders",
+            "desc": "Get notifications for all important schedules and expenses."
+        }
+    },
+    "chatpreview":{
+        "title": "Chat Preview",
+        "user1": "Record expenses of $100 for lunch today.",
+        "user2": "Schedule a meeting for next Monday at 3 PM.",
+        "user3": "Summarize the contents of the contract ‘ABC Cooperation.pdf’.",
+        "aspri1": "✅ Expense of $100 for lunch today recorded.",
+        "aspri2": "📅 Meeting scheduled for next Monday at 3 PM.",
+        "aspri3": "Here is the summary: 1) Duration 2 years, 2) Project value 2 million, 3) Obligations…"
+    },
+    "footer": {
+        "description": "ASPRI is an AI-powered personal assistant that helps you manage your schedules, finances, and documents seamlessly. With advanced LLM capabilities, it simplifies your daily tasks.",
+        "contact": "Contact Us"
     }
-  }
 }

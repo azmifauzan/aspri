@@ -1,6 +1,8 @@
 import ChatBubble from "@/components/ChatBubble";
+import { useTranslation } from "react-i18next";
 
 export default function ChatPreview() {
+  const { t } = useTranslation();
   return (
     <section className="
         py-20 px-4
@@ -10,33 +12,33 @@ export default function ChatPreview() {
       " id="chat">
       <div className="max-w-3xl mx-auto">
         <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 dark:text-zinc-100">
-          Contoh&nbsp;Percakapan&nbsp;dengan&nbsp;ASPRI
+          {t("chatpreview.title")}
         </h2>
 
         <div className="rounded-xl shadow-lg bg-zinc-50 p-6 space-y-4">
           <ChatBubble
             side="right"
-            text="Catat pengeluaran Rp150.000 untuk makan siang hari ini."
+            text={t("chatpreview.user1")}
           />
           <ChatBubble
             side="left"
-            text="✅ Tercatat! Saldo makan bulan ini tersisa Rp1.350.000."
+            text={t("chatpreview.aspri1")}
           />
           <ChatBubble
             side="right"
-            text="Tambahkan meeting dengan Pak Budi besok jam 10.00."
+            text={t("chatpreview.user2")}
           />
           <ChatBubble
             side="left"
-            text="📅 Jadwal sudah ditambahkan dan disinkron ke Google Calendar."
+            text={t("chatpreview.aspri2")}
           />
           <ChatBubble
             side="right"
-            text="Ringkas isi kontrak ‘Kerja Sama ABC.pdf’."
+            text={t("chatpreview.user3")}
           />
           <ChatBubble
             side="left"
-            text="Berikut ringkasannya: 1) Durasi 2 tahun, 2) Nilai proyek Rp2 M, 3) Kewajiban…"
+            text={t("chatpreview.aspri3")}
           />
         </div>
       </div>

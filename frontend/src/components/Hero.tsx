@@ -65,31 +65,31 @@ export default function Hero() {
 
             <div className="p-4 space-y-3 flex-1 overflow-y-auto">
               <div className="text-xs text-center text-zinc-400 dark:text-zinc-500">
-                Hari ini
+                {t("hero.chat.date")}
               </div>
 
               {/* user ➜ kanan */}
               <div className="flex justify-end">
                 <div className="bg-zinc-100 p-2 rounded-lg text-sm">
-                  Catat pengeluaran Rp25.000 kopi.
+                  {t("hero.chat.user1")}
                 </div>
               </div>
               {/* aspri ➜ kiri */}
               <div className="flex justify-start">
                 <div className="bg-brand text-white p-2 rounded-lg text-sm">
-                  ✅ Tercatat!
+                  {t("hero.chat.aspri1")}
                 </div>
               </div>
               {/* user */}
               <div className="flex justify-end">
                 <div className="bg-zinc-100 p-2 rounded-lg text-sm">
-                  Tambah meeting besok 09.00.
+                  {t("hero.chat.user2")}
                 </div>
               </div>
               {/* aspri */}
               <div className="flex justify-start">
                 <div className="bg-brand text-white p-2 rounded-lg text-sm">
-                  📅 Jadwal sudah dibuat.
+                  {t("hero.chat.aspri2")}
                 </div>
               </div>
             </div>

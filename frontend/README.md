@@ -1,4 +1,4 @@
-# Aspri
+# Aspri Frontend
 
 [![React](https://img.shields.io/badge/React-19-blue.svg)](https://reactjs.org/)
 [![Vite](https://img.shields.io/badge/Vite-4-blue.svg)](https://vitejs.dev/)
@@ -10,6 +10,8 @@ Aspri is a personal assistant application that helps you manage your schedule, f
 ## Key Features
 
 - **Smart Scheduling:** Add, edit, and sync events with Google Calendar.
+- **Smart Email:** Read and Send email with Google Mail.
+- **Smart Contact:** Add, edit, and sync contact with Google Contact.
 - **Financial Insights:** Track income and expenses, with AI-powered monthly summaries.
 - **Intelligent Document Analysis:** Upload PDFs and ask questions to get instant answers from an LLM.
 - **Chat-based Interface:** Interact with the assistant through a simple and intuitive chat interface.
