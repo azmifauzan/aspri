@@ -1,0 +1,34 @@
+{
+  "nav": {
+    "home": "Beranda",
+    "problem": "Masalah",
+    "features": "Fitur",
+    "workflow": "Cara Kerja",
+    "preview": "Preview",
+    "contact": "Kontak"
+  },
+  "hero": {
+    "heading": "ASPRI — Asisten Pribadi Berbasis AI",
+    "tagline": "Satu chat untuk atur jadwal, keuangan, dan dokumen. Berdaya dengan LLM canggih!",
+    "cta_demo": "Coba Sekarang",
+    "cta_feature": "Lihat Fitur",
+    "bullet_1": "Sinkron otomatis dengan Google Calendar",
+    "bullet_2": "Ringkasan keuangan bulanan berbasis AI",
+    "bullet_3": "Pencarian & ringkasan dokumen instan"
+  },
+  "problem": {
+    "title": "Dari Masalah Harian → Solusi AI",
+    "item_1": {
+      "title": "Jadwal Berantakan",
+      "desc": "Sering lupa meeting? ASPRI menyinkron & mengingatkan otomatis."
+    },
+    "item_2": {
+      "title": "Pengeluaran Tak Tercatat",
+      "desc": "Catat transaksi lewat chat, dapatkan ringkasan bulanan cerdas."
+    },
+    "item_3": {
+      "title": "Dokumen Berserakan",
+      "desc": "Unggah sekali, tanya kapan saja. Pencarian semantik & ringkasan instan."
+    }
+  }
+}

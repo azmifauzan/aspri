@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    /* ---------- BASIC ---------- */
+    "target": "ESNext",
+    "module": "ESNext",
+    "jsx": "react-jsx",
+    "strict": true,
+    "moduleResolution": "Node",
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+
+    /* ---------- ALIAS ---------- */
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
+  },
+
+  /* ---------- REFERENCES ---------- */
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
+  ],
+
+  /* ---------- INCLUDE ---------- */
+  "include": ["src"]
+}

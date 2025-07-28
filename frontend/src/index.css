@@ -1,0 +1,24 @@
+/* src/index.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* dark primitives */
+@layer base {
+  :root {
+    --bg: #ffffff;
+    --fg: #1e293b;
+  }
+  .dark :root {
+    --bg: #0f172a;
+    --fg: #e2e8f0;
+  }
+  body {
+    background-color: var(--bg);
+    color: var(--fg);
+  }
+}
