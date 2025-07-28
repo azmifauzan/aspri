@@ -12,15 +12,15 @@
         "tagline": "One chat to organise schedules, finance, and documents. Powered by cutting-edge LLM!",
         "cta_demo": "Try it Now",
         "cta_feature": "See Features",
-        "bullet_1": "Auto-sync with Google Calendar",
+        "bullet_1": "Auto-sync with Google (Gmail,Calendar,Contacts)",
         "bullet_2": "AI monthly finance insights",
         "bullet_3": "Instant document search & summary",
         "chat": {
             "date": "Today",
             "user1": "Record the expenditure of $25 for coffee.",
             "user2": "Make a meeting schedule for tomorrow at 10 am.",
-            "aspri1": "✅ Recorded!",
-            "aspri2": "📅 The meeting schedule for tomorrow at 10 am has been made."
+            "aspri1": "✅ Recorded, Sir!",
+            "aspri2": "📅 The meeting schedule for tomorrow at 10 am has been made, Sir!"
         }
     },
     "problem": {
@@ -62,8 +62,8 @@
         "user1": "Record expenses of $100 for lunch today.",
         "user2": "Schedule a meeting for next Monday at 3 PM.",
         "user3": "Summarize the contents of the contract ‘ABC Cooperation.pdf’.",
-        "aspri1": "✅ Expense of $100 for lunch today recorded.",
-        "aspri2": "📅 Meeting scheduled for next Monday at 3 PM.",
+        "aspri1": "✅ Expense of $100 for lunch today recorded, Sir!",
+        "aspri2": "📅 Meeting scheduled for next Monday at 3 PM, Sir!",
         "aspri3": "Here is the summary: 1) Duration 2 years, 2) Project value 2 million, 3) Obligations…"
     },
     "footer": {

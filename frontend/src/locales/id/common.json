@@ -12,15 +12,15 @@
         "tagline": "Satu chat untuk atur jadwal, keuangan, dan dokumen. Berdaya dengan LLM canggih!",
         "cta_demo": "Coba Sekarang",
         "cta_feature": "Lihat Fitur",
-        "bullet_1": "Sinkron otomatis dengan Google Calendar",
+        "bullet_1": "Sinkron otomatis dengan Google (Gmail,Calendar,Contacts)",
         "bullet_2": "Ringkasan keuangan bulanan berbasis AI",
         "bullet_3": "Pencarian & ringkasan dokumen instan",
         "chat": {
             "date": "Hari ini",
             "user1": "Catat pengeluaran Rp25.000 kopi.",
             "user2": "Buat jadwal meeting besok jam 10 pagi.",
-            "aspri1": "✅ Tercatat!",
-            "aspri2": "📅 Jadwal meeting besok jam 10 pagi telah dibuat."
+            "aspri1": "✅ Siap Bos, Sudah Tercatat!",
+            "aspri2": "📅 Jadwal meeting besok jam 10 pagi telah dibuat Bos."
         }
     },
     "problem": {
@@ -60,11 +60,11 @@
     "chatpreview": {
         "title": "Contoh Percakapan",
         "user1": "Catat pengeluaran Rp50.000 untuk makan siang.",
-        "aspri1": "✅ Pengeluaran tercatat!",
+        "aspri1": "✅ Pengeluaran sudah dicatat Bos!",
         "user2": "Buat jadwal meeting besok jam 3 sore.",
-        "aspri2": "📅 Jadwal meeting besok jam 3 sore telah dibuat",
+        "aspri2": "📅 Jadwal meeting besok jam 3 sore telah dibuat Bos!",
         "user3": "Ringkas isi kontrak ‘Kerja Sama ABC.pdf’.",
-        "aspri3": "Berikut ringkasannya: 1) Durasi 2 tahun, 2) Nilai proyek Rp2 M, 3) Kewajiban…"
+        "aspri3": "Berikut ringkasannya Bos: 1) Durasi 2 tahun, 2) Nilai proyek Rp2 M, 3) Kewajiban…"
     },
     "footer":{
         "description": "ASPRI adalah asisten pribadi berbasis AI yang membantu mengelola jadwal, keuangan, dan dokumen Anda dengan mudah. Dengan teknologi LLM canggih, ASPRI menyederhanakan hidup Anda.",
