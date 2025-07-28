@@ -49,59 +49,6 @@ To get a local copy up and running, follow these simple steps.
     npm run dev
     ```
 
-## Project Structure
-
-```
-D:/dev/aspri/frontend
-├── .gitignore
-├── eslint.config.js
-├── index.html
-├── package-lock.json
-├── package.json
-├── postcss.config.js
-├── README.md
-├── tailwind.config.js
-├── tsconfig.app.json
-├── tsconfig.json
-├── tsconfig.node.json
-├── vite.config.ts
-├── node_modules/
-├── public/
-│   └── vite.svg
-└── src/
-    ├── App.css
-    ├── App.tsx
-    ├── i18n.ts
-    ├── index.css
-    ├── main.tsx
-    ├── vite-env.d.ts
-    ├── assets/
-    │   └── react.svg
-    ├── components/
-    │   ├── Badge.tsx
-    │   ├── ChatBubble.tsx
-    │   ├── ChatPreview.tsx
-    │   ├── FeatureCard.tsx
-    │   ├── FeatureSection.tsx
-    │   ├── Footer.tsx
-    │   ├── Hero.tsx
-    │   ├── LangToggle.tsx
-    │   ├── Navbar.tsx
-    │   ├── ProblemSolution.tsx
-    │   ├── TechAdvantages.tsx
-    │   ├── ThemeToggle.tsx
-    │   └── Workflow.tsx
-    ├── hooks/
-    │   └── useDarkMode.ts
-    ├── locales/
-    │   ├── en/
-    │   │   └── common.json
-    │   └── id/
-    │       └── common.json
-    └── pages/
-        └── LandingPage.tsx
-```
-
 ## Contributing
 
 Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
