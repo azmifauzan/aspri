@@ -12,6 +12,15 @@ ASPRI is an AI-based personal assistant that helps users manage their daily live
 - **Chat-first Interface**: All features accessible through conversation
 - **Personal Data Management**: Schedules, finances, and documents
 
+### Frontend
+- **React.js**: Modern JavaScript library for building user interfaces
+- **TypeScript**: Strongly typed programming language that builds on JavaScript
+- **Vite**: Next generation frontend tooling
+- **Tailwind CSS**: Utility-first CSS framework
+- **React Router**: Declarative routing for React
+- **React OAuth**: Google OAuth integration
+- **i18next**: Internationalization framework
+
 ## Tech Stack
 
 ### Backend
@@ -31,6 +40,7 @@ ASPRI is an AI-based personal assistant that helps users manage their daily live
 - `passlib`: Password hashing
 - `python-multipart`: Form data parsing
 - `alembic`: Database migrations
+- `google-auth`: Google OAuth verification
 
 ## Project Structure
 
@@ -55,6 +65,25 @@ backend/
 ├── requirements.txt             # Python dependencies
 ├── .env.example                 # Environment variables template
 └── alembic.ini                  # Alembic configuration
+```
+
+### Frontend
+```
+frontend/
+├── public/                      # Static assets
+├── src/
+│   ├── components/              # Reusable UI components
+│   ├── contexts/                # React contexts (AuthContext)
+│   ├── hooks/                   # Custom React hooks
+│   ├── locales/                 # Translation files
+│   ├── pages/                  # Page components
+│   ├── App.tsx                 # Main application component
+│   ├── main.tsx                # Entry point
+│   └── index.css               # Global styles
+├── index.html                  # HTML entry point
+├── package.json                # Frontend dependencies
+├── tsconfig.json              # TypeScript configuration
+└── vite.config.ts             # Vite configuration
 ```
 
 ## Installation & Setup
@@ -166,6 +195,24 @@ Complete user registration
 #### GET `/auth/me` (Protected)
 Get current user information
 
+Response:
+```json
+{
+  "id": 1,
+  "email": "user@example.com",
+  "google_id": "google_oauth_id",
+  "name": "John Doe",
+  "birth_date": 15,
+  "birth_month": 6,
+  "call_preference": "John",
+  "aspri_name": "Alex",
+  "aspri_persona": "Friendly and helpful assistant",
+  "is_registered": true,
+  "created_at": "2023-01-01",
+  "updated_at": "2023-01-02"
+}
+```
+
 ### Other Endpoints
 
 #### GET `/`
@@ -198,6 +245,34 @@ Health check endpoint
 - `is_registered`: Registration completion status
 - `created_at`: Account creation date
 - `updated_at`: Last update date
+
+## Frontend Implementation
+
+### Authentication Flow
+1. User clicks "Login" button on Navbar
+2. Redirected to LoginPage (/login)
+3. User clicks "Sign in with Google" button
+4. Google OAuth flow opens popup for authentication
+5. After successful Google login, frontend receives credential token
+6. Frontend sends token to backend `/auth/login` endpoint
+7. Backend verifies token and creates user if needed
+8. Backend returns JWT token and user information
+9. If user.is_registered is false, redirect to RegistrationPage (/register)
+10. If user.is_registered is true, redirect to UserDashboard (/dashboard)
+
+### Registration Flow
+1. User fills registration form with required information
+2. Form validation ensures all fields are properly filled
+3. On submit, data is sent to backend `/auth/register` endpoint
+4. Backend updates user information and sets is_registered to true
+5. User is redirected to UserDashboard (/dashboard)
+
+### Dashboard Features
+1. Responsive sidebar navigation with menu items
+2. User profile information display
+3. Quick action buttons for main features
+4. Statistics overview
+5. Logout functionality that clears JWT token
 
 ## Development
 

@@ -5,7 +5,9 @@
         "features": "Fitur",
         "workflow": "Cara Kerja",
         "preview": "Preview",
-        "contact": "Kontak"
+        "contact": "Kontak",
+        "login": "Masuk",
+        "register": "Daftar"
     },
     "hero": {
         "heading": "ASPRI — Asisten Pribadi Berbasis AI",
@@ -66,8 +68,84 @@
         "user3": "Ringkas isi kontrak ‘Kerja Sama ABC.pdf’.",
         "aspri3": "Berikut ringkasannya Bos: 1) Durasi 2 tahun, 2) Nilai proyek Rp2 M, 3) Kewajiban…"
     },
-    "footer":{
+    "footer": {
         "description": "ASPRI adalah asisten pribadi berbasis AI yang membantu mengelola jadwal, keuangan, dan dokumen Anda dengan mudah. Dengan teknologi LLM canggih, ASPRI menyederhanakan hidup Anda.",
         "contact": "Hubungi Kami"
+    },
+    "auth": {
+        "welcome_back": "Selamat Datang Kembali",
+        "sign_in_description": "Masuk untuk melanjutkan ke akun Anda",
+        "signing_in": "Sedang masuk...",
+        "privacy_notice": "Dengan masuk, Anda menyetujui Kebijakan Privasi dan Ketentuan Layanan kami.",
+        "why_sign_in": "Mengapa harus masuk?",
+        "feature_1": "Akses dashboard personal Anda",
+        "feature_2": "Simpan preferensi dan pengaturan Anda",
+        "feature_3": "Dapatkan bantuan AI yang dipersonalisasi"
+    },
+    "register": {
+        "complete_profile": "Lengkapi Profil Anda",
+        "complete_profile_description": "Silakan berikan informasi berikut untuk menyelesaikan pendaftaran",
+        "name": "Nama Lengkap",
+        "name_placeholder": "Masukkan nama lengkap Anda",
+        "email": "Alamat Email",
+        "birth_date": "Tanggal Lahir",
+        "birth_month": "Bulan Lahir",
+        "select_day": "Pilih tanggal",
+        "select_month": "Pilih bulan",
+        "call_preference": "Bagaimana Kami Harus Memanggil Anda?",
+        "call_preference_placeholder": "Contoh: Pak, Bu, Bro",
+        "aspri_name": "Nama Asisten ASPRI",
+        "aspri_name_placeholder": "Berikan nama untuk asisten AI Anda",
+        "aspri_persona": "Kepribadian Asisten ASPRI",
+        "aspri_persona_placeholder": "Deskripsikan kepribadian asisten AI Anda",
+        "complete_registration": "Selesaikan Pendaftaran",
+        "submitting": "Mengirim...",
+        "errors": {
+            "name_required": "Nama diperlukan",
+            "birth_date_required": "Tanggal lahir diperlukan",
+            "birth_date_invalid": "Tanggal lahir harus antara 1 dan 31",
+            "birth_month_required": "Bulan lahir diperlukan",
+            "birth_month_invalid": "Bulan lahir harus antara 1 dan 12",
+            "call_preference_required": "Preferensi panggilan diperlukan",
+            "aspri_name_required": "Nama ASPRI diperlukan",
+            "aspri_persona_required": "Kepribadian ASPRI diperlukan",
+            "registration_failed": "Pendaftaran gagal: "
+        }
+    },
+    "dashboard": {
+        "welcome_back": "Selamat datang kembali, {{name}}!",
+        "dashboard_description": "Berikut yang terjadi dengan akun Anda hari ini.",
+        "user_info": "Informasi Pengguna",
+        "quick_actions": "Aksi Cepat",
+        "conversations": "Percakapan",
+        "tasks_completed": "Tugas Selesai",
+        "satisfaction": "Kepuasan",
+        "in_the_last_30_days": "dalam 30 hari terakhir",
+        "user_rating": "penilaian pengguna",
+        "menu": {
+            "dashboard": "Dasbor",
+            "chat": "Chat",
+            "calendar": "Kalender",
+            "analytics": "Analitik",
+            "profile": "Profil",
+            "settings": "Pengaturan"
+        }
+    },
+    "common": {
+        "back_to_home": "Kembali ke Beranda"
+    },
+    "months": {
+        "january": "Januari",
+        "february": "Februari",
+        "march": "Maret",
+        "april": "April",
+        "may": "Mei",
+        "june": "Juni",
+        "july": "Juli",
+        "august": "Agustus",
+        "september": "September",
+        "october": "Oktober",
+        "november": "November",
+        "december": "Desember"
     }
 }

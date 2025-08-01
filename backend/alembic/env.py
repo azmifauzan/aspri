@@ -23,7 +23,7 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # Set the SQLAlchemy URL from environment variable
-database_url = os.getenv("DATABASE_URL", "postgresql+asyncpg://username:password@localhost:5432/aspri_db")
+database_url = os.getenv("DATABASE_URL", "mysql+aiomysql://aspri_user:aspri_password@localhost:3306/aspri_db")
 config.set_main_option("sqlalchemy.url", database_url)
 
 # add your model's MetaData object here for 'autogenerate' support

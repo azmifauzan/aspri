@@ -2,17 +2,18 @@ version: '3.8'
 
 services:
   db:
-    image: postgres:15
+    image: mariadb:11.8
     environment:
-      POSTGRES_DB: aspri_db
-      POSTGRES_USER: aspri_user
-      POSTGRES_PASSWORD: aspri_password
+      MYSQL_DATABASE: aspri_db
+      MYSQL_USER: aspri_user
+      MYSQL_PASSWORD: aspri_password
+      MYSQL_ROOT_PASSWORD: root_password
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mariadb_data:/var/lib/mysql
     ports:
-      - "5432:5432"
+      - "3306:3306"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U aspri_user -d aspri_db"]
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -20,7 +21,7 @@ services:
   backend:
     build: .
     environment:
-      DATABASE_URL: postgresql+asyncpg://aspri_user:aspri_password@db:5432/aspri_db
+      DATABASE_URL: mysql+aiomysql://aspri_user:aspri_password@db:3306/aspri_db
       SECRET_KEY: your-secret-key-change-in-production
       GOOGLE_CLIENT_ID: your-google-client-id
       GOOGLE_CLIENT_SECRET: your-google-client-secret
@@ -38,4 +39,4 @@ services:
       "
 
 volumes:
-  postgres_data:
+  mariadb_data:

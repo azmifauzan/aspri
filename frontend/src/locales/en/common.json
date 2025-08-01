@@ -5,7 +5,9 @@
         "features": "Features",
         "workflow": "Workflow",
         "preview": "Preview",
-        "contact": "Contact"
+        "contact": "Contact",
+        "login": "Login",
+        "register": "Register"
     },
     "hero": {
         "heading": "ASPRI — AI-Powered Personal Assistant",
@@ -69,5 +71,81 @@
     "footer": {
         "description": "ASPRI is an AI-powered personal assistant that helps you manage your schedules, finances, and documents seamlessly. With advanced LLM capabilities, it simplifies your daily tasks.",
         "contact": "Contact Us"
+    },
+    "auth": {
+        "welcome_back": "Welcome Back",
+        "sign_in_description": "Sign in to continue to your account",
+        "signing_in": "Signing in...",
+        "privacy_notice": "By signing in, you agree to our Privacy Policy and Terms of Service.",
+        "why_sign_in": "Why sign in?",
+        "feature_1": "Access your personalized dashboard",
+        "feature_2": "Save your preferences and settings",
+        "feature_3": "Get personalized AI assistance"
+    },
+    "register": {
+        "complete_profile": "Complete Your Profile",
+        "complete_profile_description": "Please provide the following information to complete your registration",
+        "name": "Full Name",
+        "name_placeholder": "Enter your full name",
+        "email": "Email Address",
+        "birth_date": "Birth Date",
+        "birth_month": "Birth Month",
+        "select_day": "Select day",
+        "select_month": "Select month",
+        "call_preference": "How Should We Call You?",
+        "call_preference_placeholder": "e.g., Sir, Ma'am, Buddy",
+        "aspri_name": "ASPRI Assistant Name",
+        "aspri_name_placeholder": "Give your AI assistant a name",
+        "aspri_persona": "ASPRI Assistant Persona",
+        "aspri_persona_placeholder": "Describe your AI assistant's personality",
+        "complete_registration": "Complete Registration",
+        "submitting": "Submitting...",
+        "errors": {
+            "name_required": "Name is required",
+            "birth_date_required": "Birth date is required",
+            "birth_date_invalid": "Birth date must be between 1 and 31",
+            "birth_month_required": "Birth month is required",
+            "birth_month_invalid": "Birth month must be between 1 and 12",
+            "call_preference_required": "Call preference is required",
+            "aspri_name_required": "ASPRI name is required",
+            "aspri_persona_required": "ASPRI persona is required",
+            "registration_failed": "Registration failed: "
+        }
+    },
+    "dashboard": {
+        "welcome_back": "Welcome back, {{name}}!",
+        "dashboard_description": "Here's what's happening with your account today.",
+        "user_info": "User Information",
+        "quick_actions": "Quick Actions",
+        "conversations": "Conversations",
+        "tasks_completed": "Tasks Completed",
+        "satisfaction": "Satisfaction",
+        "in_the_last_30_days": "in the last 30 days",
+        "user_rating": "user rating",
+        "menu": {
+            "dashboard": "Dashboard",
+            "chat": "Chat",
+            "calendar": "Calendar",
+            "analytics": "Analytics",
+            "profile": "Profile",
+            "settings": "Settings"
+        }
+    },
+    "common": {
+        "back_to_home": "Back to Home"
+    },
+    "months": {
+        "january": "January",
+        "february": "February",
+        "march": "March",
+        "april": "April",
+        "may": "May",
+        "june": "June",
+        "july": "July",
+        "august": "August",
+        "september": "September",
+        "october": "October",
+        "november": "November",
+        "december": "December"
     }
 }
