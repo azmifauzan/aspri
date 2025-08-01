@@ -123,6 +123,8 @@ cp .env.example .env
 # Edit .env with your database credentials
 ```
 
+**Important Security Note**: We've removed all `.env` files from the git history to resolve GitHub's secret scanning violations. Please see [Environment Variables Setup](docs/ENVIRONMENT_VARIABLES.md) for detailed instructions on setting up your environment variables.
+
 ### 5. Configure Environment Variables
 Edit `.env` file with your configuration:
 ```env
@@ -223,6 +225,8 @@ Health check endpoint
 
 ## Google OAuth Setup
 
+**Important Security Note**: Never commit your Google OAuth credentials to the repository. These should be stored in `.env` files which are ignored by git. See [Environment Variables Setup](docs/ENVIRONMENT_VARIABLES.md) for more details.
+
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Create a new project or select existing one
 3. Enable Google+ API
@@ -315,6 +319,8 @@ isort .
 - Database credentials should be kept secure
 - Use HTTPS in production
 - Configure CORS properly for production
+- Environment variables with secrets are ignored by git and removed from git history
+- See [Environment Variables Setup](docs/ENVIRONMENT_VARIABLES.md) for detailed security guidelines
 
 ## Deployment
 
