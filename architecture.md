@@ -1,73 +1,73 @@
-# Asisten Pribadi (Aspri)
+# Personal Assistant (Aspri)
 
-## Konsep Aplikasi
+## Application Concept
 
-**Tujuan Utama**: ASPRI adalah asisten pribadi berbasis AI yang membantu pengguna mengelola kehidupan sehari-hari melalui antarmuka chat intuitif. Aplikasi ini menggunakan LLM (seperti GPT-series atau model open-source seperti Llama) untuk memproses permintaan alami, dengan akses ke data pribadi pengguna untuk respons yang kontekstual dan akurat. Konsep inti adalah "chat-first" di mana semua fitur diakses melalui percakapan, mirip dengan LLM frontier seperti ChatGPT, tetapi ditingkatkan dengan tools khusus untuk data internal (jadwal, keuangan, dokumen).
+**Main Objective**: ASPRI is an AI-based personal assistant that helps users manage their daily lives through an intuitive chat interface. The application uses LLM (such as GPT-series or open-source models like Llama) to process natural requests, with access to users' personal data for contextual and accurate responses. The core concept is "chat-first" where all features are accessed through conversation, similar to frontier LLMs like ChatGPT, but enhanced with specialized tools for internal data (schedules, finances, documents).
 
-**Fitur Utama**:
-1. **Pencatatan Jadwal**: Pengguna dapat menambahkan, mengedit, atau menghapus jadwal melalui chat (e.g., "Tambahkan meeting besok jam 10"). Sinkronisasi dua arah dengan Google Calendar menggunakan API untuk update real-time.
-2. **Pencatatan Keuangan**: Lacak pemasukan dan pengeluaran (e.g., "Catat pengeluaran Rp100.000 untuk makan"). Fitur ringkasan bulanan, prediksi, atau alert melalui LLM.
-3. **Pengelolaan Dokumen Pribadi**: Upload dan embed dokumen (PDF, teks) ke VectorDB untuk pencarian semantik. LLM dapat merangkum atau menjawab pertanyaan berdasarkan dokumen (e.g., "Apa isi kontrak saya?").
-4. **Chat Utama**: Antarmuka pusat seperti chatbot LLM, dengan tools tambahan:
-   - Tool Jadwal: Akses/mutasi data jadwal.
-   - Tool Keuangan: Query/transaksi keuangan.
-   - Tool Dokumen: Retrieval dan analisis dokumen dari VectorDB.
-   Semua fitur didukung LLM untuk pemrosesan bahasa alami, dengan fallback ke UI manual jika diperlukan.
+**Key Features**:
+1. **Schedule Management**: Users can add, edit, or delete schedules through chat (e.g., "Add meeting tomorrow at 10 AM"). Two-way synchronization with Google Calendar using API for real-time updates.
+2. **Financial Tracking**: Track income and expenses (e.g., "Record expense of $100 for food"). Monthly summary features, predictions, or alerts through LLM.
+3. **Personal Document Management**: Upload and embed documents (PDF, text) to VectorDB for semantic search. LLM can summarize or answer questions based on documents (e.g., "What's in my contract?").
+4. **Main Chat**: Central interface like LLM chatbot, with additional tools:
+   - Schedule Tool: Access/mutate schedule data.
+   - Finance Tool: Query/financial transactions.
+   - Document Tool: Retrieval and analysis of documents from VectorDB.
+   All features supported by LLM for natural language processing, with fallback to manual UI if needed.
 
-**Alur Pengguna**:
-- Login aman (OAuth atau email).
-- Menu utama: Chat window dengan prompt awal.
-- Pengguna bertanya/memerintah via teks (e.g., "Jadwalkan libur minggu depan dan catat pengeluaran hari ini").
-- LLM parse permintaan, panggil tools relevan, dan respons dengan hasil.
-- Dashboard samping untuk view manual (jadwal kalender, grafik keuangan, daftar dokumen).
+**User Flow**:
+- Secure login (OAuth or email).
+- Main menu: Chat window with initial prompt.
+- User asks/commands via text (e.g., "Schedule vacation next week and record today's expenses").
+- LLM parses request, calls relevant tools, and responds with results.
+- Side dashboard for manual view (calendar schedule, financial charts, document list).
 
-**Prinsip Desain**: User-centric, privasi-first (data disimpan lokal/encrypted), dan extensible (mudah tambah tools baru).
+**Design Principles**: User-centric, privacy-first (data stored locally/encrypted), and extensible (easy to add new tools).
 
-## Arsitektur Aplikasi
+## Application Architecture
 
-Arsitektur mengadopsi pola client-server dengan microservices untuk modulasi. Frontend berfokus pada UI interaktif, backend menangani logika bisnis, integrasi, dan LLM. Data flow: Pengguna → Frontend → Backend API → LLM/Tools → Respons.
+Architecture adopts client-server pattern with microservices for modulation. Frontend focuses on interactive UI, backend handles business logic, integration, and LLM. Data flow: User → Frontend → Backend API → LLM/Tools → Response.
 
-**Komponen Utama**:
+**Main Components**:
 1. **Frontend**:
-   - Framework: React.js (atau Vue.js) dengan state management (Redux) untuk chat real-time.
-   - UI: Chat interface (mirip WhatsApp), dashboard untuk fitur manual, upload dokumen.
-   - Integrasi: WebSocket untuk chat live, API calls ke backend.
+   - Framework: React.js (or Vue.js) with state management (Redux) for real-time chat.
+   - UI: Chat interface (similar to WhatsApp), dashboard for manual features, document upload.
+   - Integration: WebSocket for live chat, API calls to backend.
 
 2. **Backend**:
-   - Framework: Node.js dengan Express.
-   - API: RESTful endpoints untuk autentikasi, fitur (e.g., /schedule, /finance, /documents).
-   - LLM Integration: LangChain atau LlamaIndex untuk chaining LLM dengan tools custom (e.g., tool untuk query VectorDB atau Google API).
-   - Tools LLM: 
-     - Jadwal: Integrasi Google Calendar API (OAuth2 untuk auth).
-     - Keuangan: CRUD operations ke database.
-     - Dokumen: Embedding menggunakan model seperti Sentence Transformers, simpan ke VectorDB.
+   - Framework: Node.js with Express.
+   - API: RESTful endpoints for authentication, features (e.g., /schedule, /finance, /documents).
+   - LLM Integration: LangChain or LlamaIndex for chaining LLM with custom tools (e.g., tool for querying VectorDB or Google API).
+   - LLM Tools: 
+     - Schedule: Google Calendar API integration (OAuth2 for auth).
+     - Finance: CRUD operations to database.
+     - Documents: Embedding using models like Sentence Transformers, store to VectorDB.
 
 3. **Database**:
-   - Relational/NoSQL: MongoDB atau PostgreSQL untuk data struktural (jadwal, keuangan).
-   - VectorDB: ChromaDB (open-source) atau Pinecone untuk embedding dokumen (vektorisasi teks untuk RAG - Retrieval-Augmented Generation).
+   - Relational/NoSQL: MongoDB or PostgreSQL for structural data (schedules, finances).
+   - VectorDB: ChromaDB (open-source) or Pinecone for document embedding (text vectorization for RAG - Retrieval-Augmented Generation).
 
-4. **Integrasi Eksternal**:
-   - Google Calendar API: Untuk sync jadwal (gunakan Google SDK).
-   - LLM Provider: OpenAI API atau Hugging Face untuk model lokal (untuk privasi).
-   - Authentication: JWT atau Firebase Auth untuk keamanan.
-- **Messaging Apps**: Integrasi dengan Telegram Bot API dan WhatsApp Business API untuk memungkinkan interaksi chat melalui platform eksternal. Backend akan menangani webhook incoming dari kedua API ini, merutekan pesan ke LLM engine untuk pemrosesan, dan mengirim respons kembali.
+4. **External Integrations**:
+   - Google Calendar API: For schedule sync (use Google SDK).
+   - LLM Provider: OpenAI API or Hugging Face for local models (for privacy).
+   - Authentication: JWT or Firebase Auth for security.
+- **Messaging Apps**: Integration with Telegram Bot API and WhatsApp Business API to enable chat interaction through external platforms. Backend will handle incoming webhooks from both APIs, route messages to LLM engine for processing, and send responses back.
 
-**Diagram Arsitektur Tingkat Tinggi** (Deskripsi Teks):
+**High-Level Architecture Diagram** (Text Description):
 - **User** ↔ **Frontend (React)** ↔ **Backend (Node.js/Express)** 
   - Backend → **LLM Engine (LangChain)** → **Tools**:
     - **Schedule Tool** → Google Calendar API
     - **Finance Tool** → MongoDB
     - **Document Tool** → VectorDB (Chroma)
-- Data Flow: Permintaan chat dapat berasal dari frontend app, atau melalui integrasi messaging seperti Telegram/WhatsApp via webhook, diproses oleh LLM, yang memanggil tools jika diperlukan, lalu hasil dikembalikan ke sumber asal."
+- Data Flow: Chat requests can originate from frontend app, or through messaging integrations like Telegram/WhatsApp via webhook, processed by LLM, which calls tools if needed, then results are returned to original source.
 
-**Tech Stack Rekomendasi**:
-- Frontend: React, Tailwind CSS untuk UI modern.
+**Recommended Tech Stack**:
+- Frontend: React, Tailwind CSS for modern UI.
 - Backend: Node.js, LangChain.
 - Database: MongoDB + ChromaDB.
-- Deployment: Docker untuk containerization, hosting di Vercel/Heroku untuk awal.
-- Keamanan: HTTPS, encryption data sensitif, rate limiting API.
+- Deployment: Docker for containerization, hosting on Vercel/Heroku for start.
+- Security: HTTPS, sensitive data encryption, API rate limiting.
 
-**Pertimbangan Tambahan**:
-- **Skalabilitas**: Gunakan cloud services jika pengguna bertambah.
-- **Keamanan**: Semua data pribadi dienkripsi; akses Google via token sementara.
-- **Pengembangan**: Mulai dengan MVP (chat + satu fitur), lalu iterasi.
+**Additional Considerations**:
+- **Scalability**: Use cloud services if users increase.
+- **Security**: All personal data encrypted; Google access via temporary tokens.
+- **Development**: Start with MVP (chat + one feature), then iterate.

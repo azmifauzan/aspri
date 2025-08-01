@@ -1,25 +1,25 @@
-# Rencana Pengembangan ASPRI
+# ASPRI Development Plan
 
-Berikut adalah daftar tugas untuk pengembangan aplikasi ASPRI selanjutnya.
+Here is the task list for the next development of the ASPRI application.
 
 ## Frontend
-- [ ] Implementasi fungsionalitas autentikasi (Login & Daftar).
-- [ ] Hubungkan tombol CTA ke halaman pendaftaran/login yang sesuai.
-- [ ] Bangun halaman dashboard utama setelah pengguna login.
-- [ ] Kembangkan antarmuka chat yang fungsional dengan WebSocket.
-- [ ] Buat komponen UI untuk setiap fitur (Kalender, Keuangan, Dokumen).
-- [ ] Tambahkan state management (Redux atau Zustand) untuk mengelola data aplikasi.
+- [ ] Implement authentication functionality (Login & Register).
+- [ ] Connect CTA buttons to appropriate registration/login pages.
+- [ ] Build main dashboard page after user login.
+- [ ] Develop functional chat interface with WebSocket.
+- [ ] Create UI components for each feature (Calendar, Finance, Documents).
+- [ ] Add state management (Redux or Zustand) to manage application data.
 
 ## Backend
-- [ ] Siapkan server Node.js dengan Express atau FastAPI.
-- [ ] Buat endpoint API untuk autentikasi (JWT).
-- [ ] Implementasikan API untuk fitur Jadwal (integrasi Google Calendar).
-- [ ] Kembangkan API untuk fitur Keuangan (CRUD ke database).
-- [ ] Bangun API untuk unggah dan kelola dokumen (integrasi VectorDB).
-- [ ] Integrasikan LangChain/LlamaIndex untuk menghubungkan LLM dengan tools.
+- [ ] Set up Node.js server with Express or FastAPI.
+- [ ] Create API endpoints for authentication (JWT).
+- [ ] Implement API for Schedule feature (Google Calendar integration).
+- [ ] Develop API for Finance feature (CRUD to database).
+- [ ] Build API for document upload and management (VectorDB integration).
+- [ ] Integrate LangChain/LlamaIndex to connect LLM with tools.
 
-## Umum
-- [ ] Siapkan database (MongoDB/PostgreSQL dan ChromaDB).
-- [ ] Konfigurasi Docker untuk containerization.
-- [ ] Tulis unit tests dan integration tests untuk frontend dan backend.
-- [ ] Lakukan deployment awal ke platform seperti Vercel atau Heroku.
+## General
+- [ ] Set up database (MongoDB/PostgreSQL and ChromaDB).
+- [ ] Configure Docker for containerization.
+- [ ] Write unit tests and integration tests for frontend and backend.
+- [ ] Perform initial deployment to platforms like Vercel or Heroku.
