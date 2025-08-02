@@ -101,3 +101,37 @@ Jika Docker Compose tidak dapat dijalankan:
 1. Pastikan Docker Desktop berjalan dengan benar
 2. Periksa apakah Docker daemon berjalan
 3. Restart Docker Desktop jika perlu
+## 5. Setup Google OAuth
+
+Untuk menggunakan autentikasi Google, Anda perlu mengkonfigurasi Google OAuth:
+
+### Langkah 1: Buat Google OAuth Credentials
+1. Buka [Google Cloud Console](https://console.cloud.google.com/)
+2. Buat project baru atau pilih project yang sudah ada
+3. Aktifkan Google+ API atau Google Identity API
+4. Buka "Credentials" di sidebar
+5. Klik "Create Credentials" > "OAuth 2.0 Client IDs"
+6. Pilih "Web application"
+7. Tambahkan authorized redirect URIs:
+   - `http://localhost:3000` (untuk development frontend)
+   - Domain production Anda (untuk production)
+8. Salin Client ID yang dihasilkan
+
+### Langkah 2: Konfigurasi Environment
+1. Buka file `.env` di direktori backend
+2. Tambahkan GOOGLE_CLIENT_ID:
+   ```env
+   GOOGLE_CLIENT_ID=your-actual-google-client-id-here
+   ```
+
+### Langkah 3: Install Dependencies
+Pastikan dependencies Google Auth sudah terinstal:
+```bash
+pip install google-auth google-auth-oauthlib
+```
+
+### Langkah 4: Test Implementasi
+Fungsi `verify_google_token` sekarang menggunakan Google Auth library untuk:
+- Memverifikasi token OAuth dari Google
+- Mengekstrak informasi user (ID, email, nama, foto profil)
+- Memvalidasi bahwa token berasal dari Google

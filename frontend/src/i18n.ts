@@ -3,8 +3,8 @@ import { initReactI18next } from "react-i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 
 // import semua namespaces (di sini hanya 'common')
-import en from "@/locales/en/common.json";
-import id from "@/locales/id/common.json";
+import en from "./locales/en/common.json";
+import id from "./locales/id/common.json";
 
 i18n
   .use(LanguageDetector)

@@ -1,4 +1,4 @@
-import ChatBubble from "@/components/ChatBubble";
+import ChatBubble from "./ChatBubble";
 import { useTranslation } from "react-i18next";
 
 export default function ChatPreview() {

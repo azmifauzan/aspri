@@ -1,6 +1,6 @@
 // src/components/FeatureSection.tsx
 import { CalendarCheck, BarChart2, FileText, MessageCircle } from "lucide-react";
-import FeatureCard from "@/components/FeatureCard";
+import FeatureCard from "./FeatureCard";
 import { useTranslation } from "react-i18next";
 
 const coreFeatures = [

@@ -59,12 +59,45 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
     return int(payload.get("sub"))
 
 def verify_google_token(token: str):
-    """Verify Google OAuth token (placeholder - implement with Google's library)"""
-    # This is a placeholder. In production, you would use Google's library
-    # to verify the token and extract user information
-    # For now, we'll return mock data for development
-    return {
-        "sub": "google_user_id_123",
-        "email": "user@example.com",
-        "name": "John Doe"
-    }
+    """Verify Google OAuth token using Google's official library"""
+    try:
+        from google.oauth2 import id_token
+        from google.auth.transport import requests
+        
+        # Get Google OAuth client ID from environment
+        GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+        if not GOOGLE_CLIENT_ID:
+            raise ValueError("GOOGLE_CLIENT_ID environment variable is not set")
+        
+        # Verify the token
+        idinfo = id_token.verify_oauth2_token(
+            token, 
+            requests.Request(), 
+            GOOGLE_CLIENT_ID
+        )
+        
+        # Verify that the token is issued by Google
+        if idinfo['iss'] not in ['accounts.google.com', 'https://accounts.google.com']:
+            raise ValueError('Wrong issuer.')
+        
+        # Extract user information
+        return {
+            "sub": idinfo["sub"],  # Google user ID
+            "email": idinfo["email"],
+            "name": idinfo.get("name", ""),
+            "picture": idinfo.get("picture", ""),
+            "email_verified": idinfo.get("email_verified", False)
+        }
+        
+    except ValueError as e:
+        # Invalid token
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Invalid Google token: {str(e)}"
+        )
+    except Exception as e:
+        # Other errors
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Token verification failed: {str(e)}"
+        )

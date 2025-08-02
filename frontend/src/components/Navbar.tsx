@@ -2,8 +2,8 @@
 import { useState } from "react";
 import { Menu, X, User, LogOut } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import ThemeToggle from "@/components/ThemeToggle";
-import LangToggle from "@/components/LangToggle";
+import ThemeToggle from "./ThemeToggle";
+import LangToggle from "./LangToggle";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
 

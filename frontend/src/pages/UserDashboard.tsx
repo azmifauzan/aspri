@@ -14,6 +14,8 @@ import {
   Calendar,
   BarChart3
 } from 'lucide-react';
+import ThemeToggle from '../components/ThemeToggle';
+import LangToggle from '../components/LangToggle';
 
 const menuItems = [
   { id: 'dashboard', label: 'dashboard.menu.dashboard', icon: Home },
@@ -129,7 +131,14 @@ export default function UserDashboard() {
               </h1>
             </div>
             
-            <div className="flex items-center">
+            <div className="flex items-center space-x-4">
+              {/* Theme and Language toggles */}
+              <div className="flex items-center space-x-2">
+                <ThemeToggle />
+                <LangToggle />
+              </div>
+              
+              {/* User profile */}
               <div className="flex items-center">
                 <div className="w-8 h-8 rounded-full bg-brand flex items-center justify-center text-white font-bold">
                   {user.name ? user.name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}

@@ -1,7 +1,7 @@
 // src/components/ProblemSolution.tsx
 import { useTranslation } from "react-i18next";
 import { CalendarX, FileWarning, Wallet } from "lucide-react";
-import FeatureCard from "@/components/FeatureCard";
+import FeatureCard from "./FeatureCard";
 
 /* ── data ──────────────────────────────────────────────── */
 const features = [

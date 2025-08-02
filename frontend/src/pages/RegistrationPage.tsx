@@ -23,7 +23,7 @@ interface PersonaState {
 
 export default function RegistrationPage() {
   const navigate = useNavigate();
-  const { user, token } = useAuth();
+  const { user, token, updateUser } = useAuth();
   const { t } = useTranslation();
   
   const [formData, setFormData] = useState<RegistrationFormData>({
@@ -197,7 +197,8 @@ export default function RegistrationPage() {
       
       // Registration successful, update user context and redirect to dashboard
       if (response.data) {
-        // The AuthContext should automatically update when the user info changes
+        // Update the user state with the new data from registration
+        updateUser(response.data);
         navigate('/dashboard');
       }
     } catch (error: any) {

@@ -1,6 +1,6 @@
 // src/components/ThemeToggle.tsx
 import { Moon, Sun } from "lucide-react";
-import useDarkMode from "@/hooks/useDarkMode";
+import useDarkMode from "../hooks/useDarkMode";
 
 export default function ThemeToggle() {
   const [dark, setDark] = useDarkMode();

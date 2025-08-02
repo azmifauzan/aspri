@@ -1,5 +1,6 @@
 // src/contexts/AuthContext.tsx
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import axios from 'axios';
 
 interface User {
@@ -22,6 +23,7 @@ interface AuthContextType {
   token: string | null;
   login: (googleToken: string) => Promise<{ success: boolean; isRegistered: boolean; error?: string }>;
   logout: () => void;
+  updateUser: (userData: User) => void;
   isLoading: boolean;
 }
 
@@ -81,6 +83,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const updateUser = (userData: User) => {
+    setUser(userData);
+  };
+
   const logout = () => {
     setUser(null);
     setToken(null);
@@ -93,6 +99,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     token,
     login,
     logout,
+    updateUser,
     isLoading
   };
 
