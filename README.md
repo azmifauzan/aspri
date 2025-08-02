@@ -128,7 +128,7 @@ cp .env.example .env
 ### 5. Configure Environment Variables
 Edit `.env` file with your configuration:
 ```env
-DATABASE_URL=postgresql+asyncpg://username:password@localhost:5432/aspri_db
+DATABASE_URL=mysql+aiomysql://username:password@localhost:5432/aspri_db
 SECRET_KEY=your-super-secret-jwt-key-here
 GOOGLE_CLIENT_ID=your-google-client-id
 GOOGLE_CLIENT_SECRET=your-google-client-secret

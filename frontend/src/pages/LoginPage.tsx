@@ -99,7 +99,7 @@ export default function LoginPage() {
         </div>
 
         {/* Features Preview */}
-        <div className="mt-8 text-center">
+        {/* <div className="mt-8 text-center">
           <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-4">
             {t('auth.why_sign_in')}
           </h3>
@@ -117,7 +117,7 @@ export default function LoginPage() {
               {t('auth.feature_3')}
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
     </div>
   );

@@ -16,6 +16,11 @@ interface RegistrationFormData {
   aspri_persona: string;
 }
 
+interface PersonaState {
+  selectedOption: string;
+  customValue: string;
+}
+
 export default function RegistrationPage() {
   const navigate = useNavigate();
   const { user, token } = useAuth();
@@ -30,6 +35,11 @@ export default function RegistrationPage() {
     aspri_persona: ''
   });
   
+  const [personaState, setPersonaState] = useState<PersonaState>({
+    selectedOption: '',
+    customValue: ''
+  });
+  
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -39,6 +49,15 @@ export default function RegistrationPage() {
   }
   
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+  
+  // Predefined persona options
+  const personaOptions = [
+    { value: 'asisten_pria', label: t('register.aspri_persona_options.asisten_pria') },
+    { value: 'wanita', label: t('register.aspri_persona_options.wanita') },
+    { value: 'kucing', label: t('register.aspri_persona_options.kucing') },
+    { value: 'anjing', label: t('register.aspri_persona_options.anjing') },
+    { value: 'custom', label: t('register.aspri_persona_options.custom') }
+  ];
   
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -87,6 +106,65 @@ export default function RegistrationPage() {
       setErrors(prev => {
         const newErrors = { ...prev };
         delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
+  
+  const handlePersonaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedValue = e.target.value;
+    setPersonaState(prev => ({
+      ...prev,
+      selectedOption: selectedValue
+    }));
+    
+    // Update formData based on selection
+    if (selectedValue === 'custom') {
+      setFormData(prev => ({
+        ...prev,
+        aspri_persona: personaState.customValue
+      }));
+    } else if (selectedValue !== '') {
+      // Find the label for the selected option
+      const selectedOption = personaOptions.find(option => option.value === selectedValue);
+      setFormData(prev => ({
+        ...prev,
+        aspri_persona: selectedOption ? selectedOption.label : ''
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        aspri_persona: ''
+      }));
+    }
+    
+    // Clear error when user makes selection
+    if (errors.aspri_persona) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.aspri_persona;
+        return newErrors;
+      });
+    }
+  };
+  
+  const handleCustomPersonaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const customValue = e.target.value;
+    setPersonaState(prev => ({
+      ...prev,
+      customValue
+    }));
+    
+    setFormData(prev => ({
+      ...prev,
+      aspri_persona: customValue
+    }));
+    
+    // Clear error when user starts typing
+    if (errors.aspri_persona) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.aspri_persona;
         return newErrors;
       });
     }
@@ -269,22 +347,42 @@ export default function RegistrationPage() {
               {errors.aspri_name && <p className="mt-1 text-sm text-red-500">{errors.aspri_name}</p>}
             </div>
             
-            {/* ASPRI Persona */}
+            {/* ASPRI Persona - Updated with Dropdown */}
             <div>
               <label htmlFor="aspri_persona" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                 {t('register.aspri_persona')}
               </label>
-              <input
-                type="text"
+              <select
                 id="aspri_persona"
-                name="aspri_persona"
-                value={formData.aspri_persona}
-                onChange={handleChange}
+                value={personaState.selectedOption}
+                onChange={handlePersonaChange}
                 className={`w-full px-4 py-2 rounded-lg border ${
                   errors.aspri_persona ? 'border-red-500' : 'border-zinc-300 dark:border-zinc-600'
                 } bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-brand focus:border-transparent`}
-                placeholder={t('register.aspri_persona_placeholder')}
-              />
+              >
+                <option value="">{t('register.aspri_persona_placeholder')}</option>
+                {personaOptions.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              
+              {/* Custom Input Field - Shows when "custom" is selected */}
+              {personaState.selectedOption === 'custom' && (
+                <div className="mt-2">
+                  <input
+                    type="text"
+                    value={personaState.customValue}
+                    onChange={handleCustomPersonaChange}
+                    className={`w-full px-4 py-2 rounded-lg border ${
+                      errors.aspri_persona ? 'border-red-500' : 'border-zinc-300 dark:border-zinc-600'
+                    } bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-brand focus:border-transparent`}
+                    placeholder={t('register.custom_persona_placeholder')}
+                  />
+                </div>
+              )}
+              
               {errors.aspri_persona && <p className="mt-1 text-sm text-red-500">{errors.aspri_persona}</p>}
             </div>
             

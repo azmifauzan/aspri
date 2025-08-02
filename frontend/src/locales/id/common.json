@@ -99,6 +99,14 @@
         "aspri_name_placeholder": "Berikan nama untuk asisten AI Anda",
         "aspri_persona": "Kepribadian Asisten ASPRI",
         "aspri_persona_placeholder": "Deskripsikan kepribadian asisten AI Anda",
+        "aspri_persona_options": {
+            "asisten_pria": "Asisten Pria",
+            "wanita": "Wanita",
+            "kucing": "Kucing",
+            "anjing": "Anjing",
+            "custom": "Lainnya (tulis sendiri)"
+        },
+        "custom_persona_placeholder": "Masukkan kepribadian kustom Anda",
         "complete_registration": "Selesaikan Pendaftaran",
         "submitting": "Mengirim...",
         "errors": {

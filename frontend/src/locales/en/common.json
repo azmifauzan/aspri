@@ -99,6 +99,14 @@
         "aspri_name_placeholder": "Give your AI assistant a name",
         "aspri_persona": "ASPRI Assistant Persona",
         "aspri_persona_placeholder": "Describe your AI assistant's personality",
+        "aspri_persona_options": {
+            "asisten_pria": "Male Assistant",
+            "wanita": "Female",
+            "kucing": "Cat",
+            "anjing": "Dog",
+            "custom": "Other (write your own)"
+        },
+        "custom_persona_placeholder": "Enter your custom personality",
         "complete_registration": "Complete Registration",
         "submitting": "Submitting...",
         "errors": {
