@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
+import DocumentsPage from './DocumentsPage';
 import { 
   Home, 
   User, 
@@ -12,7 +13,8 @@ import {
   X,
   MessageSquare,
   Calendar,
-  BarChart3
+  BarChart3,
+  FileText
 } from 'lucide-react';
 import ThemeToggle from '../components/ThemeToggle';
 import LangToggle from '../components/LangToggle';
@@ -20,6 +22,7 @@ import LangToggle from '../components/LangToggle';
 const menuItems = [
   { id: 'dashboard', label: 'dashboard.menu.dashboard', icon: Home },
   { id: 'chat', label: 'dashboard.menu.chat', icon: MessageSquare },
+  { id: 'documents', label: 'dashboard.menu.documents', icon: FileText },
   { id: 'calendar', label: 'dashboard.menu.calendar', icon: Calendar },
   { id: 'analytics', label: 'dashboard.menu.analytics', icon: BarChart3 },
   { id: 'profile', label: 'dashboard.menu.profile', icon: User },
@@ -158,102 +161,115 @@ export default function UserDashboard() {
 
         {/* Dashboard content */}
         <main className="flex-1 p-4 md:p-6 overflow-y-auto">
-          <div className="max-w-4xl mx-auto">
-            <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm p-6 mb-6">
-              <h2 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">
-                {t('dashboard.welcome_back', { name: user.name || user.email })}
-              </h2>
-              <p className="text-zinc-600 dark:text-zinc-400 mb-6">
-                {t('dashboard.dashboard_description')}
-              </p>
-              
-              {/* User info card */}
-              <div className="border border-gray-200 dark:border-zinc-700 rounded-lg p-4 mb-6">
-                <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-3">
-                  {t('dashboard.user_info')}
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400">{t('register.name')}</p>
-                    <p className="font-medium text-zinc-900 dark:text-white">{user.name || '-'}</p>
+          {activeItem === 'dashboard' && (
+            <div className="max-w-4xl mx-auto">
+              <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm p-6 mb-6">
+                <h2 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">
+                  {t('dashboard.welcome_back', { name: user.name || user.email })}
+                </h2>
+                <p className="text-zinc-600 dark:text-zinc-400 mb-6">
+                  {t('dashboard.dashboard_description')}
+                </p>
+                
+                {/* User info card */}
+                <div className="border border-gray-200 dark:border-zinc-700 rounded-lg p-4 mb-6">
+                  <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-3">
+                    {t('dashboard.user_info')}
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-zinc-500 dark:text-zinc-400">{t('register.name')}</p>
+                      <p className="font-medium text-zinc-900 dark:text-white">{user.name || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-zinc-500 dark:text-zinc-400">{t('register.email')}</p>
+                      <p className="font-medium text-zinc-900 dark:text-white">{user.email}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-zinc-500 dark:text-zinc-400">{t('register.call_preference')}</p>
+                      <p className="font-medium text-zinc-900 dark:text-white">{user.call_preference || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-zinc-500 dark:text-zinc-400">{t('register.aspri_name')}</p>
+                      <p className="font-medium text-zinc-900 dark:text-white">{user.aspri_name || '-'}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400">{t('register.email')}</p>
-                    <p className="font-medium text-zinc-900 dark:text-white">{user.email}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400">{t('register.call_preference')}</p>
-                    <p className="font-medium text-zinc-900 dark:text-white">{user.call_preference || '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400">{t('register.aspri_name')}</p>
-                    <p className="font-medium text-zinc-900 dark:text-white">{user.aspri_name || '-'}</p>
+                </div>
+                
+                {/* Quick actions */}
+                <div>
+                  <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-3">
+                    {t('dashboard.quick_actions')}
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <button
+                      onClick={() => handleMenuClick('chat')}
+                      className="bg-brand/10 hover:bg-brand/20 border border-brand/20 rounded-lg p-4 text-center transition-colors"
+                    >
+                      <MessageSquare size={24} className="mx-auto mb-2 text-brand" />
+                      <span className="font-medium text-zinc-900 dark:text-white">{t('dashboard.menu.chat')}</span>
+                    </button>
+                    <button
+                      onClick={() => handleMenuClick('documents')}
+                      className="bg-brand/10 hover:bg-brand/20 border border-brand/20 rounded-lg p-4 text-center transition-colors"
+                    >
+                      <FileText size={24} className="mx-auto mb-2 text-brand" />
+                      <span className="font-medium text-zinc-900 dark:text-white">{t('dashboard.menu.documents')}</span>
+                    </button>
+                    <button
+                      onClick={() => handleMenuClick('profile')}
+                      className="bg-brand/10 hover:bg-brand/20 border border-brand/20 rounded-lg p-4 text-center transition-colors"
+                    >
+                      <User size={24} className="mx-auto mb-2 text-brand" />
+                      <span className="font-medium text-zinc-900 dark:text-white">{t('dashboard.menu.profile')}</span>
+                    </button>
                   </div>
                 </div>
               </div>
               
-              {/* Quick actions */}
-              <div>
-                <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-3">
-                  {t('dashboard.quick_actions')}
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <button 
-                    onClick={() => handleMenuClick('chat')}
-                    className="bg-brand/10 hover:bg-brand/20 border border-brand/20 rounded-lg p-4 text-center transition-colors"
-                  >
-                    <MessageSquare size={24} className="mx-auto mb-2 text-brand" />
-                    <span className="font-medium text-zinc-900 dark:text-white">{t('dashboard.menu.chat')}</span>
-                  </button>
-                  <button 
-                    onClick={() => handleMenuClick('calendar')}
-                    className="bg-brand/10 hover:bg-brand/20 border border-brand/20 rounded-lg p-4 text-center transition-colors"
-                  >
-                    <Calendar size={24} className="mx-auto mb-2 text-brand" />
-                    <span className="font-medium text-zinc-900 dark:text-white">{t('dashboard.menu.calendar')}</span>
-                  </button>
-                  <button 
-                    onClick={() => handleMenuClick('profile')}
-                    className="bg-brand/10 hover:bg-brand/20 border border-brand/20 rounded-lg p-4 text-center transition-colors"
-                  >
-                    <User size={24} className="mx-auto mb-2 text-brand" />
-                    <span className="font-medium text-zinc-900 dark:text-white">{t('dashboard.menu.profile')}</span>
-                  </button>
+              {/* Stats section */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm p-6">
+                  <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">
+                    {t('dashboard.conversations')}
+                  </h3>
+                  <p className="text-3xl font-bold text-brand">12</p>
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+                    {t('dashboard.in_the_last_30_days')}
+                  </p>
+                </div>
+                <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm p-6">
+                  <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">
+                    {t('dashboard.tasks_completed')}
+                  </h3>
+                  <p className="text-3xl font-bold text-brand">8</p>
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+                    {t('dashboard.in_the_last_30_days')}
+                  </p>
+                </div>
+                <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm p-6">
+                  <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">
+                    {t('dashboard.satisfaction')}
+                  </h3>
+                  <p className="text-3xl font-bold text-brand">94%</p>
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+                    {t('dashboard.user_rating')}
+                  </p>
                 </div>
               </div>
             </div>
-            
-            {/* Stats section */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm p-6">
-                <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">
-                  {t('dashboard.conversations')}
-                </h3>
-                <p className="text-3xl font-bold text-brand">12</p>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-                  {t('dashboard.in_the_last_30_days')}
-                </p>
-              </div>
-              <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm p-6">
-                <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">
-                  {t('dashboard.tasks_completed')}
-                </h3>
-                <p className="text-3xl font-bold text-brand">8</p>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-                  {t('dashboard.in_the_last_30_days')}
-                </p>
-              </div>
-              <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm p-6">
-                <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">
-                  {t('dashboard.satisfaction')}
-                </h3>
-                <p className="text-3xl font-bold text-brand">94%</p>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-                  {t('dashboard.user_rating')}
-                </p>
-              </div>
+          )}
+
+          {/* Documents Page */}
+          {activeItem === 'documents' && (
+            <div className="w-full">
+              {/* Import and use DocumentsPage component */}
+              {/* @ts-ignore */}
+              <DocumentsPage />
             </div>
-          </div>
+          )}
+
+          {/* Other pages will be added here */}
         </main>
       </div>
 

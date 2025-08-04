@@ -1,9 +1,9 @@
 # app/db/models/user.py
 from sqlalchemy import String, Integer, Boolean, Date
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 from datetime import date
-from typing import Optional
+from typing import Optional, List
 
 class User(Base):
     __tablename__ = "users"
@@ -26,3 +26,8 @@ class User(Base):
     # Timestamps
     created_at: Mapped[date] = mapped_column(Date, nullable=False)
     updated_at: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    
+    # Relationships
+    documents: Mapped[List["Document"]] = relationship(
+        "Document", back_populates="user", cascade="all, delete-orphan"
+    )

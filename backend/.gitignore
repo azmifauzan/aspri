@@ -1,3 +1,28 @@
 .env
-.pytest_cache/
+
+# Byte-compiled / optimized / DLL files
 __pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+alembic/__pycache__/
+app/__pycache__/
+app/db/__pycache__/
+app/schemas/__pycache__/
+app/services/__pycache__/
+app/db/models/__pycache__/
+app/api/__pycache__/
+app/core/__pycache__/
+scripts/__pycache__/
+tests/__pycache__/
+
+# Pytest
+.cache
+.pytest_cache/
+
+# mypy
+.mypy_cache/
+
+# Alembic
+alembic/versions/*.pyc
+alembic/versions/__pycache__/
