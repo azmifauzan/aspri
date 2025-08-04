@@ -1,137 +1,292 @@
-# Cara Menjalankan Backend ASPRI
+# Cara Menjalankan Backend ASPRI (Refactored Version)
 
-## Masalah yang Diketahui
+## Perubahan Terbaru
 
-Saat ini ada beberapa masalah dengan environment pengembangan:
+Backend ASPRI telah direfactor dengan perubahan signifikan:
 
-1. Environment conda `aspri-backend` tidak dapat diaktifkan dengan benar
-2. Python tidak terinstal dengan benar di sistem
-3. Perintah Docker Compose dibatasi
+1. **Embedding Model**: Beralih dari OpenAI ke LangChain Google GenAI
+2. **Document Storage**: Beralih dari database ke MinIO object storage
+3. **Vector Storage**: Beralih dari MariaDB ke ChromaDB
+4. **Configuration Management**: Sistem konfigurasi untuk file limits
+5. **Sync Operations**: Update/delete dokumen sekarang sync dengan ChromaDB
 
-## Solusi yang Disarankan
+## Prerequisites
 
-### 1. Menggunakan Docker (Direkomendasikan)
+### 1. MinIO Setup
+MinIO diperlukan untuk penyimpanan dokumen:
 
-Jika Docker Desktop berjalan dengan benar, Anda dapat menjalankan backend dengan perintah berikut:
+```bash
+# Download dan jalankan MinIO server
+# Windows
+curl -O https://dl.min.io/server/minio/release/windows-amd64/minio.exe
+./minio.exe server ./minio-data --console-address ":9001"
+
+# Linux/macOS
+wget https://dl.min.io/server/minio/release/linux-amd64/minio
+chmod +x minio
+./minio server ./minio-data --console-address ":9001"
+
+# Atau menggunakan Docker
+docker run -p 9000:9000 -p 9001:9001 \
+  -e "MINIO_ROOT_USER=minioadmin" \
+  -e "MINIO_ROOT_PASSWORD=minioadmin" \
+  -v ./minio-data:/data \
+  minio/minio server /data --console-address ":9001"
+```
+
+### 2. Google AI API Key
+Dapatkan API key dari Google AI Studio:
+1. Buka [Google AI Studio](https://aistudio.google.com/)
+2. Buat project baru atau pilih yang sudah ada
+3. Generate API key
+4. Simpan API key untuk konfigurasi environment
+### 3. ChromaDB Setup
+ChromaDB server harus berjalan terpisah:
+
+```bash
+# Install ChromaDB server
+pip install chromadb
+
+# Jalankan ChromaDB server
+chroma run --host localhost --port 8000
+
+# Atau menggunakan Docker
+docker run -p 8000:8000 chromadb/chroma:latest
+```
+
+## Setup Instructions
+
+### 1. Environment Setup
 
 ```bash
 cd backend
-docker-compose up -d
 ```
 
-Perintah ini akan menjalankan dua layanan:
-- Database MariaDB
-- Backend FastAPI
+Copy template environment variables:
+```bash
+cp .env.template .env
+```
 
-### 2. Menggunakan Virtual Environment Python Standar
-
-Jika Anda ingin menjalankan backend secara langsung dengan Python:
-
-1. Pastikan Python 3.11+ terinstal dengan benar
-2. Buat virtual environment:
-   ```bash
-   cd backend
-   python -m venv venv
-   # Windows
-   venv\Scripts\activate
-   # macOS/Linux
-   source venv/bin/activate
-   ```
-
-3. Instal dependensi:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. Pastikan file `.env` sudah dibuat dengan konfigurasi yang benar (lihat `.env.example`)
-
-5. Jalankan migrasi database:
-   ```bash
-   alembic upgrade head
-   ```
-
-6. Jalankan server:
-   ```bash
-   uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-   ```
-
-### 3. Konfigurasi Environment Variables
-
-Pastikan file `backend/.env` berisi konfigurasi berikut:
-
+Edit file `.env` dengan konfigurasi Anda:
 ```env
 # Database Configuration
 DATABASE_URL=mysql+aiomysql://aspri_user:aspri_password@localhost:3306/aspri_db
 
 # JWT Configuration
-SECRET_KEY=your-super-secret-jwt-key-here-change-in-production
+SECRET_KEY=your-super-secret-jwt-key-here
+ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 
 # Google OAuth Configuration
-GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your-google-client-secret
 
-# Application Configuration
-DEBUG=True
-ENVIRONMENT=development
+# Google AI Configuration (untuk LangChain GenAI embeddings)
+GOOGLE_API_KEY=your-google-ai-api-key-here
+
+# MinIO Configuration
+MINIO_ENDPOINT=localhost:9000
+MINIO_ACCESS_KEY=minioadmin
+MINIO_SECRET_KEY=minioadmin
+MINIO_SECURE=false
+MINIO_BUCKET_NAME=documents
+
+# ChromaDB Configuration
+CHROMADB_HOST=localhost
+CHROMADB_PORT=8000
+CHROMADB_COLLECTION_NAME=document_embeddings
 ```
 
-### 4. Troubleshooting
+### 2. Install Dependencies
 
-#### Masalah dengan Conda Environment
-Jika Anda mengalami masalah dengan conda environment:
-1. Pastikan conda sudah diinisialisasi dengan benar:
-   ```bash
-   conda init
-   ```
-2. Restart terminal Anda
-3. Aktifkan environment:
-   ```bash
-   conda activate aspri-backend
-   ```
-
-#### Masalah dengan Python
-Jika Python tidak ditemukan:
-1. Pastikan Python terinstal dari python.org atau Microsoft Store
-2. Tambahkan Python ke PATH environment variable
-3. Restart terminal Anda
-
-#### Masalah dengan Docker
-Jika Docker Compose tidak dapat dijalankan:
-1. Pastikan Docker Desktop berjalan dengan benar
-2. Periksa apakah Docker daemon berjalan
-3. Restart Docker Desktop jika perlu
-## 5. Setup Google OAuth
-
-Untuk menggunakan autentikasi Google, Anda perlu mengkonfigurasi Google OAuth:
-
-### Langkah 1: Buat Google OAuth Credentials
-1. Buka [Google Cloud Console](https://console.cloud.google.com/)
-2. Buat project baru atau pilih project yang sudah ada
-3. Aktifkan Google+ API atau Google Identity API
-4. Buka "Credentials" di sidebar
-5. Klik "Create Credentials" > "OAuth 2.0 Client IDs"
-6. Pilih "Web application"
-7. Tambahkan authorized redirect URIs:
-   - `http://localhost:3000` (untuk development frontend)
-   - Domain production Anda (untuk production)
-8. Salin Client ID yang dihasilkan
-
-### Langkah 2: Konfigurasi Environment
-1. Buka file `.env` di direktori backend
-2. Tambahkan GOOGLE_CLIENT_ID:
-   ```env
-   GOOGLE_CLIENT_ID=your-actual-google-client-id-here
-   ```
-
-### Langkah 3: Install Dependencies
-Pastikan dependencies Google Auth sudah terinstal:
 ```bash
-pip install google-auth google-auth-oauthlib
+# Buat virtual environment
+python -m venv venv
+
+# Aktifkan virtual environment
+# Windows
+venv\Scripts\activate
+# macOS/Linux
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
 ```
 
-### Langkah 4: Test Implementasi
-Fungsi `verify_google_token` sekarang menggunakan Google Auth library untuk:
-- Memverifikasi token OAuth dari Google
-- Mengekstrak informasi user (ID, email, nama, foto profil)
-- Memvalidasi bahwa token berasal dari Google
+### 3. Database Migration
+
+Jalankan migrasi database untuk menerapkan perubahan model:
+
+```bash
+# Jalankan migrasi
+alembic upgrade head
+
+# Initialize default configurations
+python scripts/init_config.py
+```
+
+### 4. Start Services
+
+Pastikan semua layanan eksternal berjalan:
+
+1. **Database** (MariaDB/MySQL)
+2. **MinIO Server** (port 9000)
+3. **ChromaDB Server** (port 8000)
+
+### 5. Run Backend
+
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port 8888 --reload
+```
+
+## API Endpoints Baru
+
+### Configuration Management
+
+- `GET /config/limits` - Mendapatkan batas file dan dokumen
+- `GET /config/{config_key}` - Mendapatkan nilai konfigurasi
+- `PUT /config/{config_key}` - Update nilai konfigurasi
+
+### Document API (Updated)
+
+Semua endpoint dokumen tetap sama, tetapi sekarang:
+- Dokumen disimpan di MinIO (bukan database)
+- Embeddings disimpan di ChromaDB (bukan MariaDB)
+- Ada pengecekan batas file size dan jumlah dokumen
+- Update/delete dokumen otomatis sync dengan ChromaDB
+
+## Configuration Defaults
+
+Konfigurasi default yang diatur:
+
+- `max_file_size_bytes`: 52,428,800 (50MB)
+- `max_documents_per_user`: 100
+- `minio_bucket_name`: "documents"
+- `chromadb_collection_name`: "document_embeddings"
+
+## Troubleshooting
+
+### MinIO Connection Issues
+```bash
+# Periksa apakah MinIO berjalan
+curl http://localhost:9000/minio/health/live
+
+# Periksa bucket
+curl -X GET http://localhost:9000/documents \
+  -H "Authorization: AWS4-HMAC-SHA256 ..."
+```
+
+### ChromaDB Issues
+```bash
+# Pastikan ChromaDB server berjalan
+curl http://localhost:8000/api/v1/heartbeat
+
+# Periksa collections
+curl http://localhost:8000/api/v1/collections
+
+# Restart ChromaDB server jika ada masalah
+chroma run --host localhost --port 8000
+```
+
+### Google AI API Issues
+```bash
+# Test API key
+curl -X POST "https://generativelanguage.googleapis.com/v1beta/models/embedding-001:embedContent?key=YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "models/embedding-001", "content": {"parts": [{"text": "test"}]}}'
+```
+
+### Migration Issues
+```bash
+# Jika ada masalah dengan migrasi, reset database
+alembic downgrade base
+alembic upgrade head
+python scripts/init_config.py
+```
+
+## Docker Compose (Updated)
+
+Untuk menjalankan semua layanan dengan Docker:
+
+```yaml
+# docker-compose.yml akan diupdate untuk include MinIO
+version: '3.8'
+services:
+  db:
+    image: mariadb:10.6
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: aspri_db
+      MYSQL_USER: aspri_user
+      MYSQL_PASSWORD: aspri_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+  chromadb:
+    image: chromadb/chroma:latest
+    ports:
+      - "8000:8000"
+    environment:
+      CHROMA_SERVER_HOST: 0.0.0.0
+      CHROMA_SERVER_PORT: 8000
+    volumes:
+      - chromadb_data:/chroma/chroma
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+
+  backend:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: mysql+aiomysql://aspri_user:aspri_password@db:3306/aspri_db
+      MINIO_ENDPOINT: minio:9000
+      CHROMADB_HOST: chromadb
+      CHROMADB_PORT: 8000
+    depends_on:
+      - db
+      - minio
+      - chromadb
+    volumes:
+      - .:/app
+
+volumes:
+  mariadb_data:
+  minio_data:
+  chromadb_data:
+```
+
+## Testing
+
+Setelah setup selesai, test API:
+
+```bash
+# Health check
+curl http://localhost:8000/health
+
+# Get document limits
+curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  http://localhost:8000/config/limits
+
+# Upload document (akan disimpan ke MinIO dan embeddings ke ChromaDB)
+curl -X POST http://localhost:8000/documents/upload \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -F "file=@test_document.pdf"
+```

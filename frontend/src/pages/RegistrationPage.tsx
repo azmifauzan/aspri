@@ -52,7 +52,7 @@ export default function RegistrationPage() {
   
   // Predefined persona options
   const personaOptions = [
-    { value: 'asisten_pria', label: t('register.aspri_persona_options.asisten_pria') },
+    { value: 'pria', label: t('register.aspri_persona_options.pria') },
     { value: 'wanita', label: t('register.aspri_persona_options.wanita') },
     { value: 'kucing', label: t('register.aspri_persona_options.kucing') },
     { value: 'anjing', label: t('register.aspri_persona_options.anjing') },

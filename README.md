@@ -7,7 +7,11 @@ ASPRI is an AI-based personal assistant that helps users manage their daily live
 - **Google OAuth Authentication**: Secure login using Google accounts
 - **JWT Token-based Security**: Protected API endpoints with JWT tokens
 - **User Registration System**: Complete profile setup with personal preferences
-- **PostgreSQL Database**: Reliable data storage with async operations
+- **Document Management**: Upload, process, and search documents with AI embeddings
+- **Vector Search**: Semantic search through documents using ChromaDB
+- **Object Storage**: Scalable document storage with MinIO
+- **Configuration Management**: Configurable file size and document limits
+- **MariaDB Database**: Reliable data storage with async operations
 - **RESTful API**: Well-structured API endpoints for frontend integration
 - **Chat-first Interface**: All features accessible through conversation
 - **Personal Data Management**: Schedules, finances, and documents
@@ -149,10 +153,10 @@ alembic upgrade head
 ### 7. Start the Server
 ```bash
 # Development server
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8888
 
 # Production server
-uvicorn app.main:app --host 0.0.0.0 --port 8000
+uvicorn app.main:app --host 0.0.0.0 --port 8888
 ```
 
 ## API Endpoints
@@ -335,7 +339,7 @@ RUN pip install -r requirements.txt
 COPY . .
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8888"]
 ```
 
 ### Environment Variables for Production

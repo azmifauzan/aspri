@@ -1,10 +1,9 @@
 # app/db/models/document.py
-from sqlalchemy import String, Integer, ForeignKey, Text, LargeBinary, DateTime, func
+from sqlalchemy import String, Integer, ForeignKey, Text, DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 from datetime import datetime
 from typing import Optional, List
-import numpy as np
 
 class Document(Base):
     __tablename__ = "documents"
@@ -17,8 +16,8 @@ class Document(Base):
     file_type: Mapped[str] = mapped_column(String(50), nullable=False)  # PDF, DOCX, etc.
     file_size: Mapped[int] = mapped_column(Integer, nullable=False)  # Size in bytes
     
-    # Original content storage (optional, could store in file system instead)
-    content_blob: Mapped[Optional[bytes]] = mapped_column(LargeBinary, nullable=True)
+    # MinIO object storage reference
+    minio_object_name: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(
@@ -29,13 +28,8 @@ class Document(Base):
     )
     
     # Relationships
-    chunks: Mapped[List["DocumentChunk"]] = relationship(
-        "DocumentChunk", back_populates="document", cascade="all, delete-orphan"
-    )
-    
-    # Relationship with User
     user = relationship("User", back_populates="documents")
-
+    chunks: Mapped[List["DocumentChunk"]] = relationship("DocumentChunk", back_populates="document", cascade="all, delete-orphan")
 
 class DocumentChunk(Base):
     __tablename__ = "document_chunks"
@@ -46,12 +40,6 @@ class DocumentChunk(Base):
     # Chunk content and metadata
     chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
     chunk_text: Mapped[str] = mapped_column(Text, nullable=False)
-    
-    # Vector embedding storage as JSON string (compatible with all databases)
-    # Using 1536 dimensions for OpenAI text-embedding-3-small model
-    embedding_vector: Mapped[Optional[str]] = mapped_column(
-        Text, nullable=True
-    )
     
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(

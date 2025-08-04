@@ -12,15 +12,13 @@ import {
   Image,
   Trash2,
   Edit,
-  Download,
-  Plus,
   X,
   Check,
   Loader2
 } from 'lucide-react';
 
 // API base URL
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8888';
 
 // Document types and icons
 const documentIcons: Record<string, any> = {
@@ -43,6 +41,7 @@ interface Document {
   file_size: number;
   created_at: string;
   updated_at: string;
+  minio_object_name: string;
 }
 
 // Search result interface

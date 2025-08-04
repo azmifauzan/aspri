@@ -39,15 +39,21 @@ alembic==1.13.3
 email-validator==2.1.0
 google-auth==2.40.3
 google-auth-oauthlib==1.2.2
-# OpenAI client for embeddings
-openai==1.57.0
+
 # Document processing and vector embeddings
-# Note: If you encounter installation issues, try installing these packages separately
-# or use conda install for some packages that might have better conda support
-langchain==0.1.12
-langchain-community==0.0.28
-langchain-text-splitters==0.0.1
-langchain-core==0.1.31
+langchain==0.3.27
+langchain-community==0.3.27
+langchain-text-splitters==0.3.9
+langchain-core==0.3.72
+langchain-google-genai==2.1.8
 numpy==1.26.4
 pypdf==4.2.0
 docx2txt==0.8
+# MinIO for object storage
+minio==7.2.8
+
+# ChromaDB for vector database
+chromadb==1.0.15
+
+# OpenAI for LangChain-GenAI (already included langchain-google-genai)
+openai==1.58.1

@@ -1,6 +1,6 @@
 # app/services/document_service.py
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete, func, text
+from sqlalchemy import select, delete, func
 from sqlalchemy.orm import selectinload
 import base64
 import io
@@ -8,8 +8,6 @@ import os
 import tempfile
 import numpy as np
 import mimetypes
-import json
-import os
 from typing import List, Optional, Tuple, Dict, Any
 from datetime import datetime
 from dotenv import load_dotenv
@@ -21,34 +19,67 @@ load_dotenv()
 from app.db.models.document import Document, DocumentChunk
 from app.schemas.document import DocumentUpload, DocumentUpdate, DocumentSearchQuery
 
+# Services
+from app.services.config_service import ConfigService
+from app.services.minio_service import MinIOService
+from app.services.chromadb_service import ChromaDBService
+
 # Langchain imports
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader, Docx2txtLoader, TextLoader
 
-# OpenAI client
-import openai
+# LangChain GenAI for embeddings
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
 class DocumentService:
     def __init__(self, db: AsyncSession):
         self.db = db
-        # Initialize the OpenAI client
-        self.openai_client = openai.OpenAI(
-            api_key=os.getenv("OPENAI_API_KEY", "your-openai-api-key-here")
-        )
-        self.embedding_model = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
+        self.config_service = ConfigService(db)
+        self.minio_service = MinIOService()
+        self.chromadb_service = ChromaDBService()
         
-    def _get_embedding(self, text: str) -> List[float]:
-        """Get embedding for text using OpenAI"""
+        # Initialize LangChain GenAI embeddings
+        self.embedding_model = GoogleGenerativeAIEmbeddings(
+            model="models/gemini-embedding-001",
+            google_api_key=os.getenv("GOOGLE_API_KEY", "your-google-api-key-here")
+        )
+        
+    async def _get_embedding(self, text: str) -> List[float]:
+        """Get embedding for text using LangChain GenAI"""
         try:
-            response = self.openai_client.embeddings.create(
-                input=text,
-                model=self.embedding_model
-            )
-            return response.data[0].embedding
+            embeddings = await self.embedding_model.aembed_query(text)
+            return embeddings
         except Exception as e:
             print(f"Error getting embedding: {e}")
             # Fallback to zeros if embedding fails
-            return [0.0] * 1536  # OpenAI embeddings are 1536-dimensional
+            return [0.0] * 768  # Google embeddings are 768-dimensional
+    
+    async def _check_limits(self, user_id: int, file_size: int) -> Dict[str, Any]:
+        """Check if file size and document count limits are exceeded"""
+        limits = await self.config_service.get_document_limits()
+        
+        # Check file size limit
+        if file_size > limits["max_file_size_bytes"]:
+            return {
+                "valid": False,
+                "error": f"File size ({file_size} bytes) exceeds maximum allowed size ({limits['max_file_size_bytes']} bytes)"
+            }
+        
+        # Check document count limit
+        current_count = await self._get_user_document_count(user_id)
+        if current_count >= limits["max_documents_per_user"]:
+            return {
+                "valid": False,
+                "error": f"Document count ({current_count}) exceeds maximum allowed documents ({limits['max_documents_per_user']})"
+            }
+        
+        return {"valid": True}
+    
+    async def _get_user_document_count(self, user_id: int) -> int:
+        """Get current document count for user"""
+        query = select(func.count()).select_from(Document).where(Document.user_id == user_id)
+        result = await self.db.execute(query)
+        return result.scalar_one()
     
     async def create_document(self, user_id: int, document_data: DocumentUpload) -> Document:
         """Create a new document with chunks and embeddings"""
@@ -56,13 +87,17 @@ class DocumentService:
         file_content = base64.b64decode(document_data.file_content)
         file_size = len(file_content)
         
+        # Check limits
+        limit_check = await self._check_limits(user_id, file_size)
+        if not limit_check["valid"]:
+            raise ValueError(limit_check["error"])
+        
         # Create document record
         document = Document(
             user_id=user_id,
             filename=document_data.filename,
             file_type=document_data.file_type,
             file_size=file_size,
-            content_blob=file_content,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow()
         )
@@ -70,15 +105,44 @@ class DocumentService:
         self.db.add(document)
         await self.db.flush()  # Get the document ID
         
-        # Process document content, create chunks and embeddings
-        chunks = await self._process_document(document.id, file_content, document_data.file_type)
-        
-        # Add all chunks to the database
-        self.db.add_all(chunks)
-        await self.db.commit()
-        await self.db.refresh(document)
-        
-        return document
+        try:
+            # Upload to MinIO
+            minio_object_name = await self.minio_service.upload_document(
+                user_id, document.id, document_data.filename, file_content
+            )
+            document.minio_object_name = minio_object_name
+            
+            # Process document content, create chunks and embeddings
+            chunks_data = await self._process_document(document.id, file_content, document_data.file_type, user_id)
+            
+            # Store embeddings in ChromaDB
+            await self.chromadb_service.add_document_embeddings(document.id, chunks_data)
+            
+            # Create document chunks in database (without embeddings)
+            chunks = []
+            for chunk_data in chunks_data:
+                chunk = DocumentChunk(
+                    document_id=document.id,
+                    chunk_index=chunk_data['chunk_index'],
+                    chunk_text=chunk_data['chunk_text'],
+                    created_at=datetime.utcnow()
+                )
+                chunks.append(chunk)
+            
+            # Add all chunks to the database
+            self.db.add_all(chunks)
+            await self.db.commit()
+            await self.db.refresh(document)
+            
+            return document
+            
+        except Exception as e:
+            # Rollback on error
+            await self.db.rollback()
+            # Clean up MinIO if upload was successful
+            if hasattr(document, 'minio_object_name') and document.minio_object_name:
+                await self.minio_service.delete_document(document.minio_object_name)
+            raise e
     
     async def get_document(self, document_id: int, user_id: int) -> Optional[Document]:
         """Get a document by ID for a specific user"""
@@ -118,12 +182,69 @@ class DocumentService:
         return documents, total_count
     
     async def update_document(self, document_id: int, user_id: int, document_data: DocumentUpdate) -> Optional[Document]:
-        """Update document metadata"""
+        """Update document metadata and re-process if content changed"""
         document = await self.get_document(document_id, user_id)
         if not document:
             return None
+        
+        # Check if file content is being updated
+        if hasattr(document_data, 'file_content') and document_data.file_content:
+            # Decode new file content
+            file_content = base64.b64decode(document_data.file_content)
+            file_size = len(file_content)
             
-        # Update fields if provided
+            # Check limits
+            limit_check = await self._check_limits(user_id, file_size)
+            if not limit_check["valid"]:
+                raise ValueError(limit_check["error"])
+            
+            try:
+                # Delete old embeddings from ChromaDB
+                await self.chromadb_service.delete_document_embeddings(document_id)
+                
+                # Delete old document chunks from database
+                await self.db.execute(
+                    delete(DocumentChunk).where(DocumentChunk.document_id == document_id)
+                )
+                
+                # Upload new content to MinIO
+                if document.minio_object_name:
+                    await self.minio_service.delete_document(document.minio_object_name)
+                
+                minio_object_name = await self.minio_service.upload_document(
+                    user_id, document_id, document_data.filename or document.filename, file_content
+                )
+                document.minio_object_name = minio_object_name
+                document.file_size = file_size
+                
+                # Process new document content
+                chunks_data = await self._process_document(
+                    document_id, file_content, 
+                    document_data.file_type or document.file_type, 
+                    user_id
+                )
+                
+                # Store new embeddings in ChromaDB
+                await self.chromadb_service.add_document_embeddings(document_id, chunks_data)
+                
+                # Create new document chunks in database
+                chunks = []
+                for chunk_data in chunks_data:
+                    chunk = DocumentChunk(
+                        document_id=document_id,
+                        chunk_index=chunk_data['chunk_index'],
+                        chunk_text=chunk_data['chunk_text'],
+                        created_at=datetime.utcnow()
+                    )
+                    chunks.append(chunk)
+                
+                self.db.add_all(chunks)
+                
+            except Exception as e:
+                await self.db.rollback()
+                raise e
+        
+        # Update metadata fields if provided
         if document_data.filename is not None:
             document.filename = document_data.filename
             
@@ -134,54 +255,43 @@ class DocumentService:
         return document
     
     async def delete_document(self, document_id: int, user_id: int) -> bool:
-        """Delete a document and its chunks"""
+        """Delete a document and its chunks from all storage systems"""
         document = await self.get_document(document_id, user_id)
         if not document:
             return False
-            
-        await self.db.delete(document)
-        await self.db.commit()
         
-        return True
+        try:
+            # Delete embeddings from ChromaDB
+            await self.chromadb_service.delete_document_embeddings(document_id)
+            
+            # Delete document from MinIO
+            if document.minio_object_name:
+                await self.minio_service.delete_document(document.minio_object_name)
+            
+            # Delete from database (cascades to chunks)
+            await self.db.delete(document)
+            await self.db.commit()
+            
+            return True
+            
+        except Exception as e:
+            await self.db.rollback()
+            print(f"Error deleting document: {e}")
+            return False
     
     async def search_documents(self, user_id: int, search_query: DocumentSearchQuery) -> List[Dict[str, Any]]:
-        """Search for documents using vector similarity with in-memory calculation"""
+        """Search for documents using vector similarity with ChromaDB"""
         # Get query embedding
-        query_embedding = np.array(self._get_embedding(search_query.query))
+        query_embedding = await self._get_embedding(search_query.query)
         
-        # Get all document chunks for the user
-        query = select(DocumentChunk).join(Document).where(
-            Document.user_id == user_id,
-            DocumentChunk.embedding_vector.isnot(None)
+        # Search in ChromaDB
+        search_results = await self.chromadb_service.search_similar_chunks(
+            query_embedding, user_id, search_query.limit
         )
         
-        result = await self.db.execute(query)
-        chunks = result.scalars().all()
-        
-        # Calculate similarities in memory
-        search_results = []
-        for chunk in chunks:
-            if chunk.embedding_vector:
-                # Deserialize the stored embedding
-                chunk_embedding = self._deserialize_embedding(chunk.embedding_vector)
-                if chunk_embedding is not None:
-                    # Calculate cosine similarity
-                    similarity = self._calculate_similarity(query_embedding, chunk_embedding)
-                    
-                    search_results.append({
-                        "document_id": chunk.document_id,
-                        "chunk_id": chunk.id,
-                        "chunk_text": chunk.chunk_text,
-                        "similarity_score": float(similarity),
-                        "document_filename": chunk.document.filename,
-                        "document_file_type": chunk.document.file_type
-                    })
-        
-        # Sort by similarity score (descending) and limit results
-        search_results.sort(key=lambda x: x["similarity_score"], reverse=True)
-        return search_results[:search_query.limit]
+        return search_results
     
-    async def _process_document(self, document_id: int, file_content: bytes, file_type: str) -> List[DocumentChunk]:
+    async def _process_document(self, document_id: int, file_content: bytes, file_type: str, user_id: int) -> List[Dict[str, Any]]:
         """Process document content, split into chunks, and create embeddings"""
         # Extract text from document based on file type
         text = await self._extract_text(file_content, file_type)
@@ -195,23 +305,21 @@ class DocumentService:
         chunks = text_splitter.split_text(text)
         
         # Create document chunks with embeddings
-        document_chunks = []
+        chunks_data = []
         for i, chunk_text in enumerate(chunks):
             # Create embedding for chunk
-            embedding = self._get_embedding(chunk_text)
-            embedding_bytes = self._serialize_embedding(np.array(embedding))
+            embedding = await self._get_embedding(chunk_text)
             
-            # Create chunk object
-            chunk = DocumentChunk(
-                document_id=document_id,
-                chunk_index=i,
-                chunk_text=chunk_text,
-                embedding_vector=embedding_bytes,
-                created_at=datetime.utcnow()
-            )
-            document_chunks.append(chunk)
+            chunk_data = {
+                "chunk_index": i,
+                "chunk_text": chunk_text,
+                "embedding": embedding,
+                "user_id": user_id,
+                "document_id": document_id
+            }
+            chunks_data.append(chunk_data)
             
-        return document_chunks
+        return chunks_data
     
     async def _extract_text(self, file_content: bytes, file_type: str) -> str:
         """Extract text from different file types"""
@@ -250,24 +358,6 @@ class DocumentService:
             # Clean up temporary file
             if os.path.exists(temp_path):
                 os.unlink(temp_path)
-    
-    def _serialize_embedding(self, embedding: np.ndarray) -> str:
-        """Serialize numpy array to JSON string for MariaDB vector storage"""
-        # Convert to list and then to JSON string
-        return json.dumps(embedding.tolist())
-    
-    def _deserialize_embedding(self, embedding_json: str) -> np.ndarray:
-        """Deserialize JSON string back to numpy array"""
-        if embedding_json:
-            return np.array(json.loads(embedding_json), dtype=np.float32)
-        return None
-    
-    def _calculate_similarity(self, embedding1: np.ndarray, embedding2: np.ndarray) -> float:
-        """Calculate cosine similarity between two embeddings"""
-        # This is now handled by MariaDB's vector functions, but keeping for reference
-        if embedding1 is None or embedding2 is None:
-            return 0.0
-        return np.dot(embedding1, embedding2) / (np.linalg.norm(embedding1) * np.linalg.norm(embedding2))
     
     def _get_mime_type_from_extension(self, file_type: str) -> str:
         """Get MIME type from file extension as fallback"""

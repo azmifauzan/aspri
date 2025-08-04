@@ -13,7 +13,6 @@ import {
   X,
   MessageSquare,
   Calendar,
-  BarChart3,
   FileText
 } from 'lucide-react';
 import ThemeToggle from '../components/ThemeToggle';
@@ -24,7 +23,6 @@ const menuItems = [
   { id: 'chat', label: 'dashboard.menu.chat', icon: MessageSquare },
   { id: 'documents', label: 'dashboard.menu.documents', icon: FileText },
   { id: 'calendar', label: 'dashboard.menu.calendar', icon: Calendar },
-  { id: 'analytics', label: 'dashboard.menu.analytics', icon: BarChart3 },
   { id: 'profile', label: 'dashboard.menu.profile', icon: User },
   { id: 'settings', label: 'dashboard.menu.settings', icon: Settings },
 ];
@@ -38,7 +36,7 @@ export default function UserDashboard() {
 
   const handleLogout = () => {
     logout();
-    navigate('/');
+    navigate('/#home');
   };
 
   const handleMenuClick = (itemId: string) => {
@@ -224,37 +222,6 @@ export default function UserDashboard() {
                       <span className="font-medium text-zinc-900 dark:text-white">{t('dashboard.menu.profile')}</span>
                     </button>
                   </div>
-                </div>
-              </div>
-              
-              {/* Stats section */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm p-6">
-                  <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">
-                    {t('dashboard.conversations')}
-                  </h3>
-                  <p className="text-3xl font-bold text-brand">12</p>
-                  <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-                    {t('dashboard.in_the_last_30_days')}
-                  </p>
-                </div>
-                <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm p-6">
-                  <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">
-                    {t('dashboard.tasks_completed')}
-                  </h3>
-                  <p className="text-3xl font-bold text-brand">8</p>
-                  <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-                    {t('dashboard.in_the_last_30_days')}
-                  </p>
-                </div>
-                <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm p-6">
-                  <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">
-                    {t('dashboard.satisfaction')}
-                  </h3>
-                  <p className="text-3xl font-bold text-brand">94%</p>
-                  <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-                    {t('dashboard.user_rating')}
-                  </p>
                 </div>
               </div>
             </div>
