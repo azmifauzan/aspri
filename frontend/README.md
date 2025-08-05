@@ -5,25 +5,28 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue.svg)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-3-blue.svg)](https://tailwindcss.com/)
 
-Aspri is a personal assistant application that helps you manage your schedule, finances, and documents.
+This is the frontend for the Aspri personal assistant application. It provides a modern and responsive user interface for interacting with the Aspri backend.
 
 ## Key Features
 
-- **Smart Scheduling:** Add, edit, and sync events with Google Calendar.
-- **Smart Email:** Read and Send email with Google Mail.
-- **Smart Contact:** Add, edit, and sync contact with Google Contact.
-- **Financial Insights:** Track income and expenses, with AI-powered monthly summaries.
-- **Intelligent Document Analysis:** Upload PDFs and ask questions to get instant answers from an LLM.
-- **Chat-based Interface:** Interact with the assistant through a simple and intuitive chat interface.
+- **Authentication**: Secure login and registration using Google OAuth.
+- **Dashboard**: A user-friendly dashboard to access all features.
+- **Document Management**: Upload, view, and manage your documents.
+- **Chat Interface**: Interact with the AI assistant through a real-time chat interface.
+- **Internationalization**: Support for multiple languages using i18next.
+- **Responsive Design**: A clean and responsive UI built with Tailwind CSS.
 
 ## Technology Stack
 
-- [React](https://reactjs.org/)
-- [Vite](https://vitejs.dev/)
-- [TypeScript](https://www.typescriptlang.org/)
-- [Tailwind CSS](https://tailwindcss.com/)
-- [i18next](https://www.i18next.com/)
-- [Lucide React](https://lucide.dev/guide/react)
+- **React**: A JavaScript library for building user interfaces.
+- **Vite**: Next-generation frontend tooling for a fast development experience.
+- **TypeScript**: A typed superset of JavaScript that compiles to plain JavaScript.
+- **Tailwind CSS**: A utility-first CSS framework for rapid UI development.
+- **React Router**: For client-side routing.
+- **@react-oauth/google**: To handle Google OAuth integration.
+- **i18next**: An internationalization-framework written in and for JavaScript.
+- **axios**: A promise-based HTTP client for making API requests.
+- **Lucide React**: A library of simply beautiful open-source icons.
 
 ## Getting Started
 
@@ -31,23 +34,32 @@ To get a local copy up and running, follow these simple steps.
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/en/)
-- [npm](https://www.npmjs.com/)
+- Node.js (v18+ recommended)
+- npm
 
 ### Installation
 
-1.  Clone the repo
+1.  Navigate to the `frontend` directory:
     ```sh
-    git clone https://github.com/your_username_/Project-Name.git
+    cd frontend
     ```
-2.  Install NPM packages
+2.  Install NPM packages:
     ```sh
     npm install
     ```
-3.  Start the development server
+3.  Set up your environment variables by creating a `.env` file. You can copy the example file:
+    ```sh
+    cp .env.example .env
+    ```
+    Then, add your Google Client ID to the `.env` file:
+    ```env
+    VITE_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+    ```
+4.  Start the development server:
     ```sh
     npm run dev
     ```
+    The application will be available at `http://localhost:5173`.
 
 ## Contributing
 

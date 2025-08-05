@@ -54,6 +54,7 @@ minio==7.2.8
 # ChromaDB for vector database
 chromadb==1.0.15
 
-# OpenAI for LangChain-GenAI (already included langchain-google-genai)
+# Google AI for LangChain
+langchain-google-genai
+google-generativeai
 openai==1.58.1
-google-generativeai==0.8.5
