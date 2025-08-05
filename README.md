@@ -16,15 +16,6 @@ ASPRI is an AI-based personal assistant that helps users manage their daily live
 - **Chat-first Interface**: All features accessible through conversation
 - **Personal Data Management**: Schedules, finances, and documents
 
-### Frontend
-- **React.js**: Modern JavaScript library for building user interfaces
-- **TypeScript**: Strongly typed programming language that builds on JavaScript
-- **Vite**: Next generation frontend tooling
-- **Tailwind CSS**: Utility-first CSS framework
-- **React Router**: Declarative routing for React
-- **React OAuth**: Google OAuth integration
-- **i18next**: Internationalization framework
-
 ## Tech Stack
 
 ### Backend
