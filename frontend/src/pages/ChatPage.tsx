@@ -72,10 +72,14 @@ export default function ChatPage() {
       });
       setSessions(response.data.sessions);
       
-      // Set the first session as current if available and no session is currently selected
-      if (response.data.sessions.length > 0 && !currentSession) {
-        setCurrentSession(response.data.sessions[0]);
-        setMessages(response.data.sessions[0].messages ?? []);
+      // If there's no active session, create a new one
+      if (response.data.sessions.length === 0) {
+        createNewSession();
+      } else {
+        // Otherwise, select the most recent session
+        const sortedSessions = response.data.sessions.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+        setCurrentSession(sortedSessions[0]);
+        loadMessagesForSession(sortedSessions[0].id);
       }
     } catch (error: any) {
       console.error('Error loading chat sessions:', error);
@@ -249,7 +253,7 @@ export default function ChatPage() {
     
     <div className="flex h-full bg-gray-50 dark:bg-zinc-900">
       {/* Sidebar for chat sessions */}
-      {/* <div className="w-64 bg-white dark:bg-zinc-800 border-r border-gray-200 dark:border-zinc-700 flex flex-col">
+      <div className="w-64 bg-white dark:bg-zinc-800 border-r border-gray-200 dark:border-zinc-700 flex flex-col">
         <div className="p-4 border-b border-gray-200 dark:border-zinc-700">
           <h2 className="text-lg font-bold text-zinc-900 dark:text-white mb-2">
             {t('dashboard.menu.chat')}
@@ -258,7 +262,7 @@ export default function ChatPage() {
             onClick={createNewSession}
             className="w-full flex items-center justify-center gap-2 bg-brand hover:bg-brand/90 text-white py-2 px-4 rounded-lg transition-colors"
           >
-            <Plus size={16} />
+            <Send size={16} />
             {t('chat.new_chat')}
           </button>
         </div>
@@ -292,7 +296,7 @@ export default function ChatPage() {
             </div>
           ))}
         </div>
-      </div> */}
+      </div>
 
       {/* Main chat area */}
       <div className="flex-1 flex flex-col">
