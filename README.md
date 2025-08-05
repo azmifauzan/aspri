@@ -4,38 +4,50 @@ ASPRI is an AI-based personal assistant that helps users manage their daily live
 
 ## Features
 
-- **Google OAuth Authentication**: Secure login using Google accounts
-- **JWT Token-based Security**: Protected API endpoints with JWT tokens
-- **User Registration System**: Complete profile setup with personal preferences
-- **Document Management**: Upload, process, and search documents with AI embeddings
-- **Vector Search**: Semantic search through documents using ChromaDB
-- **Object Storage**: Scalable document storage with MinIO
-- **Configuration Management**: Configurable file size and document limits
-- **MariaDB Database**: Reliable data storage with async operations
-- **RESTful API**: Well-structured API endpoints for frontend integration
-- **Chat-first Interface**: All features accessible through conversation
-- **Personal Data Management**: Schedules, finances, and documents
+- **Google OAuth Authentication**: Secure login using Google accounts.
+- **JWT Token-based Security**: Protected API endpoints with JWT tokens.
+- **User Registration System**: Complete profile setup with personal preferences.
+- **Document Management**: Upload, process, and search documents.
+- **Vector Search**: Semantic search through documents using ChromaDB.
+- **Object Storage**: Scalable document storage with MinIO.
+- **Configuration Management**: Configurable file size and document limits.
+- **MariaDB Database**: Reliable data storage with async operations using MariaDB.
+- **RESTful API**: Well-structured API endpoints for frontend integration.
+- **Chat-first Interface**: All features accessible through conversation, powered by Google Gemini.
+
+### Frontend
+- **React.js**: Modern JavaScript library for building user interfaces.
+- **TypeScript**: Strongly typed programming language that builds on JavaScript.
+- **Vite**: Next generation frontend tooling.
+- **Tailwind CSS**: Utility-first CSS framework.
+- **React Router**: Declarative routing for React.
+- **React OAuth**: Google OAuth integration.
+- **i18next**: Internationalization framework.
 
 ## Tech Stack
 
 ### Backend
-- **FastAPI**: Modern, fast web framework for building APIs
-- **PostgreSQL**: Robust relational database
-- **SQLAlchemy**: Python SQL toolkit and ORM with async support
-- **Alembic**: Database migration tool
-- **JWT**: JSON Web Tokens for authentication
-- **Google OAuth 2.0**: Secure authentication with Google
+- **FastAPI**: Modern, fast web framework for building APIs.
+- **MariaDB**: Robust relational database.
+- **SQLAlchemy**: Python SQL toolkit and ORM with async support.
+- **Alembic**: Database migration tool.
+- **MinIO**: High-performance, S3 compatible object storage.
+- **ChromaDB**: AI-native open-source embedding database.
+- **LangChain**: Framework for developing applications powered by language models.
+- **Google Generative AI**: For AI-powered chat and embeddings.
+- **JWT**: JSON Web Tokens for authentication.
+- **Google OAuth 2.0**: Secure authentication with Google.
 
-### Dependencies
-- `fastapi`: Web framework
-- `uvicorn`: ASGI server
-- `sqlalchemy`: ORM with async support
-- `asyncpg`: PostgreSQL adapter
-- `python-jose`: JWT handling
-- `passlib`: Password hashing
-- `python-multipart`: Form data parsing
-- `alembic`: Database migrations
-- `google-auth`: Google OAuth verification
+### Frontend
+- **React**: A JavaScript library for building user interfaces.
+- **Vite**: Next-generation frontend tooling.
+- **TypeScript**: A typed superset of JavaScript.
+- **Tailwind CSS**: A utility-first CSS framework.
+- **React Router**: Declarative routing for React.
+- **@react-oauth/google**: Google OAuth integration.
+- **i18next**: Internationalization framework.
+- **axios**: Promise-based HTTP client.
+- **Lucide React**: Simply beautiful open-source icons.
 
 ## Project Structure
 
@@ -43,315 +55,122 @@ ASPRI is an AI-based personal assistant that helps users manage their daily live
 backend/
 ├── app/
 │   ├── api/
-│   │   └── auth.py              # Authentication endpoints
+│   │   ├── auth.py          # Authentication endpoints
+│   │   ├── chat.py          # Chat endpoints
+│   │   ├── config.py        # Configuration endpoints
+│   │   └── document.py      # Document management endpoints
 │   ├── core/
-│   │   └── auth.py              # JWT and OAuth utilities
+│   │   └── auth.py          # JWT and OAuth utilities
 │   ├── db/
-│   │   ├── base.py              # SQLAlchemy base class
-│   │   ├── database.py          # Database configuration
-│   │   └── models/
-│   │       └── user.py          # User model
+│   │   ├── models/
+│   │   │   ├── user.py      # User model
+│   │   │   ├── chat.py      # Chat models
+│   │   │   ├── document.py  # Document model
+│   │   │   └── config.py    # Configuration model
+│   │   └── ...
 │   ├── schemas/
-│   │   └── user.py              # Pydantic models
+│   │   └── ...
 │   ├── services/
-│   │   └── user_service.py      # User business logic
-│   └── main.py                  # FastAPI application
-├── alembic/                     # Database migrations
-├── requirements.txt             # Python dependencies
-├── .env.example                 # Environment variables template
-└── alembic.ini                  # Alembic configuration
-```
-
-### Frontend
-```
-frontend/
-├── public/                      # Static assets
-├── src/
-│   ├── components/              # Reusable UI components
-│   ├── contexts/                # React contexts (AuthContext)
-│   ├── hooks/                   # Custom React hooks
-│   ├── locales/                 # Translation files
-│   ├── pages/                  # Page components
-│   ├── App.tsx                 # Main application component
-│   ├── main.tsx                # Entry point
-│   └── index.css               # Global styles
-├── index.html                  # HTML entry point
-├── package.json                # Frontend dependencies
-├── tsconfig.json              # TypeScript configuration
-└── vite.config.ts             # Vite configuration
+│   │   └── ...
+│   └── main.py              # FastAPI application
+├── alembic/                 # Database migrations
+├── docker-compose.yml       # Docker orchestration
+├── requirements.txt         # Python dependencies
+└── .env.template            # Environment variables template
 ```
 
 ## Installation & Setup
 
-### Prerequisites
+We recommend using Docker Compose for the easiest setup.
+
+### Option 1: Docker Compose (Recommended)
+
+**Prerequisites:**
+- Docker
+- Docker Compose
+
+**Steps:**
+1.  **Clone the repository:**
+    ```bash
+    git clone <repository-url>
+    cd aspri
+    ```
+2.  **Configure Environment Variables:**
+    - Navigate to the `backend` directory: `cd backend`
+    - Copy the example environment file: `cp .env.template .env`
+    - Edit the `.env` file with your credentials (Google OAuth, Google AI API Key, etc.).
+    - Navigate to the `frontend` directory: `cd ../frontend`
+    - Copy the example environment file: `cp .env.example .env`
+    - Edit the `.env` file with your Google Client ID.
+
+3.  **Run Docker Compose:**
+    From the `backend` directory, run:
+    ```bash
+    docker-compose up --build
+    ```
+    This will build the images and start all services: the backend app, MariaDB, MinIO, and ChromaDB. The backend will be accessible at `http://localhost:8888`.
+
+### Option 2: Manual Setup
+
+**Prerequisites:**
 - Python 3.11+
-- PostgreSQL 12+
-- Google Cloud Console project (for OAuth)
+- Node.js (v18+)
+- MariaDB (or MySQL)
+- MinIO Server
+- ChromaDB Server
 
-### 1. Clone the Repository
-```bash
-git clone <repository-url>
-cd aspri/backend
-```
-
-### 2. Create Virtual Environment
-```bash
-python -m venv venv
-# On Windows
-venv\Scripts\activate
-# On macOS/Linux
-source venv/bin/activate
-```
-
-### 3. Install Dependencies
-```bash
-pip install -r requirements.txt
-```
-
-### 4. Database Setup
-```bash
-# Create PostgreSQL database
-createdb aspri_db
-
-# Set up environment variables
-cp .env.example .env
-# Edit .env with your database credentials
-```
-
-**Important Security Note**: We've removed all `.env` files from the git history to resolve GitHub's secret scanning violations. Please see [Environment Variables Setup](docs/ENVIRONMENT_VARIABLES.md) for detailed instructions on setting up your environment variables.
-
-### 5. Configure Environment Variables
-Edit `.env` file with your configuration:
-```env
-DATABASE_URL=mysql+aiomysql://username:password@localhost:5432/aspri_db
-SECRET_KEY=your-super-secret-jwt-key-here
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
-```
-
-### 6. Run Database Migrations
-```bash
-# Initialize Alembic (if not already done)
-alembic init alembic
-
-# Create initial migration
-alembic revision --autogenerate -m "Initial migration"
-
-# Run migrations
-alembic upgrade head
-```
-
-### 7. Start the Server
-```bash
-# Development server
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8888
-
-# Production server
-uvicorn app.main:app --host 0.0.0.0 --port 8888
-```
+For detailed instructions on setting up the backend manually, please refer to `backend/RUNNING_BACKEND.md`.
 
 ## API Endpoints
 
-### Authentication Endpoints
+### Authentication
+- `POST /auth/login`: Login with Google OAuth token.
+- `POST /auth/register`: Complete user registration.
+- `GET /auth/me`: Get current user information.
 
-#### POST `/auth/login`
-Login with Google OAuth token
-```json
-{
-  "google_token": "google_oauth_token_here"
-}
-```
+### Chat
+- `POST /chat/sessions`: Create a new chat session.
+- `GET /chat/sessions`: Get all chat sessions for the current user.
+- `POST /chat/sessions/{session_id}/messages`: Send a message in a chat session.
 
-Response:
-```json
-{
-  "access_token": "jwt_token_here",
-  "token_type": "bearer",
-  "user": {
-    "id": 1,
-    "email": "user@example.com",
-    "is_registered": false
-  },
-  "is_registered": false
-}
-```
+### Documents
+- `POST /documents/upload`: Upload a document.
+- `GET /documents`: Get a list of uploaded documents.
+- `GET /documents/{document_id}`: Download a document.
+- `DELETE /documents/{document_id}`: Delete a document.
 
-#### POST `/auth/register` (Protected)
-Complete user registration
-```json
-{
-  "name": "John Doe",
-  "birth_date": 15,
-  "birth_month": 6,
-  "call_preference": "John",
-  "aspri_name": "Alex",
-  "aspri_persona": "Friendly and helpful assistant"
-}
-```
-
-#### GET `/auth/me` (Protected)
-Get current user information
-
-Response:
-```json
-{
-  "id": 1,
-  "email": "user@example.com",
-  "google_id": "google_oauth_id",
-  "name": "John Doe",
-  "birth_date": 15,
-  "birth_month": 6,
-  "call_preference": "John",
-  "aspri_name": "Alex",
-  "aspri_persona": "Friendly and helpful assistant",
-  "is_registered": true,
-  "created_at": "2023-01-01",
-  "updated_at": "2023-01-02"
-}
-```
-
-### Other Endpoints
-
-#### GET `/`
-API root endpoint with basic information
-
-#### GET `/health`
-Health check endpoint
-
-## Google OAuth Setup
-
-**Important Security Note**: Never commit your Google OAuth credentials to the repository. These should be stored in `.env` files which are ignored by git. See [Environment Variables Setup](docs/ENVIRONMENT_VARIABLES.md) for more details.
-
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select existing one
-3. Enable Google+ API
-4. Create OAuth 2.0 credentials
-5. Add authorized redirect URIs
-6. Copy Client ID and Client Secret to `.env`
+### Configuration
+- `GET /config/limits`: Get file and document limits.
+- `PUT /config/{config_key}`: Update a configuration value.
 
 ## Database Schema
 
-### Users Table
-- `id`: Primary key
-- `email`: User email (unique)
-- `google_id`: Google OAuth ID (unique)
-- `name`: Full name
-- `birth_date`: Day of birth (1-31)
-- `birth_month`: Month of birth (1-12)
-- `call_preference`: Preferred name
-- `aspri_name`: AI assistant name
-- `aspri_persona`: AI assistant personality
-- `is_registered`: Registration completion status
-- `created_at`: Account creation date
-- `updated_at`: Last update date
+### `users` table
+- `id`, `email`, `google_id`, `name`, `birth_date`, `birth_month`, `call_preference`, `aspri_name`, `aspri_persona`, `is_registered`, `created_at`, `updated_at`
 
-## Frontend Implementation
+### `documents` table
+- `id`, `user_id`, `filename`, `s3_path`, `file_size`, `file_type`, `created_at`
 
-### Authentication Flow
-1. User clicks "Login" button on Navbar
-2. Redirected to LoginPage (/login)
-3. User clicks "Sign in with Google" button
-4. Google OAuth flow opens popup for authentication
-5. After successful Google login, frontend receives credential token
-6. Frontend sends token to backend `/auth/login` endpoint
-7. Backend verifies token and creates user if needed
-8. Backend returns JWT token and user information
-9. If user.is_registered is false, redirect to RegistrationPage (/register)
-10. If user.is_registered is true, redirect to UserDashboard (/dashboard)
+### `chat_sessions` table
+- `id`, `user_id`, `session_name`, `created_at`
 
-### Registration Flow
-1. User fills registration form with required information
-2. Form validation ensures all fields are properly filled
-3. On submit, data is sent to backend `/auth/register` endpoint
-4. Backend updates user information and sets is_registered to true
-5. User is redirected to UserDashboard (/dashboard)
+### `chat_messages` table
+- `id`, `session_id`, `message`, `is_from_user`, `created_at`
 
-### Dashboard Features
-1. Responsive sidebar navigation with menu items
-2. User profile information display
-3. Quick action buttons for main features
-4. Statistics overview
-5. Logout functionality that clears JWT token
-
-## Development
-
-### Running Tests
-```bash
-# Install test dependencies
-pip install pytest pytest-asyncio httpx
-
-# Run tests
-pytest
-```
-
-### Database Migrations
-```bash
-# Create new migration
-alembic revision --autogenerate -m "Description of changes"
-
-# Apply migrations
-alembic upgrade head
-
-# Rollback migration
-alembic downgrade -1
-```
-
-### Code Formatting
-```bash
-# Install formatting tools
-pip install black isort
-
-# Format code
-black .
-isort .
-```
-
-## Security Considerations
-
-- JWT tokens expire after 30 minutes
-- All API endpoints (except login) require authentication
-- Google OAuth tokens are verified server-side
-- Database credentials should be kept secure
-- Use HTTPS in production
-- Configure CORS properly for production
-- Environment variables with secrets are ignored by git and removed from git history
-- See [Environment Variables Setup](docs/ENVIRONMENT_VARIABLES.md) for detailed security guidelines
+### `configurations` table
+- `id`, `key`, `value`, `description`
 
 ## Deployment
+This application is designed to be deployed using Docker. The `backend/docker-compose.yml` file provides a starting point for orchestrating the necessary services in a production-like environment. Ensure you use strong, unique secrets and configure networking and volumes appropriately for your production setup.
 
-### Docker Deployment
-```dockerfile
-FROM python:3.11-slim
-
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-
-COPY . .
-EXPOSE 8888
-
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8888"]
-```
-
-### Environment Variables for Production
-- Set strong `SECRET_KEY`
-- Configure proper `DATABASE_URL`
-- Set up Google OAuth credentials
-- Configure CORS origins
-- Enable HTTPS
+For a detailed guide on running the backend, see `backend/RUNNING_BACKEND.md`.
+For a guide on the chat feature, see `docs/CHAT_FEATURE.md`.
+For a guide on environment variables, see `docs/ENVIRONMENT_VARIABLES.md`.
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests
-5. Submit a pull request
+Contributions are welcome! Please fork the repository and create a pull request with your changes.
 
 ## License
 
 This project is licensed under the MIT License.
-
-## Support
-
-For support and questions, please create an issue in the repository.
