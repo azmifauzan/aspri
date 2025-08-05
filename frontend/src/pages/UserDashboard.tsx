@@ -28,57 +28,12 @@ const menuItems = [
 ];
 
 export default function UserDashboard() {
-  const { user, logout, checkTokenValidity } = useAuth();
+  const { user, logout } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeItem, setActiveItem] = useState('dashboard');
-  const [isValidating, setIsValidating] = useState(true);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
-
-  // Check JWT validity on component mount only
-  useEffect(() => {
-    const validateToken = async () => {
-      const isValid = await checkTokenValidity();
-      if (!isValid) {
-        console.log('Token validation failed, redirecting to landing page...');
-        navigate('/');
-        return;
-      }
-      setIsValidating(false);
-    };
-
-    validateToken();
-  }, [checkTokenValidity, navigate]);
-
-  // Check token validity when user interacts with the app (focus/visibility change)
-  useEffect(() => {
-    const handleVisibilityChange = async () => {
-      if (!document.hidden) {
-        // Only check when user comes back to the tab
-        const isValid = await checkTokenValidity();
-        if (!isValid) {
-          navigate('/');
-        }
-      }
-    };
-
-    const handleFocus = async () => {
-      // Check when user focuses on the window
-      const isValid = await checkTokenValidity();
-      if (!isValid) {
-        navigate('/');
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, [checkTokenValidity, navigate]);
 
   const handleLogout = () => {
     logout();
@@ -104,21 +59,10 @@ export default function UserDashboard() {
     // In a real app, you would navigate to the appropriate page or component
   };
 
-  // Show loading while validating token
-  if (isValidating) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-zinc-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand mx-auto mb-4"></div>
-          <p className="text-zinc-600 dark:text-zinc-400">{t('dashboard.validating_session')}</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Redirect to login if user is not authenticated
   if (!user) {
-    navigate('/');
+    // This should technically not be reached if ProtectedRoute is used,
+    // but as a fallback, we can show a loading state or redirect.
+    // For now, let's assume ProtectedRoute does its job and user is always available.
     return null;
   }
 

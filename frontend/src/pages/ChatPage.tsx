@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import ChatBubble from '../components/ChatBubble';
-import { Send, Search, FileText, X } from 'lucide-react';
+import { Send, Search, FileText, X, Clock } from 'lucide-react';
 import axios from 'axios';
 
 // Define types based on backend schemas
@@ -71,12 +71,6 @@ export default function ChatPage() {
         }
       });
       setSessions(response.data.sessions);
-      
-      // Set the first session as current if available and no session is currently selected
-      if (response.data.sessions.length > 0 && !currentSession) {
-        setCurrentSession(response.data.sessions[0]);
-        setMessages(response.data.sessions[0].messages ?? []);
-      }
     } catch (error: any) {
       console.error('Error loading chat sessions:', error);
       const errorMessage = error.response?.data?.detail || error.message || 'Failed to load chat sessions';
@@ -102,29 +96,11 @@ export default function ChatPage() {
     }
   };
 
-  const createNewSession = async () => {
-    console.log('Creating new session');
-    try {
-      const response = await axios.post<ChatSession>(`${API_BASE_URL}/chat/sessions`, {
-        title: t('chat.new_chat') || 'New Chat'
-      }, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        }
-      });
-      
-      const newSession = {
-        ...response.data,
-        messages: []
-      };
-      setSessions([newSession, ...sessions]);
-      setCurrentSession(newSession);
-      setMessages([]);
-    } catch (error: any) {
-      console.error('Error creating new session:', error);
-      const errorMessage = error.response?.data?.detail || error.message || 'Failed to create new session';
-      setError(errorMessage);
-      console.error('Error details:', errorMessage);
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInputText(e.target.value);
+    if (!currentSession && e.target.value.length > 0) {
+      // Hide history view when user starts typing a new message
+      setCurrentSession({} as ChatSession); // Set a dummy session to hide history
     }
   };
 
@@ -136,13 +112,13 @@ export default function ChatPage() {
       return;
     }
 
-    // If there's no current session, create one first
+    // If there's no current session, or it's a dummy session, create one first
     let sessionToSendTo = currentSession;
-    if (!sessionToSendTo) {
+    if (!sessionToSendTo || !sessionToSendTo.id) {
       try {
         console.log('No current session, creating new session');
         const response = await axios.post<ChatSession>(`${API_BASE_URL}/chat/sessions`, {
-          title: t('chat.new_chat') || 'New Chat'
+          title: inputText.substring(0, 30) // Use first 30 chars of message as title
         }, {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -237,7 +213,7 @@ export default function ChatPage() {
 
   const activateSession = (session: ChatSession) => {
     setCurrentSession(session);
-    setMessages(session.messages ?? []);
+    loadMessagesForSession(session.id);
   };
 
   // Redirect to login if user is not authenticated
@@ -246,62 +222,15 @@ export default function ChatPage() {
   }
 
   return (
-    
-    <div className="flex h-full bg-gray-50 dark:bg-zinc-900">
-      {/* Sidebar for chat sessions */}
-      {/* <div className="w-64 bg-white dark:bg-zinc-800 border-r border-gray-200 dark:border-zinc-700 flex flex-col">
-        <div className="p-4 border-b border-gray-200 dark:border-zinc-700">
-          <h2 className="text-lg font-bold text-zinc-900 dark:text-white mb-2">
-            {t('dashboard.menu.chat')}
-          </h2>
-          <button
-            onClick={createNewSession}
-            className="w-full flex items-center justify-center gap-2 bg-brand hover:bg-brand/90 text-white py-2 px-4 rounded-lg transition-colors"
-          >
-            <Plus size={16} />
-            {t('chat.new_chat')}
-          </button>
-        </div>
-        
-        <div className="flex-1 overflow-y-auto">
-          {sessions.map((session) => (
-            <div
-              key={session.id}
-              onClick={() => activateSession(session)}
-              className={`p-4 border-b border-gray-100 dark:border-zinc-700 cursor-pointer transition-colors ${
-                currentSession?.id === session.id
-                  ? 'bg-brand/10 border-l-4 border-brand'
-                  : 'hover:bg-gray-50 dark:hover:bg-zinc-700'
-              }`}
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-medium text-zinc-900 dark:text-white truncate">
-                    {session.title}
-                  </h3>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                    {new Date(session.updated_at).toLocaleDateString()}
-                  </p>
-                </div>
-                {session.is_active && (
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                    {t('chat.active')}
-                  </span>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div> */}
-
+    <div className="flex flex-col h-full bg-gray-50 dark:bg-zinc-900">
       {/* Main chat area */}
       <div className="flex-1 flex flex-col">
         {/* Chat header */}
-        {/* <div className="bg-white dark:bg-zinc-800 border-b border-gray-200 dark:border-zinc-700 p-4">
+        <div className="bg-white dark:bg-zinc-800 border-b border-gray-200 dark:border-zinc-700 p-4">
           <h2 className="text-lg font-bold text-zinc-900 dark:text-white">
             {currentSession ? currentSession.title : t('chat.new_chat')}
           </h2>
-        </div> */}
+        </div>
 
         {/* Error message */}
         {error && (
@@ -315,7 +244,7 @@ export default function ChatPage() {
 
         {/* Messages container */}
         <div className="flex-1 overflow-y-auto p-4">
-          {messages.length === 0 ? (
+          {messages.length === 0 && !currentSession ? (
             <div className="flex flex-col items-center justify-center h-full text-center py-12">
               <div className="bg-brand/10 p-4 rounded-full mb-4">
                 <FileText className="text-brand" size={32} />
@@ -326,32 +255,6 @@ export default function ChatPage() {
               <p className="text-zinc-600 dark:text-zinc-400 max-w-md">
                 {t('chat.ask_anything_about_documents')}
               </p>
-              
-              <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
-                <div className="bg-white dark:bg-zinc-800 p-4 rounded-lg border border-gray-200 dark:border-zinc-700">
-                  <div className="flex items-center mb-2">
-                    <Search className="text-brand mr-2" size={16} />
-                    <h4 className="font-medium text-zinc-900 dark:text-white">
-                      {t('chat.search_documents')}
-                    </h4>
-                  </div>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                    {t('chat.example_search')}
-                  </p>
-                </div>
-                
-                <div className="bg-white dark:bg-zinc-800 p-4 rounded-lg border border-gray-200 dark:border-zinc-700">
-                  <div className="flex items-center mb-2">
-                    <FileText className="text-brand mr-2" size={16} />
-                    <h4 className="font-medium text-zinc-900 dark:text-white">
-                      {t('chat.summarize_contract')}
-                    </h4>
-                  </div>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                    {t('chat.example_summarize')}
-                  </p>
-                </div>
-              </div>
             </div>
           ) : (
             <div className="space-y-4">
@@ -385,7 +288,7 @@ export default function ChatPage() {
             <div className="flex-1 bg-gray-100 dark:bg-zinc-700 rounded-lg p-2">
               <textarea
                 value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
+                onChange={handleInputChange}
                 onKeyDown={handleKeyPress}
                 placeholder={t('chat.type_message') || "Type your message..."}
                 className="w-full bg-transparent border-none focus:ring-0 resize-none py-2 px-3 text-zinc-900 dark:text-white placeholder-zinc-500"
@@ -405,6 +308,29 @@ export default function ChatPage() {
             {t('chat.enter_to_send')}
           </p>
         </div>
+
+        {/* Chat History */}
+        {!currentSession && sessions.length > 0 && (
+          <div className="bg-white dark:bg-zinc-800 border-t border-gray-200 dark:border-zinc-700 p-4">
+            <h3 className="text-lg font-bold text-zinc-900 dark:text-white mb-2 flex items-center">
+              <Clock size={20} className="mr-2" /> {t('chat.recent_chats')}
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {sessions.map((session) => (
+                <div
+                  key={session.id}
+                  onClick={() => activateSession(session)}
+                  className="bg-gray-100 dark:bg-zinc-700 p-4 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-zinc-600"
+                >
+                  <h4 className="font-medium text-zinc-900 dark:text-white truncate">{session.title}</h4>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                    {new Date(session.updated_at).toLocaleDateString()}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
