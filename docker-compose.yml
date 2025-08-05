@@ -83,6 +83,13 @@ services:
         uvicorn app.main:app --host 0.0.0.0 --port 8888 --reload
       "
 
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
 volumes:
   mariadb_data:
   minio_data:
