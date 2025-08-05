@@ -141,6 +141,19 @@
             "settings": "Pengaturan"
         }
     },
+    "chat": {
+        "new_chat": "Chat Baru",
+        "active": "Aktif",
+        "how_can_i_help": "Ada yang bisa saya bantu?",
+        "ask_anything_about_documents": "Tanyakan apa saja tentang dokumen Anda atau pertanyaan umum.",
+        "search_documents": "Cari Dokumen",
+        "example_search": "Contoh: 'Cari informasi tentang syarat kontrak'",
+        "summarize_contract": "Ringkas Kontrak",
+        "example_summarize": "Contoh: 'Ringkas perjanjian ABC Company'",
+        "type_message": "Ketik pesan Anda...",
+        "enter_to_send": "Tekan Enter untuk mengirim",
+        "searching_documents": "Mencari di dokumen Anda..."
+    },
     "common": {
         "back_to_home": "Kembali ke Beranda"
     },

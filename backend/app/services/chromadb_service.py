@@ -23,11 +23,15 @@ class ChromaDBService:
         self.collection = self._get_or_create_collection()
     
     def _get_or_create_collection(self):
-        """Get or create ChromaDB collection"""
+        """Get or create ChromaDB collection with correct embedding dimensions"""
         try:
-            return self.client.get_collection(name=self.collection_name)
+            collection = self.client.get_collection(name=self.collection_name)
+            # Check if collection exists but has wrong dimensions
+            # We'll handle this by catching the dimension error when adding embeddings
+            return collection
         except Exception as e:
             if "does not exists" in str(e):
+                # Create new collection with proper metadata
                 return self.client.create_collection(
                     name=self.collection_name,
                     metadata={"description": "Document embeddings for semantic search"}
@@ -63,7 +67,30 @@ class ChromaDBService:
             )
             return ids
         except Exception as e:
-            raise Exception(f"Failed to add embeddings to ChromaDB: {e}")
+            # Check if it's a dimension mismatch error
+            if "dimension" in str(e).lower() and ("768" in str(e) or "3072" in str(e)):
+                print(f"Dimension mismatch detected: {e}")
+                print("Recreating collection with correct dimensions...")
+                try:
+                    # Delete existing collection
+                    self.client.delete_collection(name=self.collection_name)
+                    # Create new collection
+                    self.collection = self.client.create_collection(
+                        name=self.collection_name,
+                        metadata={"description": "Document embeddings for semantic search"}
+                    )
+                    # Retry adding embeddings
+                    self.collection.add(
+                        ids=ids,
+                        embeddings=embeddings,
+                        documents=documents,
+                        metadatas=metadatas
+                    )
+                    return ids
+                except Exception as retry_error:
+                    raise Exception(f"Failed to recreate collection and add embeddings: {retry_error}")
+            else:
+                raise Exception(f"Failed to add embeddings to ChromaDB: {e}")
     
     async def search_similar_chunks(self, query_embedding: List[float], user_id: int, limit: int = 10) -> List[Dict[str, Any]]:
         """Search for similar document chunks"""

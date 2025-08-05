@@ -52,7 +52,7 @@ class DocumentService:
         except Exception as e:
             print(f"Error getting embedding: {e}")
             # Fallback to zeros if embedding fails
-            return [0.0] * 768  # Google embeddings are 768-dimensional
+            return [0.0] * 3072  # Google embeddings are 3072-dimensional
     
     async def _check_limits(self, user_id: int, file_size: int) -> Dict[str, Any]:
         """Check if file size and document count limits are exceeded"""

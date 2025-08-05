@@ -4,12 +4,13 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import DocumentsPage from './DocumentsPage';
-import { 
-  Home, 
-  User, 
-  Settings, 
-  LogOut, 
-  Menu, 
+import ChatPage from './ChatPage';
+import {
+  Home,
+  User,
+  Settings,
+  LogOut,
+  Menu,
   X,
   MessageSquare,
   Calendar,
@@ -54,7 +55,7 @@ export default function UserDashboard() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-zinc-900 flex">
       {/* Sidebar */}
-      <div 
+      <div
         className={`fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-zinc-800 shadow-lg transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:shadow-none ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
@@ -68,14 +69,14 @@ export default function UserDashboard() {
               </div>
               <span className="ml-2 text-xl font-bold text-zinc-900 dark:text-white">ASPRI</span>
             </div>
-            <button 
+            <button
               onClick={() => setSidebarOpen(false)}
               className="lg:hidden text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
             >
               <X size={24} />
             </button>
           </div>
-
+          
           {/* Sidebar menu */}
           <div className="flex-1 overflow-y-auto py-4">
             <nav>
@@ -101,7 +102,7 @@ export default function UserDashboard() {
               </ul>
             </nav>
           </div>
-
+          
           {/* Sidebar footer */}
           <div className="p-4 border-t border-gray-200 dark:border-zinc-700">
             <button
@@ -114,7 +115,7 @@ export default function UserDashboard() {
           </div>
         </div>
       </div>
-
+      
       {/* Main content */}
       <div className="flex-1 flex flex-col lg:ml-0">
         {/* Top navbar */}
@@ -156,11 +157,11 @@ export default function UserDashboard() {
             </div>
           </div>
         </header>
-
+        
         {/* Dashboard content */}
-        <main className="flex-1 p-4 md:p-6 overflow-y-auto">
+        <main className="flex-1 p-0 md:p-0 overflow-y-auto">
           {activeItem === 'dashboard' && (
-            <div className="max-w-4xl mx-auto">
+            <div className="max-w-4xl mx-auto p-4 md:p-6">
               <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm p-6 mb-6">
                 <h2 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">
                   {t('dashboard.welcome_back', { name: user.name || user.email })}
@@ -226,7 +227,14 @@ export default function UserDashboard() {
               </div>
             </div>
           )}
-
+          
+          {/* Chat Page */}
+          {activeItem === 'chat' && (
+            <div className="w-full h-full">
+              <ChatPage />
+            </div>
+          )}
+          
           {/* Documents Page */}
           {activeItem === 'documents' && (
             <div className="w-full">
@@ -235,14 +243,14 @@ export default function UserDashboard() {
               <DocumentsPage />
             </div>
           )}
-
+          
           {/* Other pages will be added here */}
         </main>
       </div>
-
+      
       {/* Overlay for mobile sidebar */}
       {sidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         ></div>
