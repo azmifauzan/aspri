@@ -246,6 +246,7 @@ export default function ChatPage() {
   }
 
   return (
+    
     <div className="flex h-full bg-gray-50 dark:bg-zinc-900">
       {/* Sidebar for chat sessions */}
       {/* <div className="w-64 bg-white dark:bg-zinc-800 border-r border-gray-200 dark:border-zinc-700 flex flex-col">
