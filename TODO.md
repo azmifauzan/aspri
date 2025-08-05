@@ -1,25 +1,41 @@
 # ASPRI Development Plan
 
-Here is the task list for the next development of the ASPRI application.
+This document tracks the development progress and future plans for the ASPRI application.
 
-## Frontend
+## Completed Tasks
+
+### Frontend
 - [x] Implement authentication functionality (Login & Register).
 - [x] Connect CTA buttons to appropriate registration/login pages.
 - [x] Build main dashboard page after user login.
-- [ ] Develop functional chat interface.
-- [ ] Create UI components for each feature (Calendar, Finance, Documents).
-- [ ] Add state management to manage application data.
+- [x] Develop functional chat interface.
+- [x] Create UI components for Documents and Chat features.
 
-## Backend
+### Backend
 - [x] Set up Python server with FastAPI.
 - [x] Create API endpoints for authentication (JWT).
-- [ ] Implement API for Schedule feature (Google Calendar integration).
-- [ ] Develop API for Finance feature (CRUD to database).
-- [ ] Build API for document upload and management (VectorDB integration).
-- [ ] Integrate LangChain/LlamaIndex to connect LLM with tools.
+- [x] Build API for document upload and management (MinIO and ChromaDB integration).
+- [x] Integrate LangChain with Google Gemini for chat and embeddings.
+- [x] Implement configuration management API.
 
-## General
-- [x] Set up database (PostgreSQL and ChromaDB).
-- [ ] Configure Docker for containerization.
-- [ ] Write unit tests and integration tests for frontend and backend.
-- [ ] Perform initial deployment to platforms like Vercel or Heroku.
+### General
+- [x] Set up database (MariaDB and ChromaDB).
+- [x] Configure Docker for containerization of all services.
+- [x] Update all technical documentation to reflect the current status.
+
+## Ongoing & Future Tasks
+
+### Frontend
+- [ ] Refine state management for chat and documents.
+- [ ] Create UI components for planned features (e.g., Calendar, Finance).
+- [ ] Enhance UI/UX based on user feedback.
+
+### Backend
+- [ ] Implement API for Schedule feature (e.g., Google Calendar integration).
+- [ ] Develop API for Finance feature (CRUD to database).
+- [ ] Enhance chat functionality with more advanced features (e.g., tool use).
+
+### General
+- [ ] Expand unit and integration test coverage for frontend and backend.
+- [ ] Set up a CI/CD pipeline for automated testing and deployment.
+- [ ] Perform initial deployment to a cloud platform.

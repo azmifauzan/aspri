@@ -8,11 +8,14 @@ import asyncio
 import tempfile
 import os
 import base64
+import pytest
 from app.services.document_service import DocumentService
 from app.schemas.document import DocumentUpload
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
+@pytest.mark.skip(reason="This is not a real test and requires a live MinIO instance")
+@pytest.mark.asyncio
 async def test_document_processing():
     """Test document processing functionality"""
     print("Testing document processing functionality...")
