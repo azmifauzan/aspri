@@ -23,92 +23,67 @@ class ChromaDBService:
                 anonymized_telemetry=False
             )
         )
-        
-        self.collection_name = os.getenv("CHROMADB_COLLECTION_NAME", "aspri_collection")
-        self.collection = self._get_or_create_collection()
     
-    def _get_or_create_collection(self):
-        """Get or create ChromaDB collection with correct embedding dimensions"""
+    def _get_user_collection_name(self, user_id: int) -> str:
+        """Generate a collection name for a given user ID."""
+        return f"user_{user_id}_collection"
+
+    def _get_or_create_collection(self, user_id: int):
+        """Get or create ChromaDB collection for a specific user."""
+        collection_name = self._get_user_collection_name(user_id)
         try:
-            collection = self.client.get_collection(name=self.collection_name,embedding_function=self.embedding_function)
-            # Check if collection exists but has wrong dimensions
-            # We'll handle this by catching the dimension error when adding embeddings
+            # Check if collection exists
+            collection = self.client.get_collection(
+                name=collection_name,
+                embedding_function=self.embedding_function
+            )
             return collection
-        except Exception as e:
-            if "does not exists" in str(e):
-                # Create new collection with proper metadata
-                return self.client.create_collection(
-                    name=self.collection_name,
-                    metadata={"description": "Document embeddings for semantic search"},
-                    embedding_function=self.embedding_function
-                )
-            raise
+        except Exception:
+            # Create new collection if it doesn't exist
+            return self.client.create_collection(
+                name=collection_name,
+                metadata={"description": f"Document embeddings for user {user_id}"},
+                embedding_function=self.embedding_function
+            )
     
-    async def add_document_embeddings(self, document_id: int, chunks: List[Dict[str, Any]]) -> List[str]:
-        """Add document chunk embeddings to ChromaDB"""
+    async def add_document_embeddings(self, user_id: int, document_id: int, chunks: List[Dict[str, Any]]) -> List[str]:
+        """Add document chunk embeddings to a user's ChromaDB collection."""
+        collection = self._get_or_create_collection(user_id)
         ids = []
-        #embeddings = []
         documents = []
         metadatas = []
         
         for chunk in chunks:
             chunk_id = f"doc_{document_id}_chunk_{chunk['chunk_index']}"
             ids.append(chunk_id)
-            #embeddings.append(chunk['embedding'])
             documents.append(chunk['chunk_text'])
             metadatas.append({
                 "document_id": document_id,
                 "chunk_index": chunk['chunk_index'],
-                "user_id": chunk.get('user_id'),
+                "user_id": user_id,  # Ensure user_id is in metadata
                 "filename": chunk.get('filename', ''),
                 "file_type": chunk.get('file_type', '')
             })
         
         try:
-            self.collection.add(
+            collection.add(
                 ids=ids,
-                #embeddings=embeddings,
                 documents=documents,
                 metadatas=metadatas
             )
             return ids
         except Exception as e:
-            # Check if it's a dimension mismatch error
-            if "dimension" in str(e).lower() and ("768" in str(e) or "3072" in str(e)):
-                print(f"Dimension mismatch detected: {e}")
-                print("Recreating collection with correct dimensions...")
-                try:
-                    # Delete existing collection
-                    self.client.delete_collection(name=self.collection_name)
-                    # Create new collection
-                    self.collection = self.client.create_collection(
-                        name=self.collection_name,
-                        metadata={"description": "Document embeddings for semantic search"}
-                    )
-                    # Retry adding embeddings
-                    self.collection.add(
-                        ids=ids,
-                        #embeddings=embeddings,
-                        documents=documents,
-                        metadatas=metadatas
-                    )
-                    return ids
-                except Exception as retry_error:
-                    raise Exception(f"Failed to recreate collection and add embeddings: {retry_error}")
-            else:
-                raise Exception(f"Failed to add embeddings to ChromaDB: {e}")
+            raise Exception(f"Failed to add embeddings to ChromaDB: {e}")
     
-    async def search_similar_chunks(self, query_text: List[float], user_id: int, limit: int = 10) -> List[Dict[str, Any]]:
-        """Search for similar document chunks"""
+    async def search_similar_chunks(self, user_id: int, query_text: str, limit: int = 10) -> List[Dict[str, Any]]:
+        """Search for similar document chunks in a user's collection."""
+        collection = self._get_or_create_collection(user_id)
         try:
-            results = self.collection.query(
+            results = collection.query(
                 query_texts=[query_text],
                 n_results=limit,
-                where={"user_id": user_id},
                 include=["documents", "metadatas", "distances"]
             )
-            
-            print(f"Search results: {results}")  # Debugging line
             
             search_results = []
             if results['ids'] and len(results['ids'][0]) > 0:
@@ -116,7 +91,7 @@ class ChromaDBService:
                     search_results.append({
                         "chunk_id": results['ids'][0][i],
                         "chunk_text": results['documents'][0][i],
-                        "similarity_score": 1 - results['distances'][0][i],  # Convert distance to similarity
+                        "similarity_score": 1 - results['distances'][0][i],
                         "document_id": results['metadatas'][0][i]['document_id'],
                         "chunk_index": results['metadatas'][0][i]['chunk_index'],
                         "document_filename": results['metadatas'][0][i].get('filename', ''),
@@ -127,35 +102,33 @@ class ChromaDBService:
         except Exception as e:
             raise Exception(f"Failed to search ChromaDB: {e}")
     
-    async def update_document_embeddings(self, document_id: int, chunks: List[Dict[str, Any]]) -> List[str]:
-        """Update document chunk embeddings in ChromaDB"""
-        # First, delete existing embeddings for this document
-        await self.delete_document_embeddings(document_id)
-        
-        # Then add new embeddings
-        return await self.add_document_embeddings(document_id, chunks)
+    async def update_document_embeddings(self, user_id: int, document_id: int, chunks: List[Dict[str, Any]]) -> List[str]:
+        """Update document chunk embeddings in a user's collection."""
+        await self.delete_document_embeddings(user_id, document_id)
+        return await self.add_document_embeddings(user_id, document_id, chunks)
     
-    async def delete_document_embeddings(self, document_id: int) -> bool:
-        """Delete all embeddings for a document"""
+    async def delete_document_embeddings(self, user_id: int, document_id: int) -> bool:
+        """Delete all embeddings for a document from a user's collection."""
+        collection = self._get_or_create_collection(user_id)
         try:
-            # Get all chunk IDs for this document
-            results = self.collection.get(
+            results = collection.get(
                 where={"document_id": document_id},
                 include=["metadatas"]
             )
             
             if results['ids']:
-                self.collection.delete(ids=results['ids'])
+                collection.delete(ids=results['ids'])
             
             return True
         except Exception as e:
             print(f"Error deleting embeddings from ChromaDB: {e}")
             return False
     
-    async def get_document_chunk_count(self, document_id: int) -> int:
-        """Get the number of chunks for a document"""
+    async def get_document_chunk_count(self, user_id: int, document_id: int) -> int:
+        """Get the number of chunks for a document in a user's collection."""
+        collection = self._get_or_create_collection(user_id)
         try:
-            results = self.collection.get(
+            results = collection.get(
                 where={"document_id": document_id},
                 include=[]
             )
@@ -165,21 +138,15 @@ class ChromaDBService:
             return 0
     
     async def get_user_document_count(self, user_id: int) -> int:
-        """Get the number of unique documents for a user"""
+        """Get the number of unique documents in a user's collection."""
+        collection = self._get_or_create_collection(user_id)
         try:
-            results = self.collection.get(
-                where={"user_id": user_id},
-                include=["metadatas"]
-            )
+            results = collection.get(include=["metadatas"])
             
             if not results['metadatas']:
                 return 0
             
-            # Get unique document IDs
-            document_ids = set()
-            for metadata in results['metadatas']:
-                document_ids.add(metadata['document_id'])
-            
+            document_ids = {metadata['document_id'] for metadata in results['metadatas']}
             return len(document_ids)
         except Exception as e:
             print(f"Error getting user document count from ChromaDB: {e}")

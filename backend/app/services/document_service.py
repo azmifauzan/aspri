@@ -116,7 +116,7 @@ class DocumentService:
             chunks_data = await self._process_document(document.id, file_content, document_data.file_type, user_id)
             
             # Store embeddings in ChromaDB
-            await self.chromadb_service.add_document_embeddings(document.id, chunks_data)
+            await self.chromadb_service.add_document_embeddings(user_id, document.id, chunks_data)
             
             # Create document chunks in database (without embeddings)
             chunks = []
@@ -200,7 +200,7 @@ class DocumentService:
             
             try:
                 # Delete old embeddings from ChromaDB
-                await self.chromadb_service.delete_document_embeddings(document_id)
+                await self.chromadb_service.delete_document_embeddings(user_id, document_id)
                 
                 # Delete old document chunks from database
                 await self.db.execute(
@@ -225,7 +225,7 @@ class DocumentService:
                 )
                 
                 # Store new embeddings in ChromaDB
-                await self.chromadb_service.add_document_embeddings(document_id, chunks_data)
+                await self.chromadb_service.add_document_embeddings(user_id, document_id, chunks_data)
                 
                 # Create new document chunks in database
                 chunks = []
@@ -262,7 +262,7 @@ class DocumentService:
         
         try:
             # Delete embeddings from ChromaDB
-            await self.chromadb_service.delete_document_embeddings(document_id)
+            await self.chromadb_service.delete_document_embeddings(user_id, document_id)
             
             # Delete document from MinIO
             if document.minio_object_name:
@@ -286,7 +286,7 @@ class DocumentService:
         print(f"Search query: {search_query.query}, Limit: {search_query.limit}, User ID: {user_id}")
         # Search in ChromaDB
         search_results = await self.chromadb_service.search_similar_chunks(
-            search_query.query, user_id, search_query.limit
+            user_id, search_query.query, search_query.limit
         )
         
         return search_results
