@@ -11,7 +11,7 @@
         "logout": "Logout"
     },
     "hero": {
-        "heading": "ASPRI — AI-Powered Personal Assistant",
+        "heading": "ASPRI - AI-Powered Personal Assistant",
         "tagline": "One chat to organise schedules, finance, and documents. Powered by cutting-edge LLM!",
         "cta_demo": "Try it Now",
         "cta_feature": "See Features",
@@ -131,6 +131,7 @@
         "satisfaction": "Satisfaction",
         "in_the_last_30_days": "in the last 30 days",
         "user_rating": "user rating",
+        "validating_session": "Validating session...",
         "menu": {
             "dashboard": "Dashboard",
             "chat": "Chat",

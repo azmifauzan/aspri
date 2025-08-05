@@ -11,7 +11,7 @@
         "logout": "Keluar"
     },
     "hero": {
-        "heading": "ASPRI — Asisten Pribadi Berbasis AI",
+        "heading": "ASPRI - Asisten Pribadi Berbasis AI",
         "tagline": "Satu chat untuk atur jadwal, keuangan, dan dokumen. Berdaya dengan LLM canggih!",
         "cta_demo": "Coba Sekarang",
         "cta_feature": "Lihat Fitur",
@@ -131,6 +131,7 @@
         "satisfaction": "Kepuasan",
         "in_the_last_30_days": "dalam 30 hari terakhir",
         "user_rating": "penilaian pengguna",
+        "validating_session": "Memvalidasi sesi...",
         "menu": {
             "dashboard": "Dasbor",
             "chat": "Chat",

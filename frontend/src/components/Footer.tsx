@@ -30,7 +30,7 @@ export default function Footer() {
             <div className="flex items-center gap-3">
               <Github size={18} />
               <a
-                href="https://github.com/your-org/aspri"
+                href="https://github.com/azmifauzan/aspri"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hover:text-white"

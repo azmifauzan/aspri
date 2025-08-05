@@ -248,7 +248,7 @@ export default function ChatPage() {
   return (
     <div className="flex h-full bg-gray-50 dark:bg-zinc-900">
       {/* Sidebar for chat sessions */}
-      <div className="w-64 bg-white dark:bg-zinc-800 border-r border-gray-200 dark:border-zinc-700 flex flex-col">
+      {/* <div className="w-64 bg-white dark:bg-zinc-800 border-r border-gray-200 dark:border-zinc-700 flex flex-col">
         <div className="p-4 border-b border-gray-200 dark:border-zinc-700">
           <h2 className="text-lg font-bold text-zinc-900 dark:text-white mb-2">
             {t('dashboard.menu.chat')}
@@ -291,16 +291,16 @@ export default function ChatPage() {
             </div>
           ))}
         </div>
-      </div>
+      </div> */}
 
       {/* Main chat area */}
       <div className="flex-1 flex flex-col">
         {/* Chat header */}
-        <div className="bg-white dark:bg-zinc-800 border-b border-gray-200 dark:border-zinc-700 p-4">
+        {/* <div className="bg-white dark:bg-zinc-800 border-b border-gray-200 dark:border-zinc-700 p-4">
           <h2 className="text-lg font-bold text-zinc-900 dark:text-white">
             {currentSession ? currentSession.title : t('chat.new_chat')}
           </h2>
-        </div>
+        </div> */}
 
         {/* Error message */}
         {error && (

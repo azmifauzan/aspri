@@ -1,6 +1,7 @@
 # app/services/chromadb_service.py
 import chromadb
 from chromadb.config import Settings
+from chromadb.utils import embedding_functions
 import os
 from typing import List, Dict, Any, Optional
 import uuid
@@ -10,6 +11,10 @@ class ChromaDBService:
         # Initialize ChromaDB client to connect to external server
         chromadb_host = os.getenv("CHROMADB_HOST", "localhost")
         chromadb_port = int(os.getenv("CHROMADB_PORT", "8000"))
+        google_api_key = os.getenv("GOOGLE_API_KEY")
+        self.embedding_function = embedding_functions.GoogleGenerativeAiEmbeddingFunction(
+            api_key=google_api_key
+        )
         
         self.client = chromadb.HttpClient(
             host=chromadb_host,
@@ -25,7 +30,7 @@ class ChromaDBService:
     def _get_or_create_collection(self):
         """Get or create ChromaDB collection with correct embedding dimensions"""
         try:
-            collection = self.client.get_collection(name=self.collection_name)
+            collection = self.client.get_collection(name=self.collection_name,embedding_function=self.embedding_function)
             # Check if collection exists but has wrong dimensions
             # We'll handle this by catching the dimension error when adding embeddings
             return collection
@@ -34,21 +39,22 @@ class ChromaDBService:
                 # Create new collection with proper metadata
                 return self.client.create_collection(
                     name=self.collection_name,
-                    metadata={"description": "Document embeddings for semantic search"}
+                    metadata={"description": "Document embeddings for semantic search"},
+                    embedding_function=self.embedding_function
                 )
             raise
     
     async def add_document_embeddings(self, document_id: int, chunks: List[Dict[str, Any]]) -> List[str]:
         """Add document chunk embeddings to ChromaDB"""
         ids = []
-        embeddings = []
+        #embeddings = []
         documents = []
         metadatas = []
         
         for chunk in chunks:
             chunk_id = f"doc_{document_id}_chunk_{chunk['chunk_index']}"
             ids.append(chunk_id)
-            embeddings.append(chunk['embedding'])
+            #embeddings.append(chunk['embedding'])
             documents.append(chunk['chunk_text'])
             metadatas.append({
                 "document_id": document_id,
@@ -61,7 +67,7 @@ class ChromaDBService:
         try:
             self.collection.add(
                 ids=ids,
-                embeddings=embeddings,
+                #embeddings=embeddings,
                 documents=documents,
                 metadatas=metadatas
             )
@@ -82,7 +88,7 @@ class ChromaDBService:
                     # Retry adding embeddings
                     self.collection.add(
                         ids=ids,
-                        embeddings=embeddings,
+                        #embeddings=embeddings,
                         documents=documents,
                         metadatas=metadatas
                     )
@@ -92,11 +98,11 @@ class ChromaDBService:
             else:
                 raise Exception(f"Failed to add embeddings to ChromaDB: {e}")
     
-    async def search_similar_chunks(self, query_embedding: List[float], user_id: int, limit: int = 10) -> List[Dict[str, Any]]:
+    async def search_similar_chunks(self, query_text: List[float], user_id: int, limit: int = 10) -> List[Dict[str, Any]]:
         """Search for similar document chunks"""
         try:
             results = self.collection.query(
-                query_embeddings=[query_embedding],
+                query_texts=[query_text],
                 n_results=limit,
                 where={"user_id": user_id},
                 include=["documents", "metadatas", "distances"]

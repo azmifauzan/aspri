@@ -1,43 +1,101 @@
 // src/pages/UserDashboard.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import DocumentsPage from './DocumentsPage';
 import ChatPage from './ChatPage';
+import ThemeToggle from '../components/ThemeToggle';
+import LangToggle from '../components/LangToggle';
 import {
   Home,
-  User,
-  Settings,
-  LogOut,
   Menu,
   X,
   MessageSquare,
   Calendar,
-  FileText
+  FileText,
+  LogOut,
+  User,
+  Settings,
+  ChevronDown
 } from 'lucide-react';
-import ThemeToggle from '../components/ThemeToggle';
-import LangToggle from '../components/LangToggle';
 
 const menuItems = [
   { id: 'dashboard', label: 'dashboard.menu.dashboard', icon: Home },
   { id: 'chat', label: 'dashboard.menu.chat', icon: MessageSquare },
   { id: 'documents', label: 'dashboard.menu.documents', icon: FileText },
   { id: 'calendar', label: 'dashboard.menu.calendar', icon: Calendar },
-  { id: 'profile', label: 'dashboard.menu.profile', icon: User },
-  { id: 'settings', label: 'dashboard.menu.settings', icon: Settings },
 ];
 
 export default function UserDashboard() {
-  const { user, logout } = useAuth();
+  const { user, logout, checkTokenValidity } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeItem, setActiveItem] = useState('dashboard');
+  const [isValidating, setIsValidating] = useState(true);
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+
+  // Check JWT validity on component mount only
+  useEffect(() => {
+    const validateToken = async () => {
+      const isValid = await checkTokenValidity();
+      if (!isValid) {
+        console.log('Token validation failed, redirecting to landing page...');
+        navigate('/');
+        return;
+      }
+      setIsValidating(false);
+    };
+
+    validateToken();
+  }, [checkTokenValidity, navigate]);
+
+  // Check token validity when user interacts with the app (focus/visibility change)
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (!document.hidden) {
+        // Only check when user comes back to the tab
+        const isValid = await checkTokenValidity();
+        if (!isValid) {
+          navigate('/');
+        }
+      }
+    };
+
+    const handleFocus = async () => {
+      // Check when user focuses on the window
+      const isValid = await checkTokenValidity();
+      if (!isValid) {
+        navigate('/');
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [checkTokenValidity, navigate]);
 
   const handleLogout = () => {
     logout();
-    navigate('/#home');
+    setUserDropdownOpen(false);
+    navigate('/'); // Redirect to landing page instead of /#home
+  };
+
+  const handleProfileClick = () => {
+    setUserDropdownOpen(false);
+    // Handle profile navigation - could navigate to profile page
+    setActiveItem('profile');
+  };
+
+  const handleSettingsClick = () => {
+    setUserDropdownOpen(false);
+    // Handle settings navigation - could navigate to settings page
+    setActiveItem('settings');
   };
 
   const handleMenuClick = (itemId: string) => {
@@ -46,9 +104,21 @@ export default function UserDashboard() {
     // In a real app, you would navigate to the appropriate page or component
   };
 
+  // Show loading while validating token
+  if (isValidating) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-zinc-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand mx-auto mb-4"></div>
+          <p className="text-zinc-600 dark:text-zinc-400">{t('dashboard.validating_session')}</p>
+        </div>
+      </div>
+    );
+  }
+
   // Redirect to login if user is not authenticated
   if (!user) {
-    navigate('/login');
+    navigate('/');
     return null;
   }
 
@@ -62,7 +132,7 @@ export default function UserDashboard() {
       >
         <div className="flex flex-col h-full">
           {/* Sidebar header */}
-          <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200 dark:border-zinc-700">
+          <div className="flex items-center justify-between h-14 px-4 border-b border-gray-200 dark:border-zinc-700">
             <div className="flex items-center">
               <div className="bg-brand w-8 h-8 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold">A</span>
@@ -120,39 +190,81 @@ export default function UserDashboard() {
       <div className="flex-1 flex flex-col lg:ml-0">
         {/* Top navbar */}
         <header className="bg-white dark:bg-zinc-800 border-b border-gray-200 dark:border-zinc-700">
-          <div className="flex items-center justify-between h-16 px-4">
+          <div className="flex items-center justify-between h-14 px-4">
             <div className="flex items-center">
               <button
                 onClick={() => setSidebarOpen(true)}
-                className="lg:hidden text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 mr-4"
+                className="lg:hidden text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 mr-3"
               >
-                <Menu size={24} />
+                <Menu size={20} />
               </button>
-              <h1 className="text-xl font-bold text-zinc-900 dark:text-white capitalize">
+              <h1 className="text-lg font-semibold text-zinc-900 dark:text-white capitalize">
                 {t(`dashboard.menu.${activeItem}`)}
               </h1>
             </div>
             
-            <div className="flex items-center space-x-4">
-              {/* Theme and Language toggles */}
-              <div className="flex items-center space-x-2">
-                <ThemeToggle />
-                <LangToggle />
-              </div>
+            {/* Right side - Toggles and User dropdown */}
+            <div className="flex items-center gap-1">
+              {/* Language and Theme toggles */}
+              <LangToggle />
+              <ThemeToggle />
               
-              {/* User profile */}
-              <div className="flex items-center">
-                <div className="w-8 h-8 rounded-full bg-brand flex items-center justify-center text-white font-bold">
-                  {user.name ? user.name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
-                </div>
-                <div className="ml-2 hidden md:block">
-                  <p className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {user.name || user.email}
-                  </p>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                    {user.email}
-                  </p>
-                </div>
+              {/* User dropdown */}
+              <div className="relative ml-2">
+                <button
+                  onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                  className="flex items-center gap-2 py-1.5 px-2 text-zinc-700 dark:text-white hover:text-brand dark:hover:text-brand transition text-sm font-medium rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                >
+                  <div className="w-7 h-7 rounded-full bg-brand flex items-center justify-center text-white font-bold text-xs overflow-hidden">
+                    {user.picture ? (
+                      <img 
+                        src={user.picture} 
+                        alt={user.name || user.email}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          // Fallback to initials if image fails to load
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const nextElement = target.nextElementSibling as HTMLElement;
+                          if (nextElement) nextElement.style.display = 'block';
+                        }}
+                      />
+                    ) : null}
+                    <span className={user.picture ? 'hidden' : 'block'}>
+                      {user.name ? user.name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  <span className="hidden md:block text-sm">{user.name || user.email}</span>
+                  <ChevronDown size={14} className={`transition-transform ${userDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* Dropdown menu */}
+                {userDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-zinc-800 rounded-lg shadow-lg border border-zinc-200 dark:border-zinc-700 py-1 z-50">
+                    <button
+                      onClick={handleProfileClick}
+                      className="w-full flex items-center gap-2 px-4 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                    >
+                      <User size={16} />
+                      {t('dashboard.menu.profile')}
+                    </button>
+                    <button
+                      onClick={handleSettingsClick}
+                      className="w-full flex items-center gap-2 px-4 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                    >
+                      <Settings size={16} />
+                      {t('dashboard.menu.settings')}
+                    </button>
+                    <hr className="my-1 border-zinc-200 dark:border-zinc-700" />
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-zinc-700 transition-colors"
+                    >
+                      <LogOut size={16} />
+                      {t('nav.logout')}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -254,6 +366,14 @@ export default function UserDashboard() {
           className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         ></div>
+      )}
+
+      {/* Click outside to close user dropdown */}
+      {userDropdownOpen && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => setUserDropdownOpen(false)}
+        />
       )}
     </div>
   );

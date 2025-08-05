@@ -282,11 +282,11 @@ class DocumentService:
     async def search_documents(self, user_id: int, search_query: DocumentSearchQuery) -> List[Dict[str, Any]]:
         """Search for documents using vector similarity with ChromaDB"""
         # Get query embedding
-        query_embedding = await self._get_embedding(search_query.query)
+        #query_embedding = await self._get_embedding(search_query.query)
         
         # Search in ChromaDB
         search_results = await self.chromadb_service.search_similar_chunks(
-            query_embedding, user_id, search_query.limit
+            search_query.query, user_id, search_query.limit
         )
         
         return search_results
@@ -308,12 +308,12 @@ class DocumentService:
         chunks_data = []
         for i, chunk_text in enumerate(chunks):
             # Create embedding for chunk
-            embedding = await self._get_embedding(chunk_text)
+            # embedding = await self._get_embedding(chunk_text)
             
             chunk_data = {
                 "chunk_index": i,
                 "chunk_text": chunk_text,
-                "embedding": embedding,
+                # "embedding": embedding,
                 "user_id": user_id,
                 "document_id": document_id
             }

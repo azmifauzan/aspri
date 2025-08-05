@@ -14,6 +14,7 @@ load_dotenv()
 from app.db.models.chat import ChatSession, ChatMessage
 from app.db.models.document import Document
 from app.schemas.chat import ChatSessionCreate, ChatMessageCreate
+from app.db.models.user import User
 
 # Services
 from app.services.document_service import DocumentService
@@ -53,6 +54,29 @@ class ChatService:
             "User: {user_message}\n"
             "Assistant:"
         )
+        
+        self.system_instruction = PromptTemplate.from_template(
+            """
+            You are an AI assistant named {assistant_name}. You have a distinct personality and communication style described as: "{assistant_persona}".
+
+            Your primary responsibility is to help the user named {user_name} in a way that is aligned with your persona.
+
+            Always refer to the user using their preferred form of address: "{call_preference}". Be consistent in how you call the user in every response.
+
+            Important behavior rules:
+            1. Match the language of the user's input. If they ask in Bahasa Indonesia, respond in Bahasa Indonesia. If they ask in English, respond in English.
+            2. When giving answers, reflect your assistant persona in tone, word choice, and attitude.
+            3. Do not repeat your name unless asked. Speak naturally as if you're a real assistant.
+            4. If the user greets you (e.g., "Hi", "Halo"), explain who you are briefly, including your name and persona.
+
+            Always aim to be helpful, respectful, and aligned with the communication preferences of the user.
+            
+            "Here is the conversation history:\n{history}\n\n"
+            "User: {user_message}\n"
+            "Assistant:"
+            """
+        )
+
         
         # Document search prompt template
         self.document_search_prompt = PromptTemplate.from_template(
@@ -151,7 +175,7 @@ class ChatService:
             ai_response = await self._handle_document_search(user_id, message_data.content, user_info)
         else:
             # Default to chat response
-            ai_response = await self._generate_chat_response(session_id, message_data.content, user_info)
+            ai_response = await self._generate_chat_response2(session_id, message_data.content, user_info)
         
         # Save AI response
         ai_message = ChatMessage(
@@ -204,7 +228,7 @@ class ChatService:
             # Search documents using vector similarity
             search_results = await document_service.search_documents(
                 user_id, 
-                {"query": query, "limit": 5}
+                {"query_texts": query, "limit": 5}
             )
             
             if not search_results:
@@ -258,6 +282,32 @@ class ChatService:
         except Exception as e:
             print(f"Error generating chat response: {e}")
             return "I'm sorry, I encountered an error while processing your message. Please try again."
+    
+    async def _generate_chat_response2(self, session_id: int, user_message: str, user_info: Dict[str, Any]) -> str:
+        """Generate chat response using Gemini"""
+        try:
+            # Get conversation history
+            history = await self._get_conversation_history(session_id)
+            
+            # Create prompt
+            prompt = self.system_instruction.format(
+                assistant_name=user_info.get("aspri_name", "ASPRI"),
+                assistant_persona=user_info.get("aspri_persona", "helpful"),
+                user_name=user_info.get("name", "User"),
+                call_preference=user_info.get("call_preference", "User"),
+                history=history,
+                user_message=user_message
+            )
+            
+            print(f"Generated prompt: {prompt}")  # Debugging line
+            # Get response from Gemini
+            response = self.chat_model.invoke([HumanMessage(content=prompt)])
+            print(f"Response from Gemini: {response.content}")  # Debugging line
+            return response.content
+            
+        except Exception as e:
+            print(f"Error generating chat response: {e}")
+            return "I'm sorry, I encountered an error while processing your message. Please try again."
 
     async def _get_conversation_history(self, session_id: int) -> str:
         """Get formatted conversation history"""
@@ -278,11 +328,21 @@ class ChatService:
 
     async def _get_user_info(self, user_id: int) -> Dict[str, Any]:
         """Get user information for personalization"""
-        # This would typically come from the user database
-        # For now, we'll return default values
-        return {
-            "name": "User",
-            "call_preference": "User",
-            "aspri_name": "ASPRI",
-            "aspri_persona": "helpful"
-        }
+        
+        query = select(User).where(User.id == user_id)
+        result = await self.db.execute(query)
+        user = result.scalar_one_or_none()
+        if not user:
+            return {
+                "name": "User",
+                "call_preference": "User",
+                "aspri_name": "ASPRI",
+                "aspri_persona": "helpful"
+            }
+        else:
+            return {
+                "name": user.name or "User",
+                "call_preference": user.call_preference or "User",
+                "aspri_name": user.aspri_name or "ASPRI",
+                "aspri_persona": user.aspri_persona or "helpful"
+            }
