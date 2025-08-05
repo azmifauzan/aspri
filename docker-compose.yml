@@ -50,7 +50,7 @@ services:
       retries: 3
 
   backend:
-    build: .
+    build: ./backend
     environment:
       DATABASE_URL: mysql+aiomysql://aspri_user:aspri_password@db:3306/aspri_db
       SECRET_KEY: your-secret-key-change-in-production
@@ -75,7 +75,7 @@ services:
       chromadb:
         condition: service_healthy
     volumes:
-      - .:/app
+      - ./backend:/app
     command: >
       sh -c "
         alembic upgrade head &&

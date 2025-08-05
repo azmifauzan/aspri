@@ -112,14 +112,7 @@ We recommend using Docker Compose for the easiest setup.
 
 ### Option 2: Manual Setup
 
-**Prerequisites:**
-- Python 3.11+
-- Node.js (v18+)
-- MariaDB (or MySQL)
-- MinIO Server
-- ChromaDB Server
-
-For detailed instructions on setting up the backend manually, please refer to `backend/RUNNING_BACKEND.md`.
+For detailed instructions on setting up the frontend and backend manually, please refer to the `frontend/README.md` and `backend/README.md` files respectively.
 
 ## API Endpoints
 
@@ -160,12 +153,16 @@ For detailed instructions on setting up the backend manually, please refer to `b
 ### `configurations` table
 - `id`, `key`, `value`, `description`
 
-## Deployment
-This application is designed to be deployed using Docker. The `backend/docker-compose.yml` file provides a starting point for orchestrating the necessary services in a production-like environment. Ensure you use strong, unique secrets and configure networking and volumes appropriately for your production setup.
+## Documentation
 
-For a detailed guide on running the backend, see `backend/RUNNING_BACKEND.md`.
-For a guide on the chat feature, see `docs/CHAT_FEATURE.md`.
-For a guide on environment variables, see `docs/ENVIRONMENT_VARIABLES.md`.
+For more detailed documentation, please refer to the files in the `docs` directory:
+-   `docs/architecture.md`: High-level architecture of the system.
+-   `docs/RUNNING_BACKEND.md`: Detailed instructions for running the backend manually.
+-   `docs/CHAT_FEATURE.md`: Information about the chat feature.
+-   `docs/ENVIRONMENT_VARIABLES.md`: A complete list of environment variables.
+
+## Deployment
+This application is designed to be deployed using Docker. The `docker-compose.yml` file in the root directory provides a starting point for orchestrating the necessary services.
 
 ## Contributing
 
