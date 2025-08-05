@@ -278,9 +278,9 @@ export default function UserDashboard() {
                 <h2 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">
                   {t('dashboard.welcome_back', { name: user.name || user.email })}
                 </h2>
-                <p className="text-zinc-600 dark:text-zinc-400 mb-6">
+                {/* <p className="text-zinc-600 dark:text-zinc-400 mb-6">
                   {t('dashboard.dashboard_description')}
-                </p>
+                </p> */}
                 
                 {/* User info card */}
                 <div className="border border-gray-200 dark:border-zinc-700 rounded-lg p-4 mb-6">
@@ -293,16 +293,16 @@ export default function UserDashboard() {
                       <p className="font-medium text-zinc-900 dark:text-white">{user.name || '-'}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-zinc-500 dark:text-zinc-400">{t('register.email')}</p>
-                      <p className="font-medium text-zinc-900 dark:text-white">{user.email}</p>
+                      <p className="text-sm text-zinc-500 dark:text-zinc-400">{t('register.aspri_name')}</p>
+                      <p className="font-medium text-zinc-900 dark:text-white">{user.aspri_name}</p>
                     </div>
                     <div>
                       <p className="text-sm text-zinc-500 dark:text-zinc-400">{t('register.call_preference')}</p>
                       <p className="font-medium text-zinc-900 dark:text-white">{user.call_preference || '-'}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-zinc-500 dark:text-zinc-400">{t('register.aspri_name')}</p>
-                      <p className="font-medium text-zinc-900 dark:text-white">{user.aspri_name || '-'}</p>
+                      <p className="text-sm text-zinc-500 dark:text-zinc-400">{t('register.aspri_persona')}</p>
+                      <p className="font-medium text-zinc-900 dark:text-white">{user.aspri_persona || '-'}</p>
                     </div>
                   </div>
                 </div>

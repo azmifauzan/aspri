@@ -108,6 +108,8 @@ class ChromaDBService:
                 include=["documents", "metadatas", "distances"]
             )
             
+            print(f"Search results: {results}")  # Debugging line
+            
             search_results = []
             if results['ids'] and len(results['ids'][0]) > 0:
                 for i in range(len(results['ids'][0])):

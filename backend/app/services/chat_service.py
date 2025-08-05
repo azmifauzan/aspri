@@ -14,6 +14,7 @@ load_dotenv()
 from app.db.models.chat import ChatSession, ChatMessage
 from app.db.models.document import Document
 from app.schemas.chat import ChatSessionCreate, ChatMessageCreate
+from app.schemas.document import DocumentSearchQuery
 from app.db.models.user import User
 
 # Services
@@ -222,13 +223,17 @@ class ChatService:
     async def _handle_document_search(self, user_id: int, query: str, user_info: Dict[str, Any]) -> str:
         """Handle document search intent"""
         try:
+            print(f"Handling document search for user {user_id} with query: {query}")
             # Create document service
             document_service = DocumentService(self.db)
+            
+            # Create search query object
+            search_query = DocumentSearchQuery(query=query, limit=5)
             
             # Search documents using vector similarity
             search_results = await document_service.search_documents(
                 user_id, 
-                {"query_texts": query, "limit": 5}
+                search_query
             )
             
             if not search_results:

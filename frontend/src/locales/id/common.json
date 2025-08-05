@@ -95,9 +95,9 @@
         "select_month": "Pilih bulan",
         "call_preference": "Bagaimana Kami Harus Memanggil Anda?",
         "call_preference_placeholder": "Contoh: Bos, Pak, Bu, Bro",
-        "aspri_name": "Nama Asisten ASPRI",
+        "aspri_name": "Nama Asisten Pribadi",
         "aspri_name_placeholder": "Berikan nama untuk asisten AI Anda",
-        "aspri_persona": "Kepribadian Asisten ASPRI",
+        "aspri_persona": "Kepribadian Asisten Pribadi",
         "aspri_persona_placeholder": "Deskripsikan kepribadian asisten AI Anda",
         "aspri_persona_options": {
             "pria": "Asisten Pria Profesional & Cerdas",

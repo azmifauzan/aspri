@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import ChatBubble from '../components/ChatBubble';
-import { Send, Plus, Search, FileText, X } from 'lucide-react';
+import { Send, Search, FileText, X } from 'lucide-react';
 import axios from 'axios';
 
 // Define types based on backend schemas

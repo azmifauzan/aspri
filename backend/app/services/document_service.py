@@ -283,7 +283,7 @@ class DocumentService:
         """Search for documents using vector similarity with ChromaDB"""
         # Get query embedding
         #query_embedding = await self._get_embedding(search_query.query)
-        
+        print(f"Search query: {search_query.query}, Limit: {search_query.limit}, User ID: {user_id}")
         # Search in ChromaDB
         search_results = await self.chromadb_service.search_similar_chunks(
             search_query.query, user_id, search_query.limit
