@@ -135,7 +135,7 @@ aspri/backend/
 
 4. **Start the server:**
    ```bash
-   uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+   uvicorn app.main:app --host 0.0.0.0 --port 8888 --reload
    ```
 
 ## Environment Configuration
@@ -165,7 +165,7 @@ MINIO_SECRET_KEY=minioadmin
 
 # ChromaDB
 CHROMADB_HOST=localhost
-CHROMADB_PORT=8001
+CHROMADB_PORT=8000
 ```
 
 ## API Endpoints
@@ -279,7 +279,7 @@ Integrates with Google Generative AI for:
 docker build -t aspri-backend .
 
 # Run with production environment
-docker run -d -p 8000:8000 --env-file .env.prod aspri-backend
+docker run -d -p 8888:8888 --env-file .env.prod aspri-backend
 ```
 
 ## Troubleshooting
