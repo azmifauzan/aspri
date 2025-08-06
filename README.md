@@ -43,31 +43,50 @@ ASPRI is an AI-based personal assistant that helps users manage their daily live
 ## Project Structure
 
 ```
-backend/
-├── app/
-│   ├── api/
-│   │   ├── auth.py          # Authentication endpoints
-│   │   ├── chat.py          # Chat endpoints
-│   │   ├── config.py        # Configuration endpoints
-│   │   └── document.py      # Document management endpoints
-│   ├── core/
-│   │   └── auth.py          # JWT and OAuth utilities
-│   ├── db/
-│   │   ├── models/
-│   │   │   ├── user.py      # User model
-│   │   │   ├── chat.py      # Chat models
-│   │   │   ├── document.py  # Document model
-│   │   │   └── config.py    # Configuration model
-│   │   └── ...
-│   ├── schemas/
-│   │   └── ...
-│   ├── services/
-│   │   └── ...
-│   └── main.py              # FastAPI application
-├── alembic/                 # Database migrations
-├── docker-compose.yml       # Docker orchestration
-├── requirements.txt         # Python dependencies
-└── .env.template            # Environment variables template
+aspri/
+├── backend/
+│   ├── app/
+│   │   ├── api/
+│   │   │   ├── auth.py          # Authentication endpoints
+│   │   │   ├── chat.py          # Chat endpoints
+│   │   │   ├── config.py        # Configuration endpoints
+│   │   │   └── document.py      # Document management endpoints
+│   │   ├── core/
+│   │   │   └── auth.py          # JWT and OAuth utilities
+│   │   ├── db/
+│   │   │   ├── models/
+│   │   │   │   ├── user.py      # User model
+│   │   │   │   ├── chat.py      # Chat models
+│   │   │   │   ├── document.py  # Document model
+│   │   │   │   └── config.py    # Configuration model
+│   │   │   └── ...
+│   │   ├── schemas/
+│   │   │   └── ...
+│   │   ├── services/
+│   │   │   └── ...
+│   │   └── main.py              # FastAPI application
+│   ├── alembic/                 # Database migrations
+│   ├── requirements.txt         # Python dependencies
+│   ├── Dockerfile               # Backend container configuration
+│   └── .env.template            # Environment variables template
+├── frontend/
+│   ├── src/
+│   │   └── ...                  # React application source
+│   ├── public/
+│   │   └── ...                  # Static assets
+│   ├── package.json             # Node.js dependencies
+│   ├── Dockerfile               # Frontend container configuration
+│   ├── nginx.conf               # Nginx configuration
+│   └── .env.example             # Frontend environment variables
+├── docs/
+│   ├── ENVIRONMENT_VARIABLES.md # Environment setup guide
+│   ├── CHAT_FEATURE.md          # Chat feature documentation
+│   ├── RUNNING_BACKEND.md       # Backend setup guide
+│   ├── ARCHITECTURE.md          # System architecture documentation
+│   ├── CHROMA_DB_COLLECTIONS.md # ChromaDB collections guide
+│   └── TODO.md                  # Development roadmap
+├── docker-compose.yml           # Full-stack Docker orchestration
+└── README.md                    # This file
 ```
 
 ## Installation & Setup
@@ -95,11 +114,16 @@ We recommend using Docker Compose for the easiest setup.
     - Edit the `.env` file with your Google Client ID.
 
 3.  **Run Docker Compose:**
-    From the `backend` directory, run:
+    From the root directory, run:
     ```bash
     docker-compose up --build
     ```
-    This will build the images and start all services: the backend app, MariaDB, MinIO, and ChromaDB. The backend will be accessible at `http://localhost:8888`.
+    This will build and start all services:
+    - **Frontend**: Accessible at `http://localhost:3000`
+    - **Backend API**: Accessible at `http://localhost:8888`
+    - **MariaDB**: Database on port 3306
+    - **MinIO**: Object storage on ports 9000 (API) and 9001 (Console)
+    - **ChromaDB**: Vector database on port 8000
 
 ### Option 2: Manual Setup
 
@@ -110,7 +134,7 @@ We recommend using Docker Compose for the easiest setup.
 - MinIO Server
 - ChromaDB Server
 
-For detailed instructions on setting up the backend manually, please refer to `backend/RUNNING_BACKEND.md`.
+For detailed instructions on setting up the backend manually, please refer to `docs/RUNNING_BACKEND.md`.
 
 ## API Endpoints
 
@@ -152,11 +176,21 @@ For detailed instructions on setting up the backend manually, please refer to `b
 - `id`, `key`, `value`, `description`
 
 ## Deployment
-This application is designed to be deployed using Docker. The `backend/docker-compose.yml` file provides a starting point for orchestrating the necessary services in a production-like environment. Ensure you use strong, unique secrets and configure networking and volumes appropriately for your production setup.
 
-For a detailed guide on running the backend, see `backend/RUNNING_BACKEND.md`.
-For a guide on the chat feature, see `docs/CHAT_FEATURE.md`.
-For a guide on environment variables, see `docs/ENVIRONMENT_VARIABLES.md`.
+This application is designed to be deployed using Docker Compose. The root `docker-compose.yml` file provides a complete orchestration setup for all services including frontend, backend, database, and supporting services.
+
+### Production Considerations
+- Use strong, unique secrets for all services
+- Configure proper networking and volumes for your environment
+- Set up reverse proxy (nginx/traefik) for SSL termination
+- Configure backup strategies for persistent data
+- Monitor service health and logs
+
+For detailed deployment guides, see:
+- `docs/RUNNING_BACKEND.md` - Backend setup and configuration
+- `docs/CHAT_FEATURE.md` - Chat feature implementation details
+- `docs/ENVIRONMENT_VARIABLES.md` - Environment configuration guide
+- `docs/ARCHITECTURE.md` - System architecture overview
 
 ## Contributing
 

@@ -206,14 +206,29 @@ python scripts/init_config.py
 
 ## Docker Compose (Updated)
 
-Untuk menjalankan semua layanan dengan Docker:
+**Note**: Docker Compose configuration has been moved to the project root directory (`aspri/docker-compose.yml`) for full-stack orchestration including frontend.
+
+To run all services with Docker from the project root:
+
+```bash
+cd aspri
+docker-compose up --build
+```
+
+This will start:
+- **Frontend** (React/Vite) on port 3000
+- **Backend** (FastAPI) on port 8888
+- **MariaDB** on port 3306
+- **MinIO** on ports 9000 (API) and 9001 (Console)
+- **ChromaDB** on port 8000
+
+The updated `docker-compose.yml` includes:
 
 ```yaml
-# docker-compose.yml akan diupdate untuk include MinIO
 version: '3.8'
 services:
   db:
-    image: mariadb:10.6
+    image: mariadb:11.8
     environment:
       MYSQL_ROOT_PASSWORD: root_password
       MYSQL_DATABASE: aspri_db
@@ -223,18 +238,9 @@ services:
       - "3306:3306"
     volumes:
       - mariadb_data:/var/lib/mysql
+    networks:
+      - aspri-network
 
-  minio:
-    image: minio/minio
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    volumes:
-      - minio_data:/data
   chromadb:
     image: chromadb/chroma:latest
     ports:
@@ -244,17 +250,29 @@ services:
       CHROMA_SERVER_PORT: 8000
     volumes:
       - chromadb_data:/chroma/chroma
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+    networks:
+      - aspri-network
 
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - aspri-network
 
   backend:
-    build: .
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      - "8888:8888"
     environment:
       DATABASE_URL: mysql+aiomysql://aspri_user:aspri_password@db:3306/aspri_db
       MINIO_ENDPOINT: minio:9000
@@ -265,12 +283,29 @@ services:
       - minio
       - chromadb
     volumes:
-      - .:/app
+      - ./backend:/app
+    networks:
+      - aspri-network
+
+  frontend:
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - aspri-network
 
 volumes:
   mariadb_data:
   minio_data:
   chromadb_data:
+
+networks:
+  aspri-network:
+    driver: bridge
 ```
 
 ## Testing
@@ -279,14 +314,14 @@ Setelah setup selesai, test API:
 
 ```bash
 # Health check
-curl http://localhost:8000/health
+curl http://localhost:8888/health
 
 # Get document limits
 curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  http://localhost:8000/config/limits
+  http://localhost:8888/config/limits
 
 # Upload document (akan disimpan ke MinIO dan embeddings ke ChromaDB)
-curl -X POST http://localhost:8000/documents/upload \
+curl -X POST http://localhost:8888/documents/upload \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -F "file=@test_document.pdf"
 ```

@@ -50,5 +50,5 @@ The architecture follows a client-server pattern with a decoupled frontend and b
 -   **Backend**: FastAPI (Python), LangChain, Google Generative AI.
 -   **Database**: MariaDB + ChromaDB.
 -   **Object Storage**: MinIO.
--   **Deployment**: Docker for containerization, with orchestration via Docker Compose.
+-   **Deployment**: Docker for containerization, with orchestration via Docker Compose. The root `docker-compose.yml` file orchestrates the full-stack deployment including frontend, backend, and all supporting services (MariaDB, MinIO, ChromaDB).
 -   **Security**: HTTPS, JWT token authentication, secure handling of secrets.

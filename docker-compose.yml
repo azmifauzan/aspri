@@ -17,6 +17,9 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    networks:
+      - aspri-network
+
   chromadb:
     image: chromadb/chroma:latest
     ports:
@@ -31,6 +34,8 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    networks:
+      - aspri-network
 
   minio:
     image: minio/minio:latest
@@ -48,9 +53,13 @@ services:
       interval: 30s
       timeout: 20s
       retries: 3
+    networks:
+      - aspri-network
 
   backend:
-    build: .
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
     environment:
       DATABASE_URL: mysql+aiomysql://aspri_user:aspri_password@db:3306/aspri_db
       SECRET_KEY: your-secret-key-change-in-production
@@ -75,15 +84,34 @@ services:
       chromadb:
         condition: service_healthy
     volumes:
-      - .:/app
+      - ./backend:/app
     command: >
       sh -c "
         alembic upgrade head &&
         python scripts/init_config.py &&
         uvicorn app.main:app --host 0.0.0.0 --port 8888 --reload
       "
+    networks:
+      - aspri-network
+
+  frontend:
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    environment:
+      - NODE_ENV=production
+    networks:
+      - aspri-network
 
 volumes:
   mariadb_data:
   minio_data:
   chromadb_data:
+
+networks:
+  aspri-network:
+    driver: bridge
