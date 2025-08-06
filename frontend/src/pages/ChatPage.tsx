@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import ChatBubble from '../components/ChatBubble';
-import { Send, Search, FileText, X, Clock } from 'lucide-react';
+import { Send, Search, FileText, X, Clock, FileCheck, SearchCheck, GitCompare, PlusCircle, Edit, Trash2, Settings2, List, Lightbulb, PieChart } from 'lucide-react';
 import axios from 'axios';
 
 // Define types based on backend schemas
@@ -232,6 +232,23 @@ export default function ChatPage() {
     loadMessagesForSession(session.id);
   };
 
+  const handleDeleteSession = async (sessionId: number, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent activating the session
+    if (window.confirm(t('chat.confirm_delete_session'))) {
+      try {
+        await axios.delete(`${API_BASE_URL}/chat/sessions/${sessionId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          }
+        });
+        setSessions(sessions.filter(s => s.id !== sessionId));
+      } catch (error: any) {
+        console.error('Error deleting session:', error);
+        setError(error.response?.data?.detail || 'Failed to delete session');
+      }
+    }
+  };
+
   // Redirect to login if user is not authenticated
   if (!user) {
     return null; // The AuthContext should handle redirection
@@ -288,6 +305,66 @@ export default function ChatPage() {
                       <span>{t('chat.searching_documents')}</span>
                     </div>
                   )}
+                  {message.intent === 'summarize_specific_document' && (
+                    <div className="mt-2 flex items-center text-xs text-brand">
+                      <FileCheck size={12} className="mr-1" />
+                      <span>{t('chat.summarizing_document')}</span>
+                    </div>
+                  )}
+                  {message.intent === 'search_by_semantic' && (
+                    <div className="mt-2 flex items-center text-xs text-brand">
+                      <SearchCheck size={12} className="mr-1" />
+                      <span>{t('chat.semantic_search')}</span>
+                    </div>
+                  )}
+                  {message.intent === 'compare_document' && (
+                    <div className="mt-2 flex items-center text-xs text-brand">
+                      <GitCompare size={12} className="mr-1" />
+                      <span>{t('chat.comparing_documents')}</span>
+                    </div>
+                  )}
+                  {message.intent === 'add_transaction' && (
+                    <div className="mt-2 flex items-center text-xs text-green-600">
+                      <PlusCircle size={12} className="mr-1" />
+                      <span>{t('chat.adding_transaction')}</span>
+                    </div>
+                  )}
+                  {message.intent === 'edit_transaction' && (
+                    <div className="mt-2 flex items-center text-xs text-blue-600">
+                      <Edit size={12} className="mr-1" />
+                      <span>{t('chat.editing_transaction')}</span>
+                    </div>
+                  )}
+                  {message.intent === 'delete_transaction' && (
+                    <div className="mt-2 flex items-center text-xs text-red-600">
+                      <Trash2 size={12} className="mr-1" />
+                      <span>{t('chat.deleting_transaction')}</span>
+                    </div>
+                  )}
+                  {message.intent === 'manage_category' && (
+                    <div className="mt-2 flex items-center text-xs text-purple-600">
+                      <Settings2 size={12} className="mr-1" />
+                      <span>{t('chat.managing_category')}</span>
+                    </div>
+                  )}
+                  {message.intent === 'list_transaction' && (
+                    <div className="mt-2 flex items-center text-xs text-gray-600">
+                      <List size={12} className="mr-1" />
+                      <span>{t('chat.listing_transaction')}</span>
+                    </div>
+                  )}
+                  {message.intent === 'financial_tips' && (
+                    <div className="mt-2 flex items-center text-xs text-yellow-600">
+                      <Lightbulb size={12} className="mr-1" />
+                      <span>{t('chat.providing_financial_tips')}</span>
+                    </div>
+                  )}
+                  {message.intent === 'show_summary' && (
+                    <div className="mt-2 flex items-center text-xs text-indigo-600">
+                      <PieChart size={12} className="mr-1" />
+                      <span>{t('chat.showing_summary')}</span>
+                    </div>
+                  )}
                 </div>
               ))}
               {isLoading && (
@@ -340,10 +417,18 @@ export default function ChatPage() {
                   onClick={() => activateSession(session)}
                   className="bg-gray-100 dark:bg-zinc-700 p-4 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-zinc-600"
                 >
-                  <h4 className="font-medium text-zinc-900 dark:text-white truncate">{session.title}</h4>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                    {new Date(session.updated_at).toLocaleDateString()}
-                  </p>
+                  <div className="flex-1">
+                    <h4 className="font-medium text-zinc-900 dark:text-white truncate">{session.title}</h4>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                      {new Date(session.updated_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <button
+                    onClick={(e) => handleDeleteSession(session.id, e)}
+                    className="text-red-500 hover:text-red-700 dark:hover:text-red-400 p-1 rounded-full"
+                  >
+                    <Trash2 size={16} />
+                  </button>
                 </div>
               ))}
             </div>

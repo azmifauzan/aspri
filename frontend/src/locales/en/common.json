@@ -154,7 +154,18 @@
         "type_message": "Type your message...",
         "enter_to_send": "Press Enter to send",
         "searching_documents": "Searching in your documents...",
-        "recent_chats": "Recent Chats"
+        "summarizing_document": "Summarizing document...",
+        "semantic_search": "Performing semantic search...",
+        "comparing_documents": "Comparing documents...",
+        "adding_transaction": "Adding transaction...",
+        "editing_transaction": "Editing transaction...",
+        "deleting_transaction": "Deleting transaction...",
+        "managing_category": "Managing category...",
+        "listing_transaction": "Listing transactions...",
+        "providing_financial_tips": "Providing financial tips...",
+        "showing_summary": "Showing summary...",
+        "recent_chats": "Recent Chats",
+        "confirm_delete_session": "Are you sure you want to delete this chat session?"
     },
     "common": {
         "back_to_home": "Back to Home"

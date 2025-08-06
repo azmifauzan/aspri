@@ -154,7 +154,18 @@
         "type_message": "Ketik pesan Anda...",
         "enter_to_send": "Tekan Enter untuk mengirim",
         "searching_documents": "Mencari di dokumen Anda...",
-        "recent_chats": "Percakapan Terakhir"
+        "summarizing_document": "Meringkas dokumen...",
+        "semantic_search": "Melakukan pencarian semantik...",
+        "comparing_documents": "Membandingkan dokumen...",
+        "adding_transaction": "Menambahkan transaksi...",
+        "editing_transaction": "Mengedit transaksi...",
+        "deleting_transaction": "Menghapus transaksi...",
+        "managing_category": "Mengelola kategori...",
+        "listing_transaction": "Menampilkan daftar transaksi...",
+        "providing_financial_tips": "Memberikan tips keuangan...",
+        "showing_summary": "Menampilkan ringkasan...",
+        "recent_chats": "Percakapan Terakhir",
+        "confirm_delete_session": "Apakah Anda yakin ingin menghapus sesi obrolan ini?"
     },
     "common": {
         "back_to_home": "Kembali ke Beranda"
