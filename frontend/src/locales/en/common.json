@@ -157,6 +157,13 @@
         "summarizing_document": "Summarizing document...",
         "semantic_search": "Performing semantic search...",
         "comparing_documents": "Comparing documents...",
+        "adding_transaction": "Adding transaction...",
+        "editing_transaction": "Editing transaction...",
+        "deleting_transaction": "Deleting transaction...",
+        "managing_category": "Managing category...",
+        "listing_transaction": "Listing transactions...",
+        "providing_financial_tips": "Providing financial tips...",
+        "showing_summary": "Showing summary...",
         "recent_chats": "Recent Chats"
     },
     "common": {

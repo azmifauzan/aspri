@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import ChatBubble from '../components/ChatBubble';
-import { Send, Search, FileText, X, Clock, FileCheck, SearchCheck, GitCompare } from 'lucide-react';
+import { Send, Search, FileText, X, Clock, FileCheck, SearchCheck, GitCompare, PlusCircle, Edit, Trash2, Settings2, List, Lightbulb, PieChart } from 'lucide-react';
 import axios from 'axios';
 
 // Define types based on backend schemas
@@ -304,6 +304,48 @@ export default function ChatPage() {
                     <div className="mt-2 flex items-center text-xs text-brand">
                       <GitCompare size={12} className="mr-1" />
                       <span>{t('chat.comparing_documents')}</span>
+                    </div>
+                  )}
+                  {message.intent === 'add_transaction' && (
+                    <div className="mt-2 flex items-center text-xs text-green-600">
+                      <PlusCircle size={12} className="mr-1" />
+                      <span>{t('chat.adding_transaction')}</span>
+                    </div>
+                  )}
+                  {message.intent === 'edit_transaction' && (
+                    <div className="mt-2 flex items-center text-xs text-blue-600">
+                      <Edit size={12} className="mr-1" />
+                      <span>{t('chat.editing_transaction')}</span>
+                    </div>
+                  )}
+                  {message.intent === 'delete_transaction' && (
+                    <div className="mt-2 flex items-center text-xs text-red-600">
+                      <Trash2 size={12} className="mr-1" />
+                      <span>{t('chat.deleting_transaction')}</span>
+                    </div>
+                  )}
+                  {message.intent === 'manage_category' && (
+                    <div className="mt-2 flex items-center text-xs text-purple-600">
+                      <Settings2 size={12} className="mr-1" />
+                      <span>{t('chat.managing_category')}</span>
+                    </div>
+                  )}
+                  {message.intent === 'list_transaction' && (
+                    <div className="mt-2 flex items-center text-xs text-gray-600">
+                      <List size={12} className="mr-1" />
+                      <span>{t('chat.listing_transaction')}</span>
+                    </div>
+                  )}
+                  {message.intent === 'financial_tips' && (
+                    <div className="mt-2 flex items-center text-xs text-yellow-600">
+                      <Lightbulb size={12} className="mr-1" />
+                      <span>{t('chat.providing_financial_tips')}</span>
+                    </div>
+                  )}
+                  {message.intent === 'show_summary' && (
+                    <div className="mt-2 flex items-center text-xs text-indigo-600">
+                      <PieChart size={12} className="mr-1" />
+                      <span>{t('chat.showing_summary')}</span>
                     </div>
                   )}
                 </div>
