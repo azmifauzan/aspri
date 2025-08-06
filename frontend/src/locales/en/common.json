@@ -153,7 +153,8 @@
         "example_summarize": "Example: 'Summarize the ABC Company agreement'",
         "type_message": "Type your message...",
         "enter_to_send": "Press Enter to send",
-        "searching_documents": "Searching in your documents..."
+        "searching_documents": "Searching in your documents...",
+        "recent_chats": "Recent Chats"
     },
     "common": {
         "back_to_home": "Back to Home"

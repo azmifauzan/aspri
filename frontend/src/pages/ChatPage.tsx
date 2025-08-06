@@ -226,11 +226,11 @@ export default function ChatPage() {
       {/* Main chat area */}
       <div className="flex-1 flex flex-col">
         {/* Chat header */}
-        <div className="bg-white dark:bg-zinc-800 border-b border-gray-200 dark:border-zinc-700 p-4">
+        {/* <div className="bg-white dark:bg-zinc-800 border-b border-gray-200 dark:border-zinc-700 p-4">
           <h2 className="text-lg font-bold text-zinc-900 dark:text-white">
             {currentSession ? currentSession.title : t('chat.new_chat')}
           </h2>
-        </div>
+        </div> */}
 
         {/* Error message */}
         {error && (
