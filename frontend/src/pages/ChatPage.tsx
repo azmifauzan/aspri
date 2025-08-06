@@ -15,6 +15,8 @@ type Message = {
   message_type: string;
   intent?: string;
   created_at: string; // ISO string
+  structured_data?: any;
+  is_confirmation?: boolean;
 };
 
 type ChatSession = {
@@ -104,10 +106,11 @@ export default function ChatPage() {
     }
   };
 
-  const sendMessage = async () => {
-    console.log('Sending message:', { inputText, currentSession, hasToken: !!token });
+  const sendMessage = async (is_confirmation_response: boolean = false) => {
+    const messageToSend = is_confirmation_response ? "yes" : inputText;
+    console.log('Sending message:', { messageToSend, currentSession, hasToken: !!token });
     
-    if (!inputText.trim()) {
+    if (!messageToSend.trim()) {
       console.log('Message not sent - missing input');
       return;
     }
@@ -168,6 +171,9 @@ export default function ChatPage() {
       });
       
       const aiMessage = response.data;
+      if (aiMessage.content.includes("Is this correct? (yes/no)")) {
+        aiMessage.is_confirmation = true;
+      }
       setMessages(prev => [...prev, aiMessage]);
       setIsLoading(false);
       
@@ -209,6 +215,16 @@ export default function ChatPage() {
   
   const handleSendClick = () => {
     sendMessage();
+  };
+
+  const handleConfirmation = async (response: 'yes' | 'no') => {
+    // Disable the confirmation buttons
+    setMessages(prev => prev.map(m => ({ ...m, is_confirmation: false })));
+
+    if (response === 'yes') {
+      // Send a "yes" message to the backend to proceed with the action
+      await sendMessage(true);
+    }
   };
 
   const activateSession = (session: ChatSession) => {
@@ -263,6 +279,8 @@ export default function ChatPage() {
                   <ChatBubble
                     side={message.role === 'user' ? 'right' : 'left'}
                     text={message.content}
+                    is_confirmation={message.is_confirmation}
+                    onConfirmation={handleConfirmation}
                   />
                   {message.intent === 'document_search' && (
                     <div className="mt-2 flex items-center text-xs text-brand">

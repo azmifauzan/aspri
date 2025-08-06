@@ -13,6 +13,7 @@ This is the frontend for the Aspri personal assistant application. It provides a
 - **Dashboard**: A user-friendly dashboard to access all features.
 - **Document Management**: Upload, view, and manage your documents.
 - **Chat Interface**: Interact with the AI assistant through a real-time chat interface.
+- **Finance Management**: Track income and expenses, manage categories, and view financial summaries.
 - **Internationalization**: Support for multiple languages using i18next.
 - **Responsive Design**: A clean and responsive UI built with Tailwind CSS.
 

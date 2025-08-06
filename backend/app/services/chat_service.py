@@ -1,4 +1,5 @@
 # app/services/chat_service.py
+import json
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
@@ -42,7 +43,15 @@ class ChatService:
         # Intent classification prompt
         self.intent_prompt = PromptTemplate.from_template(
             "Classify the following user message into one of these categories: "
-            "'chat' for general conversation or 'document_search' for searching in uploaded documents.\n\n"
+            "'chat' for general conversation, "
+            "'document_search' for searching in uploaded documents, "
+            "'add_transaction' for adding a new transaction, "
+            "'edit_transaction' for editing a transaction, "
+            "'delete_transaction' for deleting a transaction, "
+            "'manage_category' for managing categories, "
+            "'list_transaction' for listing transactions, "
+            "'financial_tips' for getting financial tips, "
+            "'show_summary' for showing a financial summary.\n\n"
             "Message: {message}\n\n"
             "Category:"
         )
@@ -86,6 +95,45 @@ class ChatService:
             "The user wants to search in their documents. Here are the search results:\n{search_results}\n\n"
             "Please provide a helpful summary of the search results to answer the user's query: {user_query}\n"
             "Assistant:"
+        )
+
+        self.extract_transaction_prompt = PromptTemplate.from_template(
+            "Extract the following information from the user's message:\n"
+            "- amount (float)\n"
+            "- description (string)\n"
+            "- date (YYYY-MM-DD, default to today if not specified)\n"
+            "- type (income or expense)\n"
+            "- category (string, optional)\n\n"
+            "User message: {message}\n\n"
+            "Return the information in JSON format. If a value is not found, use null.\n"
+            "JSON output:"
+        )
+
+        self.extract_edit_transaction_prompt = PromptTemplate.from_template(
+            "Extract the transaction to be edited and the new details from the user's message.\n"
+            "The user might refer to the transaction by its description, amount, or date.\n"
+            "Extract the original transaction details to identify it, and the new details to be applied.\n"
+            "User message: {message}\n\n"
+            "Return the information in JSON format with two keys: 'original' and 'new'.\n"
+            "JSON output:"
+        )
+
+        self.extract_delete_transaction_prompt = PromptTemplate.from_template(
+            "Extract the transaction to be deleted from the user's message.\n"
+            "The user might refer to the transaction by its description, amount, or date.\n"
+            "Extract the transaction details to identify it.\n"
+            "User message: {message}\n\n"
+            "Return the information in JSON format.\n"
+            "JSON output:"
+        )
+
+        self.extract_manage_category_prompt = PromptTemplate.from_template(
+            "Extract the category management action from the user's message.\n"
+            "The user might want to 'add', 'edit', or 'delete' a category.\n"
+            "Extract the action and the category name.\n"
+            "User message: {message}\n\n"
+            "Return the information in JSON format with 'action' and 'name' keys.\n"
+            "JSON output:"
         )
 
     async def create_chat_session(self, user_id: int, session_data: ChatSessionCreate) -> ChatSession:
@@ -174,6 +222,20 @@ class ChatService:
         # Generate AI response based on intent
         if intent == "document_search":
             ai_response = await self._handle_document_search(user_id, message_data.content, user_info)
+        elif intent == "add_transaction":
+            ai_response = await self._handle_add_transaction(user_id, message_data.content, user_info)
+        elif intent == "edit_transaction":
+            ai_response = await self._handle_edit_transaction(user_id, message_data.content, user_info)
+        elif intent == "delete_transaction":
+            ai_response = await self._handle_delete_transaction(user_id, message_data.content, user_info)
+        elif intent == "manage_category":
+            ai_response = await self._handle_manage_category(user_id, message_data.content, user_info)
+        elif intent == "list_transaction":
+            ai_response = await self._handle_list_transaction(user_id, message_data.content, user_info)
+        elif intent == "financial_tips":
+            ai_response = await self._handle_financial_tips(user_id, message_data.content, user_info)
+        elif intent == "show_summary":
+            ai_response = await self._handle_show_summary(user_id, message_data.content, user_info)
         else:
             # Default to chat response
             ai_response = await self._generate_chat_response2(session_id, message_data.content, user_info)
@@ -212,7 +274,18 @@ class ChatService:
             intent = response.content.strip().lower()
             
             # Validate intent
-            if intent in ["chat", "document_search"]:
+            valid_intents = [
+                "chat",
+                "document_search",
+                "add_transaction",
+                "edit_transaction",
+                "delete_transaction",
+                "manage_category",
+                "list_transaction",
+                "financial_tips",
+                "show_summary",
+            ]
+            if intent in valid_intents:
                 return intent
             else:
                 return "chat"  # Default to chat if uncertain
@@ -351,3 +424,94 @@ class ChatService:
                 "aspri_name": user.aspri_name or "ASPRI",
                 "aspri_persona": user.aspri_persona or "helpful"
             }
+
+    async def _handle_add_transaction(self, user_id: int, message: str, user_info: Dict[str, Any]) -> str:
+        try:
+            # Extract transaction details from the message
+            prompt = self.extract_transaction_prompt.format(message=message)
+            response = self.chat_model.invoke([HumanMessage(content=prompt)])
+            transaction_details = json.loads(response.content)
+
+            # Create a summary for confirmation
+            summary = (
+                f"I'm about to add a new transaction:\n"
+                f"- Type: {transaction_details.get('type')}\n"
+                f"- Amount: {transaction_details.get('amount')}\n"
+                f"- Description: {transaction_details.get('description')}\n"
+                f"- Date: {transaction_details.get('date')}\n"
+                f"- Category: {transaction_details.get('category')}\n\n"
+                f"Is this correct? (yes/no)"
+            )
+            return summary
+        except Exception as e:
+            print(f"Error handling add transaction: {e}")
+            return "I'm sorry, I had trouble understanding the transaction details. Please try again."
+
+    async def _handle_edit_transaction(self, user_id: int, message: str, user_info: Dict[str, Any]) -> str:
+        try:
+            # Extract transaction details from the message
+            prompt = self.extract_edit_transaction_prompt.format(message=message)
+            response = self.chat_model.invoke([HumanMessage(content=prompt)])
+            transaction_details = json.loads(response.content)
+
+            original = transaction_details.get('original', {})
+            new = transaction_details.get('new', {})
+
+            # Create a summary for confirmation
+            summary = (
+                f"I'm about to edit a transaction.\n"
+                f"Original: {original}\n"
+                f"New: {new}\n\n"
+                f"Is this correct? (yes/no)"
+            )
+            return summary
+        except Exception as e:
+            print(f"Error handling edit transaction: {e}")
+            return "I'm sorry, I had trouble understanding the transaction details. Please try again."
+
+    async def _handle_delete_transaction(self, user_id: int, message: str, user_info: Dict[str, Any]) -> str:
+        try:
+            # Extract transaction details from the message
+            prompt = self.extract_delete_transaction_prompt.format(message=message)
+            response = self.chat_model.invoke([HumanMessage(content=prompt)])
+            transaction_details = json.loads(response.content)
+
+            # Create a summary for confirmation
+            summary = (
+                f"I'm about to delete the following transaction:\n"
+                f"{transaction_details}\n\n"
+                f"Is this correct? (yes/no)"
+            )
+            return summary
+        except Exception as e:
+            print(f"Error handling delete transaction: {e}")
+            return "I'm sorry, I had trouble understanding which transaction to delete. Please try again."
+
+    async def _handle_manage_category(self, user_id: int, message: str, user_info: Dict[str, Any]) -> str:
+        try:
+            # Extract category management details from the message
+            prompt = self.extract_manage_category_prompt.format(message=message)
+            response = self.chat_model.invoke([HumanMessage(content=prompt)])
+            category_details = json.loads(response.content)
+
+            action = category_details.get('action')
+            name = category_details.get('name')
+
+            # Create a summary for confirmation
+            summary = (
+                f"I'm about to {action} the category '{name}'.\n\n"
+                f"Is this correct? (yes/no)"
+            )
+            return summary
+        except Exception as e:
+            print(f"Error handling manage category: {e}")
+            return "I'm sorry, I had trouble understanding the category management request. Please try again."
+
+    async def _handle_list_transaction(self, user_id: int, message: str, user_info: Dict[str, Any]) -> str:
+        return "Sorry, I can't list transactions yet."
+
+    async def _handle_financial_tips(self, user_id: int, message: str, user_info: Dict[str, Any]) -> str:
+        return "Sorry, I can't provide financial tips yet."
+
+    async def _handle_show_summary(self, user_id: int, message: str, user_info: Dict[str, Any]) -> str:
+        return "Sorry, I can't show a summary yet."

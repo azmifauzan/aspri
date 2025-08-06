@@ -1,10 +1,11 @@
 // src/pages/UserDashboard.tsx
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import DocumentsPage from './DocumentsPage';
 import ChatPage from './ChatPage';
+import FinancePage from './FinancePage';
 import ThemeToggle from '../components/ThemeToggle';
 import LangToggle from '../components/LangToggle';
 import {
@@ -17,13 +18,15 @@ import {
   LogOut,
   User,
   Settings,
-  ChevronDown
+  ChevronDown,
+  Landmark
 } from 'lucide-react';
 
 const menuItems = [
   { id: 'dashboard', label: 'dashboard.menu.dashboard', icon: Home },
   { id: 'chat', label: 'dashboard.menu.chat', icon: MessageSquare },
   { id: 'documents', label: 'dashboard.menu.documents', icon: FileText },
+  { id: 'finance', label: 'dashboard.menu.finance', icon: Landmark },
   { id: 'calendar', label: 'dashboard.menu.calendar', icon: Calendar },
 ];
 
@@ -300,6 +303,11 @@ export default function UserDashboard() {
             </div>
           )}
           
+          {activeItem === 'finance' && (
+            <div className="w-full">
+              <FinancePage />
+            </div>
+          )}
           {/* Other pages will be added here */}
         </main>
       </div>

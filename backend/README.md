@@ -190,6 +190,17 @@ CHROMADB_PORT=8000
 - `GET /config/limits` - Get system limits
 - `PUT /config/{config_key}` - Update configuration
 
+### Finance
+- `GET /finance/categories` - Get all financial categories for the current user
+- `POST /finance/categories` - Create a new financial category
+- `PUT /finance/categories/{category_id}` - Update a financial category
+- `DELETE /finance/categories/{category_id}` - Delete a financial category
+- `GET /finance/transactions` - Get all financial transactions for the current user
+- `POST /finance/transactions` - Create a new financial transaction
+- `PUT /finance/transactions/{transaction_id}` - Update a financial transaction
+- `DELETE /finance/transactions/{transaction_id}` - Delete a financial transaction
+- `GET /finance/summary` - Get a financial summary for the current user
+
 ## Database Management
 
 ### Migrations
