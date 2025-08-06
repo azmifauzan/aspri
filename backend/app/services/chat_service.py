@@ -43,11 +43,11 @@ class ChatService:
         
         # Intent and data extraction prompt
         self.intent_and_data_extraction_prompt = PromptTemplate.from_template(
-            "Analyze the user's message and identify the primary intent and any relevant data. "
+            "Based on the chat history, analyze the last user's message and identify the primary intent and any relevant data. "
             "Return the response as a JSON object with two keys: 'intent' and 'data'.\n\n"
             "Possible intents are: 'chat', 'document_search', 'add_transaction', 'edit_transaction', "
             "'delete_transaction', 'manage_category', 'list_transaction', 'financial_tips', 'show_summary', "
-            "'summarize_specific_document', 'search_by_semantic', 'compare_document'.\n\n"
+            "'summarize_specific_document', 'search_by_semantic', 'compare_document', 'confirm_action', 'cancel_action'.\n\n"
             "For 'add_transaction', extract: amount, description, date, type, category.\n"
             "For 'edit_transaction', extract: original (to find it) and new (the updates).\n"
             "For 'delete_transaction', extract: details to identify the transaction.\n"
@@ -55,7 +55,10 @@ class ChatService:
             "For 'summarize_specific_document', extract: document_name.\n"
             "For 'search_by_semantic', extract: query.\n"
             "For 'compare_document', extract: document_names (as a list).\n"
+            "If the user says 'yes', 'yup', 'correct', or similar, classify the intent as 'confirm_action'.\n"
+            "If the user says 'no', 'nope', 'cancel', or similar, classify the intent as 'cancel_action'.\n"
             "For all other intents, the 'data' field can be null.\n\n"
+            "Chat History:\n{history}\n\n"
             "User message: {message}\n\n"
             "JSON output:"
         )
@@ -193,10 +196,11 @@ class ChatService:
         await self.db.flush()
         
         # Classify user intent and extract data
-        intent_data = await self.classify_user_intent(message_data.content)
+        intent_data = await self.classify_user_intent(session_id, message_data.content)
         intent = intent_data.get("intent", "chat")
         data = intent_data.get("data")
         user_message.intent = intent
+        user_message.structured_data = data
         
         # Get user info for personalization
         user_info = await self._get_user_info(user_id)
@@ -224,6 +228,10 @@ class ChatService:
             ai_response = await self._handle_search_by_semantic(user_id, data, user_info)
         elif intent == "compare_document":
             ai_response = await self._handle_compare_document(user_id, data, user_info)
+        elif intent == "confirm_action":
+            ai_response = await self._handle_confirm_action(session_id, user_id, user_info)
+        elif intent == "cancel_action":
+            ai_response = "Action cancelled."
         else:
             # Default to chat response
             ai_response = await self._generate_chat_response2(session_id, message_data.content, user_info)
@@ -249,11 +257,16 @@ class ChatService:
         
         return ai_message
 
-    async def classify_user_intent(self, message: str) -> Dict[str, Any]:
-        """Classify user intent and extract data using Gemini"""
+    async def classify_user_intent(self, session_id: int, message: str) -> Dict[str, Any]:
+        """Classify user intent and extract data using Gemini, with chat history."""
         try:
+            history = await self._get_conversation_history(session_id)
+
             # Create the prompt
-            prompt = self.intent_and_data_extraction_prompt.format(message=message)
+            prompt = self.intent_and_data_extraction_prompt.format(
+                history=history,
+                message=message
+            )
             
             # Get response from Gemini
             response = await self.chat_model.invoke([HumanMessage(content=prompt)])
@@ -273,7 +286,7 @@ class ChatService:
                 "chat", "document_search", "add_transaction", "edit_transaction",
                 "delete_transaction", "manage_category", "list_transaction",
                 "financial_tips", "show_summary", "summarize_specific_document",
-                "search_by_semantic", "compare_document"
+                "search_by_semantic", "compare_document", "confirm_action", "cancel_action"
             ]
             if intent_data.get("intent") in valid_intents:
                 return intent_data
@@ -586,3 +599,38 @@ class ChatService:
         except Exception as e:
             print(f"Error handling compare document: {e}")
             return "I'm sorry, I encountered an error while comparing the documents."
+
+    async def _handle_confirm_action(self, session_id: int, user_id: int, user_info: Dict[str, Any]) -> str:
+        """Handle the confirmation of a previous action."""
+        try:
+            # Get the last user message that required confirmation
+            query = select(ChatMessage).where(
+                ChatMessage.chat_session_id == session_id,
+                ChatMessage.role == 'user',
+                ChatMessage.intent.notin_(['confirm_action', 'cancel_action', 'chat'])
+            ).order_by(ChatMessage.created_at.desc()).limit(1)
+
+            result = await self.db.execute(query)
+            last_message = result.scalar_one_or_none()
+
+            if not last_message:
+                return "I'm not sure what you are confirming. Could you please clarify?"
+
+            original_intent = last_message.intent
+            original_data = last_message.structured_data
+
+            # Re-route to the original handler
+            if original_intent == "add_transaction":
+                return f"Okay, I have added the transaction: {original_data}"
+            elif original_intent == "edit_transaction":
+                return f"Okay, I have edited the transaction: {original_data}"
+            elif original_intent == "delete_transaction":
+                return f"Okay, I have deleted the transaction: {original_data}"
+            elif original_intent == "manage_category":
+                return f"Okay, I have managed the category: {original_data}"
+            else:
+                return "I'm sorry, I can't confirm this action."
+
+        except Exception as e:
+            print(f"Error handling confirm action: {e}")
+            return "I'm sorry, I encountered an error while confirming the action."

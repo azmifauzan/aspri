@@ -1,5 +1,5 @@
 # app/db/models/chat.py
-from sqlalchemy import String, Integer, ForeignKey, Text, DateTime, Boolean, func
+from sqlalchemy import String, Integer, ForeignKey, Text, DateTime, Boolean, func, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 from datetime import datetime
@@ -38,6 +38,7 @@ class ChatMessage(Base):
     
     # Intent classification
     intent: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)  # 'chat', 'document_search', etc.
+    structured_data: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(
