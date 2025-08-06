@@ -4,9 +4,11 @@ import remarkGfm from 'remark-gfm';
 type ChatBubbleProps = {
   side: "left" | "right";    // posisi gelembung
   text: string;
+  is_confirmation?: boolean;
+  onConfirmation?: (response: 'yes' | 'no') => void;
 };
 
-export default function ChatBubble({ side, text }: ChatBubbleProps) {
+export default function ChatBubble({ side, text, is_confirmation, onConfirmation }: ChatBubbleProps) {
   const isLeft = side === "left";
 
   return (
@@ -72,6 +74,22 @@ export default function ChatBubble({ side, text }: ChatBubbleProps) {
         ) : (
           // Render plain text for user messages (right side)
           <span className="whitespace-pre-wrap">{text}</span>
+        )}
+        {is_confirmation && onConfirmation && (
+          <div className="mt-2 flex gap-2">
+            <button
+              onClick={() => onConfirmation('yes')}
+              className="btn btn-sm btn-success"
+            >
+              Yes
+            </button>
+            <button
+              onClick={() => onConfirmation('no')}
+              className="btn btn-sm btn-error"
+            >
+              No
+            </button>
+          </div>
         )}
       </div>
     </div>
