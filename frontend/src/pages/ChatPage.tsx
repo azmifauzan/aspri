@@ -232,6 +232,23 @@ export default function ChatPage() {
     loadMessagesForSession(session.id);
   };
 
+  const handleDeleteSession = async (sessionId: number, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent activating the session
+    if (window.confirm(t('chat.confirm_delete_session'))) {
+      try {
+        await axios.delete(`${API_BASE_URL}/chat/sessions/${sessionId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          }
+        });
+        setSessions(sessions.filter(s => s.id !== sessionId));
+      } catch (error: any) {
+        console.error('Error deleting session:', error);
+        setError(error.response?.data?.detail || 'Failed to delete session');
+      }
+    }
+  };
+
   // Redirect to login if user is not authenticated
   if (!user) {
     return null; // The AuthContext should handle redirection
@@ -400,10 +417,18 @@ export default function ChatPage() {
                   onClick={() => activateSession(session)}
                   className="bg-gray-100 dark:bg-zinc-700 p-4 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-zinc-600"
                 >
-                  <h4 className="font-medium text-zinc-900 dark:text-white truncate">{session.title}</h4>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                    {new Date(session.updated_at).toLocaleDateString()}
-                  </p>
+                  <div className="flex-1">
+                    <h4 className="font-medium text-zinc-900 dark:text-white truncate">{session.title}</h4>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                      {new Date(session.updated_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <button
+                    onClick={(e) => handleDeleteSession(session.id, e)}
+                    className="text-red-500 hover:text-red-700 dark:hover:text-red-400 p-1 rounded-full"
+                  >
+                    <Trash2 size={16} />
+                  </button>
                 </div>
               ))}
             </div>

@@ -164,7 +164,8 @@
         "listing_transaction": "Menampilkan daftar transaksi...",
         "providing_financial_tips": "Memberikan tips keuangan...",
         "showing_summary": "Menampilkan ringkasan...",
-        "recent_chats": "Percakapan Terakhir"
+        "recent_chats": "Percakapan Terakhir",
+        "confirm_delete_session": "Apakah Anda yakin ingin menghapus sesi obrolan ini?"
     },
     "common": {
         "back_to_home": "Kembali ke Beranda"
