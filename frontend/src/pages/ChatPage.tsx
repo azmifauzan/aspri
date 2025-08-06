@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import ChatBubble from '../components/ChatBubble';
-import { Send, Search, FileText, X, Clock } from 'lucide-react';
+import { Send, Search, FileText, X, Clock, FileCheck, SearchCheck, GitCompare } from 'lucide-react';
 import axios from 'axios';
 
 // Define types based on backend schemas
@@ -286,6 +286,24 @@ export default function ChatPage() {
                     <div className="mt-2 flex items-center text-xs text-brand">
                       <Search size={12} className="mr-1" />
                       <span>{t('chat.searching_documents')}</span>
+                    </div>
+                  )}
+                  {message.intent === 'summarize_specific_document' && (
+                    <div className="mt-2 flex items-center text-xs text-brand">
+                      <FileCheck size={12} className="mr-1" />
+                      <span>{t('chat.summarizing_document')}</span>
+                    </div>
+                  )}
+                  {message.intent === 'search_by_semantic' && (
+                    <div className="mt-2 flex items-center text-xs text-brand">
+                      <SearchCheck size={12} className="mr-1" />
+                      <span>{t('chat.semantic_search')}</span>
+                    </div>
+                  )}
+                  {message.intent === 'compare_document' && (
+                    <div className="mt-2 flex items-center text-xs text-brand">
+                      <GitCompare size={12} className="mr-1" />
+                      <span>{t('chat.comparing_documents')}</span>
                     </div>
                   )}
                 </div>

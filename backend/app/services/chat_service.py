@@ -21,6 +21,7 @@ from app.db.models.user import User
 # Services
 from app.services.document_service import DocumentService
 from app.services.chromadb_service import ChromaDBService
+from app.services.minio_service import MinIOService
 
 # LangChain GenAI imports
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -40,22 +41,25 @@ class ChatService:
             max_tokens=1000
         )
         
-        # Intent classification prompt
-        self.intent_prompt = PromptTemplate.from_template(
-            "Classify the following user message into one of these categories: "
-            "'chat' for general conversation, "
-            "'document_search' for searching in uploaded documents, "
-            "'add_transaction' for adding a new transaction, "
-            "'edit_transaction' for editing a transaction, "
-            "'delete_transaction' for deleting a transaction, "
-            "'manage_category' for managing categories, "
-            "'list_transaction' for listing transactions, "
-            "'financial_tips' for getting financial tips, "
-            "'show_summary' for showing a financial summary.\n\n"
-            "Message: {message}\n\n"
-            "Category:"
+        # Intent and data extraction prompt
+        self.intent_and_data_extraction_prompt = PromptTemplate.from_template(
+            "Analyze the user's message and identify the primary intent and any relevant data. "
+            "Return the response as a JSON object with two keys: 'intent' and 'data'.\n\n"
+            "Possible intents are: 'chat', 'document_search', 'add_transaction', 'edit_transaction', "
+            "'delete_transaction', 'manage_category', 'list_transaction', 'financial_tips', 'show_summary', "
+            "'summarize_specific_document', 'search_by_semantic', 'compare_document'.\n\n"
+            "For 'add_transaction', extract: amount, description, date, type, category.\n"
+            "For 'edit_transaction', extract: original (to find it) and new (the updates).\n"
+            "For 'delete_transaction', extract: details to identify the transaction.\n"
+            "For 'manage_category', extract: action (add, edit, delete) and name.\n"
+            "For 'summarize_specific_document', extract: document_name.\n"
+            "For 'search_by_semantic', extract: query.\n"
+            "For 'compare_document', extract: document_names (as a list).\n"
+            "For all other intents, the 'data' field can be null.\n\n"
+            "User message: {message}\n\n"
+            "JSON output:"
         )
-        
+
         # Chat prompt template
         self.chat_prompt = PromptTemplate.from_template(
             "You are an AI personal assistant named {assistant_name} with a {assistant_persona} personality. "
@@ -97,43 +101,19 @@ class ChatService:
             "Assistant:"
         )
 
-        self.extract_transaction_prompt = PromptTemplate.from_template(
-            "Extract the following information from the user's message:\n"
-            "- amount (float)\n"
-            "- description (string)\n"
-            "- date (YYYY-MM-DD, default to today if not specified)\n"
-            "- type (income or expense)\n"
-            "- category (string, optional)\n\n"
-            "User message: {message}\n\n"
-            "Return the information in JSON format. If a value is not found, use null.\n"
-            "JSON output:"
+        self.summarize_document_prompt = PromptTemplate.from_template(
+            "You are an AI personal assistant named {assistant_name} with a {assistant_persona} personality. "
+            "Please provide a concise summary of the following document:\n\n"
+            "Document: {document_name}\n"
+            "Content:\n{document_content}\n\n"
+            "Summary:"
         )
 
-        self.extract_edit_transaction_prompt = PromptTemplate.from_template(
-            "Extract the transaction to be edited and the new details from the user's message.\n"
-            "The user might refer to the transaction by its description, amount, or date.\n"
-            "Extract the original transaction details to identify it, and the new details to be applied.\n"
-            "User message: {message}\n\n"
-            "Return the information in JSON format with two keys: 'original' and 'new'.\n"
-            "JSON output:"
-        )
-
-        self.extract_delete_transaction_prompt = PromptTemplate.from_template(
-            "Extract the transaction to be deleted from the user's message.\n"
-            "The user might refer to the transaction by its description, amount, or date.\n"
-            "Extract the transaction details to identify it.\n"
-            "User message: {message}\n\n"
-            "Return the information in JSON format.\n"
-            "JSON output:"
-        )
-
-        self.extract_manage_category_prompt = PromptTemplate.from_template(
-            "Extract the category management action from the user's message.\n"
-            "The user might want to 'add', 'edit', or 'delete' a category.\n"
-            "Extract the action and the category name.\n"
-            "User message: {message}\n\n"
-            "Return the information in JSON format with 'action' and 'name' keys.\n"
-            "JSON output:"
+        self.compare_documents_prompt = PromptTemplate.from_template(
+            "You are an AI personal assistant named {assistant_name} with a {assistant_persona} personality. "
+            "Please compare the following documents and provide a summary of their key similarities and differences.\n\n"
+            "{document_comparisons}\n\n"
+            "Comparison:"
         )
 
     async def create_chat_session(self, user_id: int, session_data: ChatSessionCreate) -> ChatSession:
@@ -212,8 +192,10 @@ class ChatService:
         self.db.add(user_message)
         await self.db.flush()
         
-        # Classify user intent
-        intent = await self.classify_user_intent(message_data.content)
+        # Classify user intent and extract data
+        intent_data = await self.classify_user_intent(message_data.content)
+        intent = intent_data.get("intent", "chat")
+        data = intent_data.get("data")
         user_message.intent = intent
         
         # Get user info for personalization
@@ -221,21 +203,27 @@ class ChatService:
         
         # Generate AI response based on intent
         if intent == "document_search":
-            ai_response = await self._handle_document_search(user_id, message_data.content, user_info)
+            ai_response = await self._handle_document_search(user_id, data.get("query") if data else message_data.content, user_info)
         elif intent == "add_transaction":
-            ai_response = await self._handle_add_transaction(user_id, message_data.content, user_info)
+            ai_response = await self._handle_add_transaction(user_id, data, user_info)
         elif intent == "edit_transaction":
-            ai_response = await self._handle_edit_transaction(user_id, message_data.content, user_info)
+            ai_response = await self._handle_edit_transaction(user_id, data, user_info)
         elif intent == "delete_transaction":
-            ai_response = await self._handle_delete_transaction(user_id, message_data.content, user_info)
+            ai_response = await self._handle_delete_transaction(user_id, data, user_info)
         elif intent == "manage_category":
-            ai_response = await self._handle_manage_category(user_id, message_data.content, user_info)
+            ai_response = await self._handle_manage_category(user_id, data, user_info)
         elif intent == "list_transaction":
-            ai_response = await self._handle_list_transaction(user_id, message_data.content, user_info)
+            ai_response = await self._handle_list_transaction(user_id, data, user_info)
         elif intent == "financial_tips":
-            ai_response = await self._handle_financial_tips(user_id, message_data.content, user_info)
+            ai_response = await self._handle_financial_tips(user_id, data, user_info)
         elif intent == "show_summary":
-            ai_response = await self._handle_show_summary(user_id, message_data.content, user_info)
+            ai_response = await self._handle_show_summary(user_id, data, user_info)
+        elif intent == "summarize_specific_document":
+            ai_response = await self._handle_summarize_specific_document(user_id, data, user_info)
+        elif intent == "search_by_semantic":
+            ai_response = await self._handle_search_by_semantic(user_id, data, user_info)
+        elif intent == "compare_document":
+            ai_response = await self._handle_compare_document(user_id, data, user_info)
         else:
             # Default to chat response
             ai_response = await self._generate_chat_response2(session_id, message_data.content, user_info)
@@ -261,37 +249,39 @@ class ChatService:
         
         return ai_message
 
-    async def classify_user_intent(self, message: str) -> str:
-        """Classify user intent using Gemini"""
+    async def classify_user_intent(self, message: str) -> Dict[str, Any]:
+        """Classify user intent and extract data using Gemini"""
         try:
             # Create the prompt
-            prompt = self.intent_prompt.format(message=message)
+            prompt = self.intent_and_data_extraction_prompt.format(message=message)
             
             # Get response from Gemini
-            response = self.chat_model.invoke([HumanMessage(content=prompt)])
+            response = await self.chat_model.invoke([HumanMessage(content=prompt)])
+
+            # Extract and parse the JSON response
+            json_response_str = response.content.strip()
+            # It may have ```json  and ``` at the end, so we need to remove it
+            if json_response_str.startswith("```json"):
+                json_response_str = json_response_str[7:]
+            if json_response_str.endswith("```"):
+                json_response_str = json_response_str[:-3]
             
-            # Extract intent from response
-            intent = response.content.strip().lower()
+            intent_data = json.loads(json_response_str)
             
             # Validate intent
             valid_intents = [
-                "chat",
-                "document_search",
-                "add_transaction",
-                "edit_transaction",
-                "delete_transaction",
-                "manage_category",
-                "list_transaction",
-                "financial_tips",
-                "show_summary",
+                "chat", "document_search", "add_transaction", "edit_transaction",
+                "delete_transaction", "manage_category", "list_transaction",
+                "financial_tips", "show_summary", "summarize_specific_document",
+                "search_by_semantic", "compare_document"
             ]
-            if intent in valid_intents:
-                return intent
+            if intent_data.get("intent") in valid_intents:
+                return intent_data
             else:
-                return "chat"  # Default to chat if uncertain
+                return {"intent": "chat", "data": None}  # Default to chat if uncertain
         except Exception as e:
-            print(f"Error classifying intent: {e}")
-            return "chat"  # Default to chat on error
+            print(f"Error classifying intent or extracting data: {e}")
+            return {"intent": "chat", "data": None}  # Default to chat on error
 
     async def _handle_document_search(self, user_id: int, query: str, user_info: Dict[str, Any]) -> str:
         """Handle document search intent"""
@@ -330,7 +320,7 @@ class ChatService:
                 user_query=query
             )
             
-            response = self.chat_model.invoke([HumanMessage(content=prompt)])
+            response = await self.chat_model.invoke([HumanMessage(content=prompt)])
             return response.content
             
         except Exception as e:
@@ -354,7 +344,7 @@ class ChatService:
             )
             
             # Get response from Gemini
-            response = self.chat_model.invoke([HumanMessage(content=prompt)])
+            response = await self.chat_model.invoke([HumanMessage(content=prompt)])
             return response.content
             
         except Exception as e:
@@ -425,21 +415,18 @@ class ChatService:
                 "aspri_persona": user.aspri_persona or "helpful"
             }
 
-    async def _handle_add_transaction(self, user_id: int, message: str, user_info: Dict[str, Any]) -> str:
+    async def _handle_add_transaction(self, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
         try:
-            # Extract transaction details from the message
-            prompt = self.extract_transaction_prompt.format(message=message)
-            response = self.chat_model.invoke([HumanMessage(content=prompt)])
-            transaction_details = json.loads(response.content)
-
+            if not data:
+                return "I need more information to add a transaction. Please provide details like amount, description, type, and date."
             # Create a summary for confirmation
             summary = (
                 f"I'm about to add a new transaction:\n"
-                f"- Type: {transaction_details.get('type')}\n"
-                f"- Amount: {transaction_details.get('amount')}\n"
-                f"- Description: {transaction_details.get('description')}\n"
-                f"- Date: {transaction_details.get('date')}\n"
-                f"- Category: {transaction_details.get('category')}\n\n"
+                f"- Type: {data.get('type')}\n"
+                f"- Amount: {data.get('amount')}\n"
+                f"- Description: {data.get('description')}\n"
+                f"- Date: {data.get('date')}\n"
+                f"- Category: {data.get('category')}\n\n"
                 f"Is this correct? (yes/no)"
             )
             return summary
@@ -447,15 +434,13 @@ class ChatService:
             print(f"Error handling add transaction: {e}")
             return "I'm sorry, I had trouble understanding the transaction details. Please try again."
 
-    async def _handle_edit_transaction(self, user_id: int, message: str, user_info: Dict[str, Any]) -> str:
+    async def _handle_edit_transaction(self, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
         try:
-            # Extract transaction details from the message
-            prompt = self.extract_edit_transaction_prompt.format(message=message)
-            response = self.chat_model.invoke([HumanMessage(content=prompt)])
-            transaction_details = json.loads(response.content)
+            if not data:
+                return "I need more information to edit a transaction. Please specify which transaction to edit and the new details."
 
-            original = transaction_details.get('original', {})
-            new = transaction_details.get('new', {})
+            original = data.get('original', {})
+            new = data.get('new', {})
 
             # Create a summary for confirmation
             summary = (
@@ -469,17 +454,14 @@ class ChatService:
             print(f"Error handling edit transaction: {e}")
             return "I'm sorry, I had trouble understanding the transaction details. Please try again."
 
-    async def _handle_delete_transaction(self, user_id: int, message: str, user_info: Dict[str, Any]) -> str:
+    async def _handle_delete_transaction(self, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
         try:
-            # Extract transaction details from the message
-            prompt = self.extract_delete_transaction_prompt.format(message=message)
-            response = self.chat_model.invoke([HumanMessage(content=prompt)])
-            transaction_details = json.loads(response.content)
-
+            if not data:
+                return "I need more information to delete a transaction. Please specify which transaction to delete."
             # Create a summary for confirmation
             summary = (
                 f"I'm about to delete the following transaction:\n"
-                f"{transaction_details}\n\n"
+                f"{data}\n\n"
                 f"Is this correct? (yes/no)"
             )
             return summary
@@ -487,15 +469,13 @@ class ChatService:
             print(f"Error handling delete transaction: {e}")
             return "I'm sorry, I had trouble understanding which transaction to delete. Please try again."
 
-    async def _handle_manage_category(self, user_id: int, message: str, user_info: Dict[str, Any]) -> str:
+    async def _handle_manage_category(self, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
         try:
-            # Extract category management details from the message
-            prompt = self.extract_manage_category_prompt.format(message=message)
-            response = self.chat_model.invoke([HumanMessage(content=prompt)])
-            category_details = json.loads(response.content)
+            if not data:
+                return "I need more information to manage categories. Please specify the action (add, edit, delete) and the category name."
 
-            action = category_details.get('action')
-            name = category_details.get('name')
+            action = data.get('action')
+            name = data.get('name')
 
             # Create a summary for confirmation
             summary = (
@@ -507,11 +487,102 @@ class ChatService:
             print(f"Error handling manage category: {e}")
             return "I'm sorry, I had trouble understanding the category management request. Please try again."
 
-    async def _handle_list_transaction(self, user_id: int, message: str, user_info: Dict[str, Any]) -> str:
+    async def _handle_list_transaction(self, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
         return "Sorry, I can't list transactions yet."
 
-    async def _handle_financial_tips(self, user_id: int, message: str, user_info: Dict[str, Any]) -> str:
+    async def _handle_financial_tips(self, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
         return "Sorry, I can't provide financial tips yet."
 
-    async def _handle_show_summary(self, user_id: int, message: str, user_info: Dict[str, Any]) -> str:
+    async def _handle_show_summary(self, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
         return "Sorry, I can't show a summary yet."
+
+    async def _handle_summarize_specific_document(self, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
+        try:
+            if not data or 'document_name' not in data:
+                return "Please specify the name of the document you want to summarize."
+
+            document_name = data['document_name']
+            document_service = DocumentService(self.db)
+
+            # Fetch the document from the database
+            document = await document_service.get_document_by_filename_and_user_id(document_name, user_id)
+            if not document:
+                return f"I couldn't find a document named '{document_name}'."
+
+            # Get the document content from MinIO
+            minio_service = MinIOService()
+            try:
+                document_content_bytes = await minio_service.get_file(document.minio_object_name)
+                # The document content is in bytes, we need to decode it to string
+                document_content = document_content_bytes.decode('utf-8')
+            except Exception as e:
+                print(f"Error fetching document content from MinIO: {e}")
+                return "I'm sorry, I encountered an error while retrieving the document content."
+
+            # Generate the summary
+            prompt = self.summarize_document_prompt.format(
+                assistant_name=user_info.get("aspri_name", "ASPRI"),
+                assistant_persona=user_info.get("aspri_persona", "helpful"),
+                document_name=document_name,
+                document_content=document_content
+            )
+            response = await self.chat_model.invoke([HumanMessage(content=prompt)])
+            return response.content
+
+        except Exception as e:
+            print(f"Error handling summarize specific document: {e}")
+            return "I'm sorry, I encountered an error while summarizing the document."
+
+    async def _handle_search_by_semantic(self, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
+        try:
+            if not data or 'query' not in data:
+                return "Please provide a search query."
+
+            query = data['query']
+            return await self._handle_document_search(user_id, query, user_info)
+        except Exception as e:
+            print(f"Error handling search by semantic: {e}")
+            return "I'm sorry, I encountered an error while performing the semantic search."
+
+    async def _handle_compare_document(self, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
+        try:
+            if not data or 'document_names' not in data or len(data['document_names']) < 2:
+                return "Please specify at least two documents to compare."
+
+            doc_names = data['document_names']
+            document_service = DocumentService(self.db)
+            minio_service = MinIOService()
+
+            document_contents = []
+            for name in doc_names:
+                document = await document_service.get_document_by_filename_and_user_id(name, user_id)
+                if not document:
+                    return f"I couldn't find a document named '{name}'."
+                try:
+                    content_bytes = await minio_service.get_file(document.minio_object_name)
+                    document_contents.append({
+                        "name": name,
+                        "content": content_bytes.decode('utf-8')
+                    })
+                except Exception as e:
+                    print(f"Error fetching document content for '{name}' from MinIO: {e}")
+                    return f"I'm sorry, I encountered an error while retrieving the content of '{name}'."
+
+            # Create the comparison string
+            document_comparisons = "\n\n---\n\n".join(
+                f"Document: {item['name']}\nContent:\n{item['content']}"
+                for item in document_contents
+            )
+
+            # Generate the comparison
+            prompt = self.compare_documents_prompt.format(
+                assistant_name=user_info.get("aspri_name", "ASPRI"),
+                assistant_persona=user_info.get("aspri_persona", "helpful"),
+                document_comparisons=document_comparisons
+            )
+            response = await self.chat_model.invoke([HumanMessage(content=prompt)])
+            return response.content
+
+        except Exception as e:
+            print(f"Error handling compare document: {e}")
+            return "I'm sorry, I encountered an error while comparing the documents."

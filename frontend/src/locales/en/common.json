@@ -154,6 +154,9 @@
         "type_message": "Type your message...",
         "enter_to_send": "Press Enter to send",
         "searching_documents": "Searching in your documents...",
+        "summarizing_document": "Summarizing document...",
+        "semantic_search": "Performing semantic search...",
+        "comparing_documents": "Comparing documents...",
         "recent_chats": "Recent Chats"
     },
     "common": {

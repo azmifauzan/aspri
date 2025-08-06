@@ -154,6 +154,9 @@
         "type_message": "Ketik pesan Anda...",
         "enter_to_send": "Tekan Enter untuk mengirim",
         "searching_documents": "Mencari di dokumen Anda...",
+        "summarizing_document": "Meringkas dokumen...",
+        "semantic_search": "Melakukan pencarian semantik...",
+        "comparing_documents": "Membandingkan dokumen...",
         "recent_chats": "Percakapan Terakhir"
     },
     "common": {

@@ -153,6 +153,15 @@ class DocumentService:
         result = await self.db.execute(query)
         return result.scalar_one_or_none()
     
+    async def get_document_by_filename_and_user_id(self, filename: str, user_id: int) -> Optional[Document]:
+        """Get a document by filename for a specific user"""
+        query = select(Document).where(
+            Document.filename == filename,
+            Document.user_id == user_id
+        )
+        result = await self.db.execute(query)
+        return result.scalar_one_or_none()
+
     async def get_document_with_chunks(self, document_id: int, user_id: int) -> Optional[Document]:
         """Get a document with its chunks by ID for a specific user"""
         query = select(Document).options(
