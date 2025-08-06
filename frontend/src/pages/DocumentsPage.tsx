@@ -58,7 +58,6 @@ export default function DocumentsPage() {
   const { t } = useTranslation();
   const { token } = useAuth();
   const [documents, setDocuments] = useState<Document[]>([]);
-  const [totalDocuments, setTotalDocuments] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
@@ -89,7 +88,6 @@ export default function DocumentsPage() {
         }
       });
       setDocuments(response.data.documents);
-      setTotalDocuments(response.data.total);
     } catch (error: any) {
       console.error('Error fetching documents:', error);
       const errorMessage = error.response?.data?.detail || error.message || t('documents.error_fetching');

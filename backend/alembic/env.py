@@ -13,8 +13,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from app.db.base import Base
-from app.db.models.user import User  # Import all models
-from app.db.models.chat import ChatSession, ChatMessage  # Import chat models
+from app.db.models import * # Import all models
 
 # this is the Alembic Config object
 config = context.config

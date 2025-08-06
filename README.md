@@ -14,6 +14,7 @@ ASPRI is an AI-based personal assistant that helps users manage their daily live
 - **MariaDB Database**: Reliable data storage with async operations using MariaDB.
 - **RESTful API**: Well-structured API endpoints for frontend integration.
 - **Chat-first Interface**: All features accessible through conversation, powered by Google Gemini.
+- **Financial Tracking**: Manage income and expenses, categorize transactions, and view financial summaries.
 
 ## Tech Stack
 
@@ -157,6 +158,17 @@ For detailed instructions on setting up the backend manually, please refer to `d
 ### Configuration
 - `GET /config/limits`: Get file and document limits.
 - `PUT /config/{config_key}`: Update a configuration value.
+
+### Finance
+- `GET /finance/categories`: Get all financial categories.
+- `POST /finance/categories`: Create a new financial category.
+- `PUT /finance/categories/{category_id}`: Update a financial category.
+- `DELETE /finance/categories/{category_id}`: Delete a financial category.
+- `GET /finance/transactions`: Get all financial transactions.
+- `POST /finance/transactions`: Create a new financial transaction.
+- `PUT /finance/transactions/{transaction_id}`: Update a financial transaction.
+- `DELETE /finance/transactions/{transaction_id}`: Delete a financial transaction.
+- `GET /finance/summary`: Get a financial summary.
 
 ## Database Schema
 
