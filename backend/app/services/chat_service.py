@@ -269,7 +269,7 @@ class ChatService:
             )
             
             # Get response from Gemini
-            response = await self.chat_model.invoke([HumanMessage(content=prompt)])
+            response = self.chat_model.invoke([HumanMessage(content=prompt)])
 
             # Extract and parse the JSON response
             json_response_str = response.content.strip()
@@ -278,7 +278,7 @@ class ChatService:
                 json_response_str = json_response_str[7:]
             if json_response_str.endswith("```"):
                 json_response_str = json_response_str[:-3]
-            
+
             intent_data = json.loads(json_response_str)
             
             # Validate intent
@@ -333,7 +333,7 @@ class ChatService:
                 user_query=query
             )
             
-            response = await self.chat_model.invoke([HumanMessage(content=prompt)])
+            response = self.chat_model.invoke([HumanMessage(content=prompt)])
             return response.content
             
         except Exception as e:
@@ -357,7 +357,7 @@ class ChatService:
             )
             
             # Get response from Gemini
-            response = await self.chat_model.invoke([HumanMessage(content=prompt)])
+            response = self.chat_model.invoke([HumanMessage(content=prompt)])
             return response.content
             
         except Exception as e:
@@ -539,7 +539,7 @@ class ChatService:
                 document_name=document_name,
                 document_content=document_content
             )
-            response = await self.chat_model.invoke([HumanMessage(content=prompt)])
+            response = self.chat_model.invoke([HumanMessage(content=prompt)])
             return response.content
 
         except Exception as e:
@@ -593,7 +593,7 @@ class ChatService:
                 assistant_persona=user_info.get("aspri_persona", "helpful"),
                 document_comparisons=document_comparisons
             )
-            response = await self.chat_model.invoke([HumanMessage(content=prompt)])
+            response = self.chat_model.invoke([HumanMessage(content=prompt)])
             return response.content
 
         except Exception as e:
