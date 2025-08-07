@@ -22,6 +22,7 @@ from app.db.models.user import User
 from app.services.document_service import DocumentService
 from app.services.chromadb_service import ChromaDBService
 from app.services.minio_service import MinIOService
+from app.services.google_contact_service import GoogleContactService
 
 # LangChain GenAI imports
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -47,7 +48,7 @@ class ChatService:
             "Return the response as a JSON object with two keys: 'intent' and 'data'.\n\n"
             "Possible intents are: 'chat', 'document_search', 'add_transaction', 'edit_transaction', "
             "'delete_transaction', 'manage_category', 'list_transaction', 'financial_tips', 'show_summary', "
-            "'summarize_specific_document', 'search_by_semantic', 'compare_document', 'confirm_action', 'cancel_action'.\n\n"
+            "'summarize_specific_document', 'search_by_semantic', 'compare_document', 'confirm_action', 'cancel_action', 'search_contact'.\n\n"
             "For 'add_transaction', extract: amount, description, date, type, category.\n"
             "For 'edit_transaction', extract: original (to find it) and new (the updates).\n"
             "For 'delete_transaction', extract: details to identify the transaction.\n"
@@ -55,6 +56,7 @@ class ChatService:
             "For 'summarize_specific_document', extract: document_name.\n"
             "For 'search_by_semantic', extract: query.\n"
             "For 'compare_document', extract: document_names (as a list).\n"
+            "For 'search_contact', extract: contact_name.\n"
             "If the user says 'yes', 'yup', 'correct', or similar, classify the intent as 'confirm_action'.\n"
             "If the user says 'no', 'nope', 'cancel', or similar, classify the intent as 'cancel_action'.\n"
             "For all other intents, the 'data' field can be null.\n\n"
@@ -230,6 +232,8 @@ class ChatService:
             ai_response = await self._handle_compare_document(user_id, data, user_info)
         elif intent == "confirm_action":
             ai_response = await self._handle_confirm_action(session_id, user_id, user_info)
+        elif intent == "search_contact":
+            ai_response = await self._handle_search_contact(user_id, data, user_info)
         elif intent == "cancel_action":
             ai_response = "Action cancelled."
         else:
@@ -286,7 +290,7 @@ class ChatService:
                 "chat", "document_search", "add_transaction", "edit_transaction",
                 "delete_transaction", "manage_category", "list_transaction",
                 "financial_tips", "show_summary", "summarize_specific_document",
-                "search_by_semantic", "compare_document", "confirm_action", "cancel_action"
+                "search_by_semantic", "compare_document", "confirm_action", "cancel_action", "search_contact"
             ]
             if intent_data.get("intent") in valid_intents:
                 return intent_data
@@ -634,3 +638,45 @@ class ChatService:
         except Exception as e:
             print(f"Error handling confirm action: {e}")
             return "I'm sorry, I encountered an error while confirming the action."
+
+    async def _handle_search_contact(self, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
+        """Handle contact search intent."""
+        try:
+            contact_name = data.get("contact_name") if data else None
+            if not contact_name:
+                return "Who would you like to search for in your contacts?"
+
+            # Get user object to pass to the service
+            user_service = UserService(self.db)
+            user = await user_service.get_user_by_id(user_id)
+            if not user or not user.google_access_token:
+                return "It seems your Google account isn't linked for contact access. Please link it in the dashboard."
+
+            # Use the GoogleContactService
+            contact_service = GoogleContactService(user, self.db)
+            all_contacts = await contact_service.list_contacts()
+
+            # Filter contacts by name
+            found_contacts = [
+                c for c in all_contacts
+                if contact_name.lower() in c.get("name", "").lower()
+            ]
+
+            if not found_contacts:
+                return f"I couldn't find anyone named '{contact_name}' in your contacts."
+
+            # Format the response
+            response_lines = [f"I found {len(found_contacts)} contact(s) matching '{contact_name}':"]
+            for contact in found_contacts:
+                contact_info = f"- Name: {contact.get('name')}"
+                if contact.get('email'):
+                    contact_info += f", Email: {contact.get('email')}"
+                if contact.get('phone'):
+                    contact_info += f", Phone: {contact.get('phone')}"
+                response_lines.append(contact_info)
+
+            return "\n".join(response_lines)
+
+        except Exception as e:
+            print(f"Error handling contact search: {e}")
+            return "I'm sorry, I encountered an error while searching your contacts."

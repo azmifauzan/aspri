@@ -8,6 +8,8 @@ class UserBase(BaseModel):
 
 class UserCreate(BaseModel):
     google_token: str
+    google_access_token: Optional[str] = None
+    google_refresh_token: Optional[str] = None
 
 class UserRegistration(BaseModel):
     name: str

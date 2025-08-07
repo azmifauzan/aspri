@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.db.models.user import User
 from app.schemas.user import UserRegistration
-from datetime import date
+from datetime import datetime, timedelta, date
 from typing import Optional
 
 class UserService:
@@ -25,15 +25,42 @@ class UserService:
         result = await self.db.execute(select(User).where(User.id == user_id))
         return result.scalar_one_or_none()
 
-    async def create_user(self, email: str, google_id: str) -> User:
+    async def create_user(
+        self,
+        email: str,
+        google_id: str,
+        access_token: Optional[str] = None,
+        refresh_token: Optional[str] = None
+    ) -> User:
         """Create new user from Google OAuth"""
+        expiry_time = datetime.utcnow() + timedelta(hours=1) if access_token else None
+
         user = User(
             email=email,
             google_id=google_id,
+            google_access_token=access_token,
+            google_refresh_token=refresh_token,
+            google_token_expiry=expiry_time,
             is_registered=False,
             created_at=date.today()
         )
         self.db.add(user)
+        await self.db.commit()
+        await self.db.refresh(user)
+        return user
+
+    async def update_user_tokens(
+        self,
+        user: User,
+        access_token: str,
+        refresh_token: Optional[str] = None
+    ) -> User:
+        """Update Google API tokens for an existing user"""
+        user.google_access_token = access_token
+        user.google_token_expiry = datetime.utcnow() + timedelta(hours=1)
+        if refresh_token:
+            user.google_refresh_token = refresh_token
+
         await self.db.commit()
         await self.db.refresh(user)
         return user

@@ -8,8 +8,9 @@ This document describes the implementation of the chat feature for the ASPRI app
 
 1. **Chat Interface**: A complete chat UI with message bubbles, session management, and input area
 2. **Chat History**: Users can view previous conversations and reactivate sessions
-3. **Intent Classification**: Backend identifies user intent using Gemini (chat vs document search)
-4. **Document Search**: Integrated with ChromaDB for searching uploaded documents
+3. **Intent Classification**: Backend identifies user intent using Gemini (e.g., chat, document search, contact search).
+4. **Document Search**: Integrated with ChromaDB for searching uploaded documents.
+5. **Contact Search**: Integrated with Google People API to search the user's contacts.
 5. **Gemini Integration**: Used Gemini 2.5 Flash for both intent classification and chat responses
 
 ## Backend Implementation
@@ -41,6 +42,7 @@ The chat service handles:
 2. **Message Handling**: Sending messages and receiving AI responses
 3. **Intent Classification**: Using Gemini to classify user intent
 4. **Document Search Integration**: Searching documents using ChromaDB when user intent is document search
+5. **Contact Search Integration**: Searching contacts via the `GoogleContactService` when the intent is `search_contact`.
 
 ## Frontend Implementation
 
