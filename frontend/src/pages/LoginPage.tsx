@@ -1,10 +1,9 @@
 // src/pages/LoginPage.tsx
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, LogIn } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -25,25 +24,11 @@ export default function LoginPage() {
     }
   }, [user, navigate]);
 
-  const handleGoogleSuccess = async (credentialResponse: any) => {
-    if (credentialResponse.credential) {
-      const result = await login(credentialResponse.credential);
-      
-      if (result.success) {
-        if (result.isRegistered) {
-          navigate('/dashboard');
-        } else {
-          navigate('/register');
-        }
-      } else {
-        alert(result.error || 'Login failed. Please try again.');
-      }
-    }
-  };
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
-  const handleGoogleError = () => {
-    console.error('Google login failed');
-    alert('Google login failed. Please try again.');
+  const handleLoginClick = () => {
+    // Redirect to the backend login endpoint
+    window.location.href = `${API_BASE_URL}/auth/google/login`;
   };
 
   return (
@@ -71,26 +56,23 @@ export default function LoginPage() {
               </p>
             </div>
 
-            {/* Google Login Button */}
+            {/* Login Button */}
             <div className="flex justify-center">
               {isLoading ? (
-                <div className="flex items-center justify-center py-3 px-6">
+                <div className="flex items-center justify-center py-3 px-6 w-full bg-zinc-100 dark:bg-zinc-700 rounded-lg">
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand"></div>
-                  <span className="ml-2 text-zinc-600 dark:text-zinc-400">
+                  <span className="ml-3 text-zinc-600 dark:text-zinc-400">
                     {t('auth.signing_in')}
                   </span>
                 </div>
               ) : (
-                <GoogleLogin
-                  onSuccess={handleGoogleSuccess}
-                  onError={handleGoogleError}
-                  useOneTap={false}
-                  theme="outline"
-                  size="large"
-                  text="signin_with"
-                  shape="rectangular"
-                  logo_alignment="left"
-                />
+                <button
+                  onClick={handleLoginClick}
+                  className="w-full flex items-center justify-center gap-3 bg-brand hover:bg-brand/90 text-white font-semibold py-3 px-6 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand"
+                >
+                  <LogIn size={20} />
+                  <span>{t('auth.sign_in_with_google')}</span>
+                </button>
               )}
             </div>
 

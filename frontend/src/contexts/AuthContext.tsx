@@ -22,7 +22,8 @@ interface User {
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (googleToken: string) => Promise<{ success: boolean; isRegistered: boolean; error?: string }>;
+  loginWithGoogleToken: (googleToken: string) => Promise<{ success: boolean; isRegistered: boolean; error?: string }>;
+  handleAuthCallback: (token: string) => Promise<void>;
   logout: () => void;
   updateUser: (userData: User) => void;
   isLoading: boolean;
@@ -133,10 +134,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const login = async (googleToken: string): Promise<{ success: boolean; isRegistered: boolean; error?: string }> => {
+  const handleAuthCallback = async (jwtToken: string): Promise<void> => {
     setIsLoading(true);
     try {
-      const response = await axios.post(`${API_BASE_URL}/auth/login`, {
+      setToken(jwtToken);
+      localStorage.setItem('token', jwtToken);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${jwtToken}`;
+
+      // After setting the token, fetch the user's data
+      await fetchCurrentUser();
+    } catch (error) {
+      console.error("Auth callback failed:", error);
+      logout();
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loginWithGoogleToken = async (googleToken: string): Promise<{ success: boolean; isRegistered: boolean; error?: string }> => {
+    setIsLoading(true);
+    try {
+      const response = await axios.post(`${API_BASE_URL}/auth/login_with_token`, {
         google_token: googleToken
       });
 
@@ -176,7 +194,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const value: AuthContextType = {
     user,
     token,
-    login,
+    loginWithGoogleToken,
+    handleAuthCallback,
     logout,
     updateUser,
     isLoading,
