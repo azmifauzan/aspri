@@ -41,15 +41,6 @@ def upgrade() -> None:
     """)
 
 
-def downgrade() -> None:
-    # Add back embedding_vector column to document_chunks table
-    op.add_column('document_chunks', sa.Column('embedding_vector', sa.Text(), nullable=True))
-    
-    # Remove minio_object_name column from documents table
-    op.drop_column('documents', 'minio_object_name')
-    
-    # Add back content_blob column to documents table
-    op.add_column('documents', sa.Column('content_blob', sa.LargeBinary(), nullable=True))
-    
+def downgrade() -> None:    
     # Drop configurations table
     op.drop_table('configurations')
