@@ -1,8 +1,8 @@
 # app/db/models/user.py
-from sqlalchemy import String, Integer, Boolean, Date
+from sqlalchemy import String, Integer, Boolean, Date, DateTime, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
-from datetime import date
+from datetime import datetime, date
 from typing import Optional, List
 
 class User(Base):
@@ -12,6 +12,11 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     google_id: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     
+    # Google API tokens
+    google_access_token: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    google_refresh_token: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    google_token_expiry: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
     # Registration fields
     name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     birth_date: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # Day of birth (1-31)

@@ -39,6 +39,7 @@ alembic==1.13.3
 email-validator==2.1.0
 google-auth==2.40.3
 google-auth-oauthlib==1.2.2
+google-api-python-client==2.128.0
 
 # Document processing and vector embeddings
 langchain==0.3.27

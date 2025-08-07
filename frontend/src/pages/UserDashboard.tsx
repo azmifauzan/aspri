@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import DocumentsPage from './DocumentsPage';
 import ChatPage from './ChatPage';
 import FinancePage from './FinancePage';
+import ContactsPage from './ContactsPage';
 import ThemeToggle from '../components/ThemeToggle';
 import LangToggle from '../components/LangToggle';
 import {
@@ -19,7 +20,8 @@ import {
   User,
   Settings,
   ChevronDown,
-  Landmark
+  Landmark,
+  Contacts
 } from 'lucide-react';
 
 const menuItems = [
@@ -27,6 +29,7 @@ const menuItems = [
   { id: 'chat', label: 'dashboard.menu.chat', icon: MessageSquare },
   { id: 'documents', label: 'dashboard.menu.documents', icon: FileText },
   { id: 'finance', label: 'dashboard.menu.finance', icon: Landmark },
+  { id: 'contacts', label: 'dashboard.menu.contacts', icon: Contacts },
   { id: 'calendar', label: 'dashboard.menu.calendar', icon: Calendar },
 ];
 
@@ -306,6 +309,13 @@ export default function UserDashboard() {
           {activeItem === 'finance' && (
             <div className="w-full">
               <FinancePage />
+            </div>
+          )}
+
+          {/* Contacts Page */}
+          {activeItem === 'contacts' && (
+            <div className="w-full h-full">
+              <ContactsPage />
             </div>
           )}
           {/* Other pages will be added here */}

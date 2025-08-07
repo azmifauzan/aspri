@@ -9,8 +9,9 @@
 2. **User Registration**: Complete profile setup with personal preferences.
 3. **Document Management**: Upload documents to a secure MinIO object store.
 4. **Intelligent Document Analysis**: Process and analyze uploaded documents, with vector embeddings stored in ChromaDB for semantic search.
-5. **Chat Interface**: A central chat interface powered by Google Gemini for conversation and document interaction.
-6. **Configuration Management**: System for managing application settings like file limits.
+5. **Contact Management**: Full CRUD functionality for Google Contacts, synchronized directly with the user's Google account.
+6. **Chat Interface**: A central chat interface powered by Google Gemini for conversation, document interaction, and contact searching.
+7. **Configuration Management**: System for managing application settings like file limits.
 
 ## Application Architecture
 
@@ -36,14 +37,16 @@ The architecture follows a client-server pattern with a decoupled frontend and b
 4.  **External Integrations**:
     -   **Google Cloud**: For Google OAuth 2.0 authentication.
     -   **Google AI**: For accessing the Gemini language models.
+    -   **Google People API**: For reading and managing user contacts.
 
 **High-Level Architecture Diagram** (Text Description):
 -   **User** ↔ **Frontend (React)** ↔ **Backend (FastAPI)**
     -   The **Backend** interacts with several components:
-        -   **MariaDB**: For user data, chat logs, etc.
+        -   **MariaDB**: For user data, chat logs, Google API tokens, etc.
         -   **MinIO**: For storing and retrieving documents.
         -   **LLM Engine (LangChain + Google Gemini)**: For processing language and generating embeddings.
             -   The LLM Engine uses **ChromaDB** for document retrieval (RAG).
+        -   **Google People API**: For managing user contacts.
 
 **Recommended Tech Stack**:
 -   **Frontend**: React, TypeScript, Vite, Tailwind CSS.

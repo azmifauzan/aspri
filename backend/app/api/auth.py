@@ -29,9 +29,22 @@ async def login_with_google(
         # Check if user exists
         user = await user_service.get_user_by_google_id(google_id)
         
-        if not user:
+        if user:
+            # If user exists and new tokens are provided, update them
+            if user_data.google_access_token:
+                user = await user_service.update_user_tokens(
+                    user=user,
+                    access_token=user_data.google_access_token,
+                    refresh_token=user_data.google_refresh_token
+                )
+        else:
             # Create new user
-            user = await user_service.create_user(email=email, google_id=google_id)
+            user = await user_service.create_user(
+                email=email,
+                google_id=google_id,
+                access_token=user_data.google_access_token,
+                refresh_token=user_data.google_refresh_token
+            )
         
         # Create JWT token
         access_token_expires = timedelta(minutes=30)

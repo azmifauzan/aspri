@@ -140,8 +140,20 @@
             "analytics": "Analitik",
             "profile": "Profil",
             "settings": "Pengaturan",
-            "finance": "Keuangan"
+            "finance": "Keuangan",
+            "contacts": "Kontak"
         }
+    },
+    "contacts": {
+        "title": "Kontak",
+        "add": "Tambah Kontak",
+        "edit": "Ubah",
+        "delete": "Hapus",
+        "loading": "Memuat kontak...",
+        "no_contacts": "Tidak ada kontak ditemukan.",
+        "confirm_delete": "Apakah Anda yakin ingin menghapus kontak ini?",
+        "error_fetching": "Gagal memuat kontak.",
+        "error_deleting": "Gagal menghapus kontak."
     },
     "chat": {
         "new_chat": "Chat Baru",
