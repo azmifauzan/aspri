@@ -139,7 +139,8 @@
             "calendar": "Calendar",
             "analytics": "Analytics",
             "profile": "Profile",
-            "settings": "Settings"
+            "settings": "Settings",
+            "finance": "Finance"
         }
     },
     "chat": {

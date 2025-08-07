@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '1be41baa2682'
+revision = 'ebe41baa2682'
 down_revision = 'c4d5e6f7g8h9'
 branch_labels = None
 depends_on = None
@@ -40,8 +40,6 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_financial_transactions_id'), 'financial_transactions', ['id'], unique=False)
-    op.drop_index('ix_document_chunks_document_id', table_name='document_chunks')
-    op.drop_index('ix_documents_user_id', table_name='documents')
     # ### end Alembic commands ###
 
 

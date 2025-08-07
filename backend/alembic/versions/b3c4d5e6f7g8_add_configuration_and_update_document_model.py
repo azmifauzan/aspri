@@ -31,15 +31,6 @@ def upgrade() -> None:
         sa.UniqueConstraint('config_key')
     )
     
-    # Remove content_blob column from documents table
-    op.drop_column('documents', 'content_blob')
-    
-    # Add minio_object_name column to documents table
-    op.add_column('documents', sa.Column('minio_object_name', sa.String(length=500), nullable=True))
-    
-    # Remove embedding_vector column from document_chunks table
-    op.drop_column('document_chunks', 'embedding_vector')
-    
     # Insert default configuration values
     op.execute("""
         INSERT INTO configurations (config_key, config_value, description, data_type, is_active) VALUES

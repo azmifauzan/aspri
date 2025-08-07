@@ -35,6 +35,7 @@ def upgrade() -> None:
     sa.Column('role', sa.String(length=50), nullable=False),
     sa.Column('message_type', sa.String(length=50), nullable=False),
     sa.Column('intent', sa.String(length=100), nullable=True),
+    sa.Column('structured_data', sa.JSON(), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['chat_session_id'], ['chat_sessions.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')

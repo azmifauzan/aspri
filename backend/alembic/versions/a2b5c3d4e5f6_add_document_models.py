@@ -23,8 +23,8 @@ def upgrade() -> None:
         sa.Column('user_id', sa.Integer(), nullable=False),
         sa.Column('filename', sa.String(length=255), nullable=False),
         sa.Column('file_type', sa.String(length=50), nullable=False),
-        sa.Column('file_size', sa.Integer(), nullable=False),
-        sa.Column('content_blob', sa.LargeBinary(), nullable=True),
+        sa.Column('file_size', sa.Integer(), nullable=False),        
+        sa.Column('minio_object_name', sa.String(length=500), nullable=True),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
         sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
         sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
@@ -37,7 +37,6 @@ def upgrade() -> None:
         sa.Column('document_id', sa.Integer(), nullable=False),
         sa.Column('chunk_index', sa.Integer(), nullable=False),
         sa.Column('chunk_text', sa.Text(), nullable=False),
-        sa.Column('embedding_vector', sa.String(length=10000), nullable=True),  # Temporary string column
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
         sa.ForeignKeyConstraint(['document_id'], ['documents.id'], ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('id')
