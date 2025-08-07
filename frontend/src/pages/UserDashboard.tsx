@@ -21,7 +21,7 @@ import {
   Settings,
   ChevronDown,
   Landmark,
-  Contacts
+  Users
 } from 'lucide-react';
 
 const menuItems = [
@@ -29,7 +29,7 @@ const menuItems = [
   { id: 'chat', label: 'dashboard.menu.chat', icon: MessageSquare },
   { id: 'documents', label: 'dashboard.menu.documents', icon: FileText },
   { id: 'finance', label: 'dashboard.menu.finance', icon: Landmark },
-  { id: 'contacts', label: 'dashboard.menu.contacts', icon: Contacts },
+  { id: 'contacts', label: 'dashboard.menu.contacts', icon: Users },
   { id: 'calendar', label: 'dashboard.menu.calendar', icon: Calendar },
 ];
 

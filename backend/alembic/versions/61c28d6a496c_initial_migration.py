@@ -34,7 +34,7 @@ def upgrade() -> None:
     sa.Column('google_access_token', sa.Text(), nullable=True),
     sa.Column('google_refresh_token', sa.Text(), nullable=True),
     sa.Column('google_token_expiry', sa.DateTime(), nullable=True),
-    sa.Column('is_admin', sa.Boolean(), nullable=False),
+    sa.Column('is_admin', sa.Boolean(), server_default=sa.text("0"), nullable=False),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('email'),
     sa.UniqueConstraint('google_id')

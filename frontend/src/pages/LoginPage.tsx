@@ -101,27 +101,6 @@ export default function LoginPage() {
               </p>
             </div>
           </div>
-
-          {/* Features Preview */}
-          {/* <div className="mt-8 text-center">
-            <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-4">
-              {t('auth.why_sign_in')}
-            </h3>
-            <div className="grid grid-cols-1 gap-3">
-              <div className="flex items-center gap-3 text-zinc-600 dark:text-zinc-400">
-                <div className="w-2 h-2 bg-brand rounded-full"></div>
-                {t('auth.feature_1')}
-              </div>
-              <div className="flex items-center gap-3 text-zinc-600 dark:text-zinc-400">
-                <div className="w-2 h-2 bg-brand rounded-full"></div>
-                {t('auth.feature_2')}
-              </div>
-              <div className="flex items-center gap-3 text-zinc-600 dark:text-zinc-400">
-                <div className="w-2 h-2 bg-brand rounded-full"></div>
-                {t('auth.feature_3')}
-              </div>
-            </div>
-          </div> */}
         </div>
       </div>
       <Footer />
