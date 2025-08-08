@@ -19,16 +19,24 @@ const itemClass =
   "py-2 px-4 text-zinc-700 dark:text-white hover:text-brand dark:hover:text-brand transition text-sm font-medium";
 
 export default function Navbar() {
+  const location = useLocation();
+
+  // The UserDashboard has its own full-page layout and navigation.
+  // To prevent confusion from two navbars, we don't render this one on dashboard pages.
+  if (location.pathname.startsWith('/dashboard')) {
+    return null;
+  }
+
   const [open, setOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const { t } = useTranslation();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
 
   // Check if we're on the landing page to show navigation links
   const isLandingPage = location.pathname === '/';
   const isLoginPage = location.pathname === '/login';
+  // This is kept for logic, though the component will be null on /dashboard anyway
   const isDashboard = location.pathname === '/dashboard';
 
   // Show navigation on landing page and login page
@@ -37,7 +45,9 @@ export default function Navbar() {
   const handleLogout = () => {
     logout();
     setUserDropdownOpen(false);
-    navigate('/', { replace: true }); // Force redirect to landing page
+    // Use window.location.href to force a full page reload to the landing page.
+    // This avoids the race condition with ProtectedRoute's state-driven redirect.
+    window.location.href = '/';
   };
 
   const handleProfileClick = () => {

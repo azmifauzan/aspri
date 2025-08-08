@@ -153,7 +153,20 @@
         "no_contacts": "Tidak ada kontak ditemukan.",
         "confirm_delete": "Apakah Anda yakin ingin menghapus kontak ini?",
         "error_fetching": "Gagal memuat kontak.",
-        "error_deleting": "Gagal menghapus kontak."
+        "error_deleting": "Gagal menghapus kontak.",
+        "add_new": "Tambah Kontak Baru",
+        "edit_contact": "Ubah Kontak",
+        "contact_details": "Detail Kontak",
+        "name_placeholder": "Masukkan nama kontak",
+        "email_placeholder": "Masukkan email kontak",
+        "phone_placeholder": "Masukkan nomor telepon",
+        "delete_contact": "Hapus Kontak",
+        "delete_confirmation_message": "Anda yakin ingin menghapus {{name}}? Tindakan ini tidak dapat dibatalkan.",
+        "no_additional_info": "Tidak ada informasi kontak tambahan.",
+        "no_results": "Tidak ada kontak yang cocok dengan pencarian Anda.",
+        "search": "Cari Kontak...",
+        "error_creating": "Gagal membuat kontak.",
+        "error_updating": "Gagal memperbarui kontak."
     },
     "chat": {
         "new_chat": "Chat Baru",
@@ -181,7 +194,12 @@
         "confirm_delete_session": "Apakah Anda yakin ingin menghapus sesi obrolan ini?"
     },
     "common": {
-        "back_to_home": "Kembali ke Beranda"
+        "back_to_home": "Kembali ke Beranda",
+        "save": "Simpan",
+        "save_changes": "Simpan Perubahan",
+        "delete": "Hapus",
+        "cancel": "Batal",
+        "close": "Tutup"
     },
     "documents": {
         "title": "Dokumen",

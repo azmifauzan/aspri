@@ -12,4 +12,18 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Response interceptor for handling 401 errors
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Dispatch a custom event that the AuthProvider can listen for.
+      // This is a clean way to trigger logout from outside React components.
+      localStorage.removeItem('token'); // Immediately remove token
+      window.dispatchEvent(new Event('auth-error'));
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;

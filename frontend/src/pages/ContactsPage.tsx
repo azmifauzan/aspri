@@ -3,11 +3,13 @@ import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getContacts, createContact, updateContact, deleteContact, Contact } from '../services/contactService';
 import { PlusCircle, Edit, Trash2, User, Mail, Phone, Search } from 'lucide-react';
+import AddContactModal from '../components/AddContactModal';
 import EditContactModal from '../components/EditContactModal';
 import DeleteContactModal from '../components/DeleteContactModal';
+import ViewContactModal from '../components/ViewContactModal';
 
 type ModalState = {
-  type: 'edit' | 'delete' | null;
+  type: 'add' | 'edit' | 'delete' | 'view' | null;
   contact: Contact | null;
 }
 
@@ -18,32 +20,36 @@ export default function ContactsPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [modal, setModal] = useState<ModalState>({ type: null, contact: null });
+  const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  useEffect(() => {
-    const fetchContacts = async () => {
-      try {
-        setIsLoading(true);
-        const fetchedContacts = await getContacts();
-        setContacts(fetchedContacts);
-        setError(null);
-      } catch (err) {
-        setError(t('contacts.error_fetching'));
-        console.error(err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchContacts();
-  }, [t]);
-
-  const handleAddContact = () => {
-    // TODO: Implement create contact modal
-    alert('Add contact functionality not implemented yet.');
+  const fetchContacts = async () => {
+    try {
+      setIsLoading(true);
+      const fetchedContacts = await getContacts();
+      setContacts(fetchedContacts);
+      setError(null);
+    } catch (err) {
+      setError(t('contacts.error_fetching'));
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleEditContact = (contact: Contact) => {
+  useEffect(() => {
+    fetchContacts();
+  }, []);
+
+  const handleAddClick = () => {
+    setModal({ type: 'add', contact: null });
+  };
+
+  const handleViewClick = (contact: Contact) => {
+    setModal({ type: 'view', contact });
+  };
+
+  const handleEditClick = (contact: Contact) => {
     setModal({ type: 'edit', contact });
   };
 
@@ -55,14 +61,31 @@ export default function ContactsPage() {
     setModal({ type: null, contact: null });
   };
 
-  const handleSaveContact = async (updatedContact: Contact) => {
+  const handleCreateContact = async (contactData: Omit<Contact, 'id' | 'etag'>) => {
+    setIsSaving(true);
     try {
-      await updateContact(updatedContact.id, updatedContact);
-      setContacts(contacts.map(c => c.id === updatedContact.id ? updatedContact : c));
+      await createContact(contactData);
+      handleCloseModal();
+      await fetchContacts(); // Refetch all contacts to get the new one
+    } catch (err) {
+      setError(t('contacts.error_creating'));
+      console.error(err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleUpdateContact = async (updatedContact: Contact) => {
+    setIsSaving(true);
+    try {
+      const result = await updateContact(updatedContact.id, updatedContact);
+      setContacts(contacts.map(c => c.id === updatedContact.id ? { ...c, ...result } : c));
       handleCloseModal();
     } catch (err) {
       setError(t('contacts.error_updating'));
       console.error(err);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -90,7 +113,7 @@ export default function ContactsPage() {
   }, [contacts, searchTerm]);
 
   return (
-    <div className="p-4 md:p-6 bg-gray-50 dark:bg-zinc-900 h-full">
+    <div className="p-4 md:p-6 bg-gray-50 dark:bg-zinc-900">
       <div className="max-w-4xl mx-auto">
         <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">
@@ -108,7 +131,7 @@ export default function ContactsPage() {
               />
             </div>
             <button
-              onClick={handleAddContact}
+              onClick={handleAddClick}
               className="flex items-center gap-2 bg-brand text-white px-4 py-2 rounded-lg hover:bg-brand/90 transition-colors"
             >
               <PlusCircle size={20} />
@@ -126,7 +149,10 @@ export default function ContactsPage() {
               {filteredContacts.length > 0 ? (
                 filteredContacts.map((contact) => (
                   <li key={contact.id} className="p-4 flex flex-col md:flex-row justify-between items-start md:items-center">
-                    <div className="flex-1 mb-4 md:mb-0">
+                    <div
+                      className="flex-1 mb-4 md:mb-0 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-700/50 -m-4 p-4 rounded-lg"
+                      onClick={() => handleViewClick(contact)}
+                    >
                       <div className="flex items-center gap-3 mb-2">
                         <User className="w-5 h-5 text-zinc-500" />
                         <p className="font-semibold text-zinc-900 dark:text-white">{contact.name}</p>
@@ -144,16 +170,16 @@ export default function ContactsPage() {
                         </div>
                       )}
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 pl-4">
                       <button
-                        onClick={() => handleEditContact(contact)}
+                        onClick={(e) => { e.stopPropagation(); handleEditClick(contact); }}
                         className="p-2 text-zinc-500 hover:text-brand dark:hover:text-brand-dark rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-700"
                         aria-label={t('contacts.edit')}
                       >
                         <Edit size={18} />
                       </button>
                       <button
-                        onClick={() => handleDeleteClick(contact)}
+                        onClick={(e) => { e.stopPropagation(); handleDeleteClick(contact); }}
                         className="p-2 text-red-500 hover:text-red-700 dark:hover:text-red-400 rounded-md hover:bg-red-50 dark:hover:bg-zinc-700"
                         aria-label={t('contacts.delete')}
                       >
@@ -172,11 +198,25 @@ export default function ContactsPage() {
         )}
       </div>
 
+      <ViewContactModal
+        isOpen={modal.type === 'view'}
+        onClose={handleCloseModal}
+        contact={modal.contact}
+      />
+
+      <AddContactModal
+        isOpen={modal.type === 'add'}
+        onClose={handleCloseModal}
+        onSave={handleCreateContact}
+        isSaving={isSaving}
+      />
+
       <EditContactModal
         isOpen={modal.type === 'edit'}
         onClose={handleCloseModal}
-        onSave={handleSaveContact}
+        onSave={handleUpdateContact}
         contact={modal.contact}
+        isSaving={isSaving}
       />
 
       <DeleteContactModal
