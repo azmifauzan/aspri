@@ -47,7 +47,7 @@ const isTokenExpired = (token: string): boolean => {
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
-  const [isLoading, setIsLoading] = useState(true); // Start with loading true
+  const [isLoading, setIsLoading] = useState(true);
   const [lastTokenCheck, setLastTokenCheck] = useState<number>(0);
 
   const logout = useCallback(() => {
@@ -55,8 +55,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setToken(null);
     setLastTokenCheck(0);
     localStorage.removeItem('token');
-    // The request interceptor in api.ts will no longer find a token.
-    // The 401 interceptor will handle redirecting if a protected route is accessed.
+    // Force a full page reload to the landing page to clear all state
+    // and avoid race conditions with protected routes.
+    window.location.href = '/';
   }, []);
 
   useEffect(() => {
@@ -77,7 +78,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setLastTokenCheck(Date.now());
     } catch (error) {
       console.error('Failed to fetch current user:', error);
-      logout(); // The interceptor should have already handled this, but as a fallback.
+      logout();
     }
   }, [logout]);
 

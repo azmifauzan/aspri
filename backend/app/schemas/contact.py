@@ -18,6 +18,7 @@ class ContactUpdate(BaseModel):
 
 class ContactResponse(ContactBase):
     id: str # This will be the resourceName from Google
+    etag: str
 
     class Config:
         from_attributes = True

@@ -1,8 +1,8 @@
 // src/pages/ContactsPage.tsx
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getContacts, createContact, updateContact, deleteContact, Contact } from '../services/contactService';
-import { PlusCircle, Edit, Trash2, User, Mail, Phone, Search } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, User, Mail, Phone, Search, X } from 'lucide-react';
 import AddContactModal from '../components/AddContactModal';
 import EditContactModal from '../components/EditContactModal';
 import DeleteContactModal from '../components/DeleteContactModal';
@@ -23,50 +23,42 @@ export default function ContactsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const fetchContacts = async () => {
+  const fetchContacts = useCallback(async () => {
     try {
       setIsLoading(true);
+      setError(null);
       const fetchedContacts = await getContacts();
       setContacts(fetchedContacts);
-      setError(null);
     } catch (err) {
       setError(t('contacts.error_fetching'));
       console.error(err);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [t]);
 
   useEffect(() => {
     fetchContacts();
-  }, []);
+  }, [fetchContacts]);
 
-  const handleAddClick = () => {
-    setModal({ type: 'add', contact: null });
-  };
-
-  const handleViewClick = (contact: Contact) => {
-    setModal({ type: 'view', contact });
-  };
-
-  const handleEditClick = (contact: Contact) => {
-    setModal({ type: 'edit', contact });
-  };
-
-  const handleDeleteClick = (contact: Contact) => {
-    setModal({ type: 'delete', contact });
-  };
-
-  const handleCloseModal = () => {
-    setModal({ type: null, contact: null });
-  };
+  const handleAddClick = () => setModal({ type: 'add', contact: null });
+  const handleViewClick = (contact: Contact) => setModal({ type: 'view', contact });
+  const handleEditClick = (contact: Contact) => setModal({ type: 'edit', contact });
+  const handleDeleteClick = (contact: Contact) => setModal({ type: 'delete', contact });
+  const handleCloseModal = () => setModal({ type: null, contact: null });
 
   const handleCreateContact = async (contactData: Omit<Contact, 'id' | 'etag'>) => {
     setIsSaving(true);
+    setError(null);
     try {
-      await createContact(contactData);
+      const payload = {
+        ...contactData,
+        email: contactData.email || undefined,
+        phone: contactData.phone || undefined,
+      };
+      await createContact(payload);
+      await fetchContacts(); // Refetch to get the latest list with new contact
       handleCloseModal();
-      await fetchContacts(); // Refetch all contacts to get the new one
     } catch (err) {
       setError(t('contacts.error_creating'));
       console.error(err);
@@ -77,9 +69,15 @@ export default function ContactsPage() {
 
   const handleUpdateContact = async (updatedContact: Contact) => {
     setIsSaving(true);
+    setError(null);
     try {
-      const result = await updateContact(updatedContact.id, updatedContact);
-      setContacts(contacts.map(c => c.id === updatedContact.id ? { ...c, ...result } : c));
+      const payload = {
+        ...updatedContact,
+        email: updatedContact.email || undefined,
+        phone: updatedContact.phone || undefined,
+      };
+      await updateContact(payload.id, payload);
+      await fetchContacts(); // Refetch to get updated etag and info
       handleCloseModal();
     } catch (err) {
       setError(t('contacts.error_updating'));
@@ -91,8 +89,8 @@ export default function ContactsPage() {
 
   const handleDeleteConfirm = async () => {
     if (!modal.contact) return;
-
     setIsDeleting(true);
+    setError(null);
     try {
       await deleteContact(modal.contact.id);
       setContacts(contacts.filter(c => c.id !== modal.contact?.id));
@@ -108,14 +106,14 @@ export default function ContactsPage() {
   const filteredContacts = useMemo(() => {
     return contacts.filter(contact =>
       contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      contact.email?.toLowerCase().includes(searchTerm.toLowerCase())
+      (contact.email && contact.email.toLowerCase().includes(searchTerm.toLowerCase()))
     );
   }, [contacts, searchTerm]);
 
   return (
     <div className="p-4 md:p-6 bg-gray-50 dark:bg-zinc-900">
       <div className="max-w-4xl mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+        <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">
             {t('contacts.title')}
           </h1>
@@ -140,10 +138,14 @@ export default function ContactsPage() {
           </div>
         </div>
 
-        {isLoading && <p>{t('contacts.loading')}</p>}
-        {error && <p className="text-red-500">{error}</p>}
+        {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative mb-4" role="alert">
+          <span className="block sm:inline">{error}</span>
+          <button className="absolute top-0 bottom-0 right-0 px-4 py-3" onClick={() => setError(null)}>
+            <X size={20} className="text-red-700" />
+          </button>
+        </div>}
 
-        {!isLoading && !error && (
+        {isLoading ? <p className="text-center p-4">{t('contacts.loading')}</p> : (
           <div className="bg-white dark:bg-zinc-800 rounded-lg shadow">
             <ul className="divide-y divide-gray-200 dark:divide-zinc-700">
               {filteredContacts.length > 0 ? (
@@ -198,34 +200,10 @@ export default function ContactsPage() {
         )}
       </div>
 
-      <ViewContactModal
-        isOpen={modal.type === 'view'}
-        onClose={handleCloseModal}
-        contact={modal.contact}
-      />
-
-      <AddContactModal
-        isOpen={modal.type === 'add'}
-        onClose={handleCloseModal}
-        onSave={handleCreateContact}
-        isSaving={isSaving}
-      />
-
-      <EditContactModal
-        isOpen={modal.type === 'edit'}
-        onClose={handleCloseModal}
-        onSave={handleUpdateContact}
-        contact={modal.contact}
-        isSaving={isSaving}
-      />
-
-      <DeleteContactModal
-        isOpen={modal.type === 'delete'}
-        onClose={handleCloseModal}
-        onConfirm={handleDeleteConfirm}
-        contact={modal.contact}
-        isDeleting={isDeleting}
-      />
+      <ViewContactModal isOpen={modal.type === 'view'} onClose={handleCloseModal} contact={modal.contact} />
+      <AddContactModal isOpen={modal.type === 'add'} onClose={handleCloseModal} onSave={handleCreateContact} isSaving={isSaving} />
+      <EditContactModal isOpen={modal.type === 'edit'} onClose={handleCloseModal} onSave={handleUpdateContact} contact={modal.contact} isSaving={isSaving} />
+      <DeleteContactModal isOpen={modal.type === 'delete'} onClose={handleCloseModal} onConfirm={handleDeleteConfirm} contact={modal.contact} isDeleting={isDeleting} />
     </div>
   );
 }

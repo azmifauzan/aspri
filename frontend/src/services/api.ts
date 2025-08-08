@@ -4,6 +4,7 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8888',
 });
 
+// Request interceptor to add the auth token to every request
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
@@ -12,14 +13,14 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Response interceptor for handling 401 errors
+// Response interceptor to handle 401 errors globally
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Dispatch a custom event that the AuthProvider can listen for.
-      // This is a clean way to trigger logout from outside React components.
-      localStorage.removeItem('token'); // Immediately remove token
+      // If a 401 is received, remove the token and dispatch an event
+      // that the AuthProvider will listen for to update its state.
+      localStorage.removeItem('token');
       window.dispatchEvent(new Event('auth-error'));
     }
     return Promise.reject(error);
