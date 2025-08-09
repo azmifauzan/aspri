@@ -199,7 +199,8 @@
         "save_changes": "Save Changes",
         "delete": "Delete",
         "cancel": "Cancel",
-        "close": "Close"
+        "close": "Close",
+        "clear_search": "Clear search"
     },
     "documents": {
         "title": "Documents",

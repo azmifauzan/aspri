@@ -199,7 +199,8 @@
         "save_changes": "Simpan Perubahan",
         "delete": "Hapus",
         "cancel": "Batal",
-        "close": "Tutup"
+        "close": "Tutup",
+        "clear_search": "Hapus pencarian"
     },
     "documents": {
         "title": "Dokumen",
