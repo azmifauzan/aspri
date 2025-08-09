@@ -1,7 +1,7 @@
 // src/contexts/AuthContext.tsx
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 
 interface User {
   id: number;
@@ -32,15 +32,12 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-
 // Helper function to check if token is expired
 const isTokenExpired = (token: string): boolean => {
   try {
     const payload = JSON.parse(atob(token.split('.')[1]));
     const currentTime = Date.now() / 1000;
-    // Add 5 minute buffer before actual expiry
-    return payload.exp < (currentTime + 300);
+    return payload.exp < currentTime;
   } catch (error) {
     console.error('Error parsing token:', error);
     return true; // Consider invalid tokens as expired
@@ -49,78 +46,74 @@ const isTokenExpired = (token: string): boolean => {
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
-  const [isLoading, setIsLoading] = useState(false);
+  const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
+  const [isLoading, setIsLoading] = useState(true);
   const [lastTokenCheck, setLastTokenCheck] = useState<number>(0);
 
-  useEffect(() => {
-    if (token) {
-      // Check if token is expired before making requests
-      if (isTokenExpired(token)) {
-        console.log('Token is expired, logging out...');
-        logout();
-        return;
-      }
-
-      // Set default axios header
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      
-      // Only fetch user if we don't have user data yet
-      if (!user) {
-        fetchCurrentUser();
-      }
-    }
-  }, [token]);
-
-  // Setup axios interceptor to handle 401 responses
-  useEffect(() => {
-    const interceptor = axios.interceptors.response.use(
-      (response) => response,
-      (error) => {
-        if (error.response?.status === 401) {
-          console.log('Received 401, token might be expired. Logging out...');
-          logout();
-        }
-        return Promise.reject(error);
-      }
-    );
-
-    return () => {
-      axios.interceptors.response.eject(interceptor);
-    };
+  const logout = useCallback(() => {
+    setUser(null);
+    setToken(null);
+    setLastTokenCheck(0);
+    localStorage.removeItem('token');
+    // Force a full page reload to the landing page to clear all state
+    // and avoid race conditions with protected routes.
+    window.location.href = '/';
   }, []);
 
-  const fetchCurrentUser = async () => {
+  useEffect(() => {
+    const handleAuthError = () => {
+      console.log('Auth error event received, logging out.');
+      logout();
+    };
+    window.addEventListener('auth-error', handleAuthError);
+    return () => {
+      window.removeEventListener('auth-error', handleAuthError);
+    };
+  }, [logout]);
+
+  const fetchCurrentUser = useCallback(async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/auth/me`);
+      const response = await api.get('/auth/me');
       setUser(response.data);
       setLastTokenCheck(Date.now());
     } catch (error) {
       console.error('Failed to fetch current user:', error);
       logout();
     }
-  };
+  }, [logout]);
 
-  const checkTokenValidity = async (): Promise<boolean> => {
+  useEffect(() => {
+    if (token) {
+      if (isTokenExpired(token)) {
+        console.log('Token is expired, logging out...');
+        logout();
+        setIsLoading(false);
+        return;
+      }
+      if (!user) {
+        fetchCurrentUser().finally(() => setIsLoading(false));
+      } else {
+        setIsLoading(false);
+      }
+    } else {
+      setIsLoading(false);
+    }
+  }, [token, user, fetchCurrentUser, logout]);
+
+  const checkTokenValidity = useCallback(async (): Promise<boolean> => {
     if (!token) {
       return false;
     }
-
-    // First check if token is expired locally (no backend call)
     if (isTokenExpired(token)) {
       logout();
       return false;
     }
-
-    // If we checked recently (within last 10 minutes), assume it's still valid
     const now = Date.now();
     if (lastTokenCheck && (now - lastTokenCheck) < 10 * 60 * 1000) {
       return true;
     }
-
     try {
-      // Only verify with backend if we haven't checked recently
-      const response = await axios.get(`${API_BASE_URL}/auth/me`);
+      const response = await api.get('/auth/me');
       if (response.data) {
         setUser(response.data);
         setLastTokenCheck(now);
@@ -132,17 +125,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       logout();
       return false;
     }
-  };
+  }, [token, lastTokenCheck, logout]);
 
   const handleAuthCallback = async (jwtToken: string): Promise<void> => {
     setIsLoading(true);
     try {
-      setToken(jwtToken);
       localStorage.setItem('token', jwtToken);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${jwtToken}`;
-
-      // After setting the token, fetch the user's data
-      await fetchCurrentUser();
+      setToken(jwtToken);
+      // The useEffect will trigger fetchCurrentUser
     } catch (error) {
       console.error("Auth callback failed:", error);
       logout();
@@ -154,18 +144,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const loginWithGoogleToken = async (googleToken: string): Promise<{ success: boolean; isRegistered: boolean; error?: string }> => {
     setIsLoading(true);
     try {
-      const response = await axios.post(`${API_BASE_URL}/auth/login_with_token`, {
+      const response = await api.post('/auth/login_with_token', {
         google_token: googleToken
       });
-
       const { access_token, user: userData, is_registered } = response.data;
-      
+      localStorage.setItem('token', access_token);
       setToken(access_token);
       setUser(userData);
       setLastTokenCheck(Date.now());
-      localStorage.setItem('token', access_token);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-
       return { success: true, isRegistered: is_registered };
     } catch (error: any) {
       console.error('Login failed:', error);
@@ -181,14 +167,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const updateUser = (userData: User) => {
     setUser(userData);
-  };
-
-  const logout = () => {
-    setUser(null);
-    setToken(null);
-    setLastTokenCheck(0);
-    localStorage.removeItem('token');
-    delete axios.defaults.headers.common['Authorization'];
   };
 
   const value: AuthContextType = {

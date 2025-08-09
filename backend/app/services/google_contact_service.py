@@ -62,7 +62,7 @@ class GoogleContactService:
             results = service.people().connections().list(
                 resourceName='people/me',
                 pageSize=1000,
-                personFields='names,emailAddresses,phoneNumbers'
+                personFields='names,emailAddresses,phoneNumbers,metadata'
             ).execute()
 
             connections = results.get('connections', [])
@@ -76,14 +76,15 @@ class GoogleContactService:
                     "id": person.get('resourceName'),
                     "name": names[0].get('displayName', 'N/A'),
                     "email": emails[0].get('value'),
-                    "phone": phones[0].get('value')
+                    "phone": phones[0].get('value'),
+                    "etag": person.get('etag')
                 })
             return contact_list
 
         except HttpError as err:
             raise Exception(f"Google Contacts API error: {err}")
 
-    async def create_contact(self, name: str, email: str, phone: str) -> Dict[str, Any]:
+    async def create_contact(self, name: str, email: Optional[str], phone: Optional[str]) -> Dict[str, Any]:
         """Create a new Google Contact."""
         if not self.creds:
             raise ValueError("User does not have Google credentials.")
@@ -93,10 +94,13 @@ class GoogleContactService:
         try:
             service = self._build_service()
             contact_body = {
-                "names": [{"givenName": name}],
-                "emailAddresses": [{"value": email}],
-                "phoneNumbers": [{"value": phone, "type": "mobile"}]
+                "names": [{"givenName": name}]
             }
+            if email:
+                contact_body["emailAddresses"] = [{"value": email}]
+            if phone:
+                contact_body["phoneNumbers"] = [{"value": phone, "type": "mobile"}]
+
             created_contact = service.people().createContact(body=contact_body).execute()
             return created_contact
 

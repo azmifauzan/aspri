@@ -35,9 +35,8 @@ export default function Navbar() {
   const showNavigation = isLandingPage || isLoginPage;
 
   const handleLogout = () => {
-    logout();
     setUserDropdownOpen(false);
-    navigate('/', { replace: true }); // Force redirect to landing page
+    logout(); // logout from useAuth will now handle the redirect
   };
 
   const handleProfileClick = () => {

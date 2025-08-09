@@ -51,7 +51,7 @@ async def create_contact(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.put("/{resource_name}", response_model=dict)
+@router.put("/{resource_name:path}", response_model=dict)
 async def update_contact(
     resource_name: str,
     contact_data: ContactUpdate,
@@ -70,7 +70,7 @@ async def update_contact(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.delete("/{resource_name}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{resource_name:path}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_contact(
     resource_name: str,
     contact_service: GoogleContactService = Depends(get_contact_service)
