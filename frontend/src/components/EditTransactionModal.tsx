@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
-import { updateTransaction } from '../services/financeService';
-import { getCategories } from '../services/financeService';
-import type { FinancialTransaction, FinancialTransactionUpdate } from '../types/finance';
-import type { FinancialCategory } from '../types/finance';
+import { updateTransaction, getCategories } from '../services/financeService';
+import type { FinancialTransaction, FinancialTransactionUpdate, FinancialCategory } from '../types/finance';
+import { X } from 'lucide-react';
 
 interface EditTransactionModalProps {
   isOpen: boolean;
@@ -20,6 +19,7 @@ const EditTransactionModal: React.FC<EditTransactionModalProps> = ({ isOpen, onC
 
   useEffect(() => {
     if (isOpen) {
+      setApiError(null);
       const fetchCategories = async () => {
         try {
           const fetchedCategories = await getCategories();
@@ -43,7 +43,12 @@ const EditTransactionModal: React.FC<EditTransactionModalProps> = ({ isOpen, onC
     setIsSubmitting(true);
     setApiError(null);
     try {
-      await updateTransaction(transaction.id, data);
+      const payload = {
+        ...data,
+        amount: Number(data.amount),
+        category_id: data.category_id ? Number(data.category_id) : undefined,
+      };
+      await updateTransaction(transaction.id, payload);
       onTransactionUpdated();
       onClose();
     } catch (error) {
@@ -57,59 +62,69 @@ const EditTransactionModal: React.FC<EditTransactionModalProps> = ({ isOpen, onC
   if (!isOpen) return null;
 
   return (
-    <div className="modal modal-open">
-      <div className="modal-box">
-        <h3 className="font-bold text-lg">Edit Transaksi</h3>
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
+      <div className="bg-white dark:bg-zinc-800 rounded-lg shadow-xl w-full max-w-md">
+        <div className="flex justify-between items-center p-4 border-b dark:border-zinc-700">
+          <h2 className="text-lg font-semibold">Edit Transaksi</h2>
+          <button onClick={onClose} className="p-1 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-700">
+            <X size={20} />
+          </button>
+        </div>
         <form onSubmit={handleSubmit(onSubmit)}>
-          <div className="form-control">
-            <label className="label"><span className="label-text">Tanggal</span></label>
-            <input type="date" {...register('date', { required: true })} className="input input-bordered" />
-            {errors.date && <span className="text-red-500">Tanggal harus diisi</span>}
+          <div className="p-6 space-y-4">
+            <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Tanggal</label>
+                <input type="date" {...register('date', { required: 'Tanggal harus diisi' })} className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-brand" />
+                {errors.date && <span className="text-red-500 text-sm">{errors.date.message}</span>}
+            </div>
+             <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Deskripsi</label>
+                <input type="text" {...register('description')} placeholder="e.g., Gaji bulanan" className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-brand" />
+            </div>
+            <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Jumlah</label>
+                <input type="number" {...register('amount', { required: 'Jumlah harus diisi', valueAsNumber: true })} placeholder="50000" className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-brand" />
+                {errors.amount && <span className="text-red-500 text-sm">{errors.amount.message}</span>}
+            </div>
+            <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Tipe</label>
+                <Controller
+                  name="type"
+                  control={control}
+                  rules={{ required: 'Tipe harus dipilih' }}
+                  render={({ field }) => (
+                    <select {...field} className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-brand">
+                      <option value="expense">Pengeluaran</option>
+                      <option value="income">Pemasukan</option>
+                    </select>
+                  )}
+                />
+                {errors.type && <span className="text-red-500 text-sm">{errors.type.message}</span>}
+            </div>
+            <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Kategori</label>
+                <Controller
+                  name="category_id"
+                  control={control}
+                  render={({ field }) => (
+                    <select {...field} className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-brand">
+                      <option value="">Pilih Kategori</option>
+                      {categories.map((category) => (
+                        <option key={category.id} value={category.id}>{category.name}</option>
+                      ))}
+                    </select>
+                  )}
+                />
+            </div>
+            {apiError && <p className="text-red-500 text-sm mt-2">{apiError}</p>}
           </div>
-          <div className="form-control">
-            <label className="label"><span className="label-text">Deskripsi</span></label>
-            <input type="text" {...register('description')} className="input input-bordered" />
-          </div>
-          <div className="form-control">
-            <label className="label"><span className="label-text">Jumlah</span></label>
-            <input type="number" {...register('amount', { required: true, valueAsNumber: true })} className="input input-bordered" />
-            {errors.amount && <span className="text-red-500">Jumlah harus diisi</span>}
-          </div>
-          <div className="form-control">
-            <label className="label"><span className="label-text">Tipe</span></label>
-            <Controller
-              name="type"
-              control={control}
-              rules={{ required: true }}
-              render={({ field }) => (
-                <select {...field} className="select select-bordered">
-                  <option value="income">Pemasukan</option>
-                  <option value="expense">Pengeluaran</option>
-                </select>
-              )}
-            />
-            {errors.type && <span className="text-red-500">Tipe harus dipilih</span>}
-          </div>
-          <div className="form-control">
-            <label className="label"><span className="label-text">Kategori</span></label>
-            <Controller
-              name="category_id"
-              control={control}
-              render={({ field }) => (
-                <select {...field} className="select select-bordered">
-                  <option value="">Pilih Kategori</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>{category.name}</option>
-                  ))}
-                </select>
-              )}
-            />
-          </div>
-          {apiError && <p className="text-red-500 mt-4">{apiError}</p>}
-          <div className="modal-action">
-            <button type="button" onClick={onClose} className="btn">Batal</button>
-            <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
-              {isSubmitting ? 'Menyimpan...' : 'Simpan'}
+          <div className="flex justify-end items-center p-4 bg-gray-50 dark:bg-zinc-800/50 border-t dark:border-zinc-700 rounded-b-lg">
+            <button type="button" onClick={onClose} disabled={isSubmitting} className="px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 disabled:opacity-50">
+              Batal
+            </button>
+            <button type="submit" disabled={isSubmitting} className="ml-2 px-4 py-2 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand/90 disabled:bg-brand/50 disabled:cursor-not-allowed flex items-center">
+              {isSubmitting && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>}
+              Simpan Perubahan
             </button>
           </div>
         </form>

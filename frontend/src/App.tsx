@@ -7,7 +7,6 @@ import UserDashboard from "./pages/UserDashboard";
 import AuthCallback from './pages/AuthCallback';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
-import CategoryPage from './pages/CategoryPage';
 
 export default function App() {
   return (
@@ -30,14 +29,6 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <UserDashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/categories"
-            element={
-              <ProtectedRoute>
-                <CategoryPage />
               </ProtectedRoute>
             }
           />

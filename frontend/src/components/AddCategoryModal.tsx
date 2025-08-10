@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { createCategory } from '../services/financeService';
 import type { FinancialCategoryCreate } from '../types/finance';
+import { X } from 'lucide-react';
 
 interface AddCategoryModalProps {
   isOpen: boolean;
@@ -10,9 +11,16 @@ interface AddCategoryModalProps {
 }
 
 const AddCategoryModal: React.FC<AddCategoryModalProps> = ({ isOpen, onClose, onCategoryAdded }) => {
-  const { register, handleSubmit, control, formState: { errors } } = useForm<FinancialCategoryCreate>();
+  const { register, handleSubmit, control, reset, formState: { errors } } = useForm<FinancialCategoryCreate>();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      reset();
+      setApiError(null);
+    }
+  }, [isOpen, reset]);
 
   const onSubmit = async (data: FinancialCategoryCreate) => {
     setIsSubmitting(true);
@@ -32,35 +40,46 @@ const AddCategoryModal: React.FC<AddCategoryModalProps> = ({ isOpen, onClose, on
   if (!isOpen) return null;
 
   return (
-    <div className="modal modal-open">
-      <div className="modal-box">
-        <h3 className="font-bold text-lg">Tambah Kategori</h3>
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-[60] flex justify-center items-center p-4">
+      <div className="bg-white dark:bg-zinc-800 rounded-lg shadow-xl w-full max-w-md">
+        <div className="flex justify-between items-center p-4 border-b dark:border-zinc-700">
+          <h2 className="text-lg font-semibold">Tambah Kategori</h2>
+          <button onClick={onClose} className="p-1 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-700">
+            <X size={20} />
+          </button>
+        </div>
         <form onSubmit={handleSubmit(onSubmit)}>
-          <div className="form-control">
-            <label className="label"><span className="label-text">Nama</span></label>
-            <input type="text" {...register('name', { required: true })} className="input input-bordered" />
-            {errors.name && <span className="text-red-500">Nama harus diisi</span>}
+          <div className="p-6 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Nama Kategori</label>
+              <input type="text" {...register('name', { required: 'Nama harus diisi' })} placeholder="e.g., Makanan" className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-brand" />
+              {errors.name && <span className="text-red-500 text-sm">{errors.name.message}</span>}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Tipe</label>
+              <Controller
+                name="type"
+                control={control}
+                defaultValue="expense"
+                rules={{ required: 'Tipe harus dipilih' }}
+                render={({ field }) => (
+                  <select {...field} className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-brand">
+                    <option value="expense">Pengeluaran</option>
+                    <option value="income">Pemasukan</option>
+                  </select>
+                )}
+              />
+              {errors.type && <span className="text-red-500 text-sm">{errors.type.message}</span>}
+            </div>
+            {apiError && <p className="text-red-500 text-sm mt-2">{apiError}</p>}
           </div>
-          <div className="form-control">
-            <label className="label"><span className="label-text">Tipe</span></label>
-            <Controller
-              name="type"
-              control={control}
-              rules={{ required: true }}
-              render={({ field }) => (
-                <select {...field} className="select select-bordered">
-                  <option value="income">Pemasukan</option>
-                  <option value="expense">Pengeluaran</option>
-                </select>
-              )}
-            />
-            {errors.type && <span className="text-red-500">Tipe harus dipilih</span>}
-          </div>
-          {apiError && <p className="text-red-500 mt-4">{apiError}</p>}
-          <div className="modal-action">
-            <button type="button" onClick={onClose} className="btn">Batal</button>
-            <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
-              {isSubmitting ? 'Menyimpan...' : 'Simpan'}
+          <div className="flex justify-end items-center p-4 bg-gray-50 dark:bg-zinc-800/50 border-t dark:border-zinc-700 rounded-b-lg">
+            <button type="button" onClick={onClose} disabled={isSubmitting} className="px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 disabled:opacity-50">
+              Batal
+            </button>
+            <button type="submit" disabled={isSubmitting} className="ml-2 px-4 py-2 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand/90 disabled:bg-brand/50 disabled:cursor-not-allowed flex items-center">
+              {isSubmitting && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>}
+              Simpan
             </button>
           </div>
         </form>
