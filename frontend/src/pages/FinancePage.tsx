@@ -4,10 +4,13 @@ import type { FinancialTransaction, FinancialCategory } from '../types/finance';
 import AddTransactionModal from '../components/AddTransactionModal';
 import EditTransactionModal from '../components/EditTransactionModal';
 import DeleteTransactionModal from '../components/DeleteTransactionModal';
-import ManageCategoriesModal from '../components/ManageCategoriesModal';
 import { Plus, Settings, Edit, Trash2 } from 'lucide-react';
 
-const FinancePage: React.FC = () => {
+interface FinancePageProps {
+    setActiveItem: (item: string) => void;
+}
+
+const FinancePage: React.FC<FinancePageProps> = ({ setActiveItem }) => {
   const [transactions, setTransactions] = useState<FinancialTransaction[]>([]);
   const [categories, setCategories] = useState<FinancialCategory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -15,7 +18,6 @@ const FinancePage: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<FinancialTransaction | null>(null);
 
   const fetchData = useCallback(async () => {
@@ -65,7 +67,7 @@ const FinancePage: React.FC = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Mutasi Keuangan</h1>
         <div className="flex items-center mt-4 md:mt-0">
-          <button onClick={() => setIsCategoryModalOpen(true)} className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-800 border dark:border-zinc-700 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors mr-2">
+          <button onClick={() => setActiveItem('categories')} className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-800 border dark:border-zinc-700 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors mr-2">
             <Settings size={16} />
             Manajemen Kategori
           </button>
@@ -134,10 +136,6 @@ const FinancePage: React.FC = () => {
         onClose={() => setIsDeleteModalOpen(false)}
         onTransactionDeleted={fetchData}
         transaction={selectedTransaction}
-      />
-      <ManageCategoriesModal
-        isOpen={isCategoryModalOpen}
-        onClose={() => setIsCategoryModalOpen(false)}
       />
     </div>
   );
