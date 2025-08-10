@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import SummaryTab from '../components/SummaryTab';
 import TransactionsTab from '../components/TransactionsTab';
 
@@ -7,7 +8,12 @@ const FinancePage: React.FC = () => {
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Keuangan</h1>
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Keuangan</h1>
+        <Link to="/categories" className="btn btn-secondary">
+          Manajemen Kategori
+        </Link>
+      </div>
       <div className="tabs">
         <button
           className={`tab tab-bordered ${activeTab === 'summary' ? 'tab-active' : ''}`}
