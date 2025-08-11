@@ -580,6 +580,16 @@ class ChatService:
                 if category_id:
                     original_data['category_id'] = category_id
 
+                # Map transaction type from local language to enum value
+                if 'type' in original_data:
+                    type_map = {
+                        "pemasukan": "income",
+                        "pengeluaran": "expense",
+                        "income": "income",
+                        "expense": "expense"
+                    }
+                    original_data['type'] = type_map.get(original_data['type'].lower(), original_data['type'])
+
                 # If date is not provided, default to today
                 if 'date' not in original_data or not original_data.get('date'):
                     original_data['date'] = datetime.utcnow().date()
@@ -607,7 +617,22 @@ class ChatService:
             elif original_intent == "manage_category" and original_data.get('action') == 'add':
                 if not original_data or 'name' not in original_data or 'type' not in original_data:
                      return "I don't have the details for the category to add."
-                category_create = FinancialCategoryCreate(name=original_data['name'], type=original_data['type'])
+
+                type_map = {
+                    "pemasukan": "income",
+                    "pengeluaran": "expense",
+                    "income": "income",
+                    "expense": "expense"
+                }
+
+                category_type = original_data.get('type', '').lower()
+                mapped_type = type_map.get(category_type)
+
+                if not mapped_type:
+                    system_message = f"Invalid category type '{original_data.get('type')}'. Please use 'income' or 'expense'."
+                    return await self._generate_chat_response(session_id, "placeholder", user_info, system_message)
+
+                category_create = FinancialCategoryCreate(name=original_data['name'], type=mapped_type)
                 new_category = await self.finance_service.create_category(user_id, category_create)
                 system_message = f"Successfully added the new category. Details: {new_category}"
             else:
