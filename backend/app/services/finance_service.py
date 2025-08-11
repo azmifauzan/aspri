@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy import func
 from app.db.models.finance import FinancialCategory, FinancialTransaction
 from app.schemas.finance import FinancialCategoryCreate, FinancialCategoryUpdate, FinancialTransactionCreate, FinancialTransactionUpdate
 from typing import List, Optional
