@@ -232,6 +232,11 @@ export default function ChatPage() {
     loadMessagesForSession(session.id);
   };
 
+  const handleNewChat = () => {
+    setCurrentSession(null);
+    setMessages([]);
+  };
+
   const handleDeleteSession = async (sessionId: number, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent activating the session
     if (window.confirm(t('chat.confirm_delete_session'))) {
@@ -259,11 +264,18 @@ export default function ChatPage() {
       {/* Main chat area */}
       <div className="flex-1 flex flex-col">
         {/* Chat header */}
-        {/* <div className="bg-white dark:bg-zinc-800 border-b border-gray-200 dark:border-zinc-700 p-4">
+        <div className="bg-white dark:bg-zinc-800 border-b border-gray-200 dark:border-zinc-700 p-4 flex justify-between items-center">
           <h2 className="text-lg font-bold text-zinc-900 dark:text-white">
-            {currentSession ? currentSession.title : t('chat.new_chat')}
+            {currentSession?.id ? currentSession.title : t('chat.new_chat')}
           </h2>
-        </div> */}
+          <button
+            onClick={handleNewChat}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand/90 transition-colors"
+          >
+            <PlusCircle size={16} />
+            {t('chat.new_chat')}
+          </button>
+        </div>
 
         {/* Error message */}
         {error && (
