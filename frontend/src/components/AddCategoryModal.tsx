@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { createCategory } from '../services/financeService';
 import type { FinancialCategoryCreate } from '../types/finance';
 import { X } from 'lucide-react';
@@ -11,6 +12,7 @@ interface AddCategoryModalProps {
 }
 
 const AddCategoryModal: React.FC<AddCategoryModalProps> = ({ isOpen, onClose, onCategoryAdded }) => {
+  const { t } = useTranslation();
   const { register, handleSubmit, control, reset, formState: { errors } } = useForm<FinancialCategoryCreate>();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -30,7 +32,7 @@ const AddCategoryModal: React.FC<AddCategoryModalProps> = ({ isOpen, onClose, on
       onCategoryAdded();
       onClose();
     } catch (error) {
-      setApiError('Failed to add category. Please try again.');
+      setApiError(t('finance.error_adding_category'));
       console.error(error);
     } finally {
       setIsSubmitting(false);
@@ -43,7 +45,7 @@ const AddCategoryModal: React.FC<AddCategoryModalProps> = ({ isOpen, onClose, on
     <div className="fixed inset-0 bg-black bg-opacity-50 z-[60] flex justify-center items-center p-4">
       <div className="bg-white dark:bg-zinc-800 rounded-lg shadow-xl w-full max-w-md">
         <div className="flex justify-between items-center p-4 border-b dark:border-zinc-700">
-          <h2 className="text-lg font-semibold">Tambah Kategori</h2>
+          <h2 className="text-lg font-semibold">{t('finance.add_category')}</h2>
           <button onClick={onClose} className="p-1 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-700">
             <X size={20} />
           </button>
@@ -51,21 +53,21 @@ const AddCategoryModal: React.FC<AddCategoryModalProps> = ({ isOpen, onClose, on
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="p-6 space-y-4">
             <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Nama Kategori</label>
-              <input type="text" {...register('name', { required: 'Nama harus diisi' })} placeholder="e.g., Makanan" className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-brand" />
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('finance.category')}</label>
+              <input type="text" {...register('name', { required: t('finance.name_required') })} placeholder={t('finance.category_name_placeholder')} className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-brand" />
               {errors.name && <span className="text-red-500 text-sm">{errors.name.message}</span>}
             </div>
             <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Tipe</label>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('finance.type')}</label>
               <Controller
                 name="type"
                 control={control}
                 defaultValue="expense"
-                rules={{ required: 'Tipe harus dipilih' }}
+                rules={{ required: t('finance.type_required') }}
                 render={({ field }) => (
                   <select {...field} className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-brand">
-                    <option value="expense">Pengeluaran</option>
-                    <option value="income">Pemasukan</option>
+                    <option value="expense">{t('finance.expense')}</option>
+                    <option value="income">{t('finance.income')}</option>
                   </select>
                 )}
               />
@@ -75,11 +77,11 @@ const AddCategoryModal: React.FC<AddCategoryModalProps> = ({ isOpen, onClose, on
           </div>
           <div className="flex justify-end items-center p-4 bg-gray-50 dark:bg-zinc-800/50 border-t dark:border-zinc-700 rounded-b-lg">
             <button type="button" onClick={onClose} disabled={isSubmitting} className="px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 disabled:opacity-50">
-              Batal
+              {t('common.cancel')}
             </button>
             <button type="submit" disabled={isSubmitting} className="ml-2 px-4 py-2 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand/90 disabled:bg-brand/50 disabled:cursor-not-allowed flex items-center">
               {isSubmitting && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>}
-              Simpan
+              {t('common.save')}
             </button>
           </div>
         </form>
