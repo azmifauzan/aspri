@@ -20,6 +20,7 @@ class ChatSession(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    pending_action: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     
     # Relationships
     user = relationship("User", back_populates="chat_sessions")

@@ -543,14 +543,34 @@ class ChatService:
             return "I'm sorry, I encountered an error while comparing the documents."
 
     async def _handle_confirm_action(self, session_id: int, user_id: int, user_info: Dict[str, Any]) -> str:
-        """Handle the confirmation of a previous action."""
+        """Handle the confirmation of a previous action, prioritizing pending actions."""
         try:
+            chat_session = await self.get_chat_session(session_id, user_id)
+            if not chat_session:
+                return "Could not find the chat session."
+
+            # Prioritize pending actions stored on the session
+            if chat_session.pending_action:
+                original_intent = chat_session.pending_action.get("intent")
+                original_data = chat_session.pending_action.get("data")
+
+                # Clear the pending action immediately
+                chat_session.pending_action = None
+                await self.db.commit()
+
+                # Re-route to the appropriate handler with the stored data
+                if original_intent == "add_transaction":
+                     return await self._execute_add_transaction(session_id, user_id, original_data, user_info)
+                # Add other pending actions here if needed in the future
+                else:
+                    return "I'm not sure how to handle this pending action."
+
+            # If no pending action, get the last user message that required confirmation
             query = select(ChatMessage).where(
                 ChatMessage.chat_session_id == session_id,
                 ChatMessage.role == 'user',
                 ChatMessage.intent.notin_(['confirm_action', 'cancel_action', 'chat'])
             ).order_by(ChatMessage.created_at.desc()).limit(1)
-
             result = await self.db.execute(query)
             last_message = result.scalar_one_or_none()
 
@@ -560,89 +580,95 @@ class ChatService:
             original_intent = last_message.intent
             original_data = last_message.structured_data
 
-            system_message = ""
-
             if original_intent == "add_transaction":
-                if not original_data:
-                    return "I don't have the details for the transaction to add."
+                return await self._execute_add_transaction(session_id, user_id, original_data, user_info, is_first_attempt=True)
 
-                category_name = original_data.pop('category', None)
-                category_id = None
-
-                if category_name:
-                    category = await self.finance_service.get_category_by_name(user_id, category_name)
-                    if category:
-                        category_id = category.id
-                    else:
-                        system_message = f"The category '{category_name}' was not found. Please add the category first before assigning it to a transaction."
-                        return await self._generate_chat_response(session_id, "placeholder", user_info, system_message)
-
-                if category_id:
-                    original_data['category_id'] = category_id
-
-                # Map transaction type from local language to enum value
-                if 'type' in original_data:
-                    type_map = {
-                        "pemasukan": "income",
-                        "pengeluaran": "expense",
-                        "income": "income",
-                        "expense": "expense"
-                    }
-                    original_data['type'] = type_map.get(original_data['type'].lower(), original_data['type'])
-
-                # If date is not provided, default to today
-                if 'date' not in original_data or not original_data.get('date'):
-                    original_data['date'] = datetime.utcnow().date()
-                elif isinstance(original_data['date'], str):
-                    try:
-                        original_data['date'] = datetime.fromisoformat(original_data['date'].replace('Z', '+00:00')).date()
-                    except ValueError:
-                        original_data['date'] = datetime.utcnow().date()
-
-                # Ensure amount is a number
-                if 'amount' in original_data:
-                    try:
-                        original_data['amount'] = float(original_data['amount'])
-                    except (ValueError, TypeError):
-                        system_message = "The amount provided is not a valid number. Please try again."
-                        return await self._generate_chat_response(session_id, "placeholder", user_info, system_message)
-
-                transaction_create = FinancialTransactionCreate(**original_data)
-                new_transaction = await self.finance_service.create_transaction(user_id, transaction_create)
-                system_message = f"Successfully added the transaction. Details: {new_transaction}"
-
-            # NOTE: The logic for edit and delete is complex because it requires identifying the target
-            # transaction/category from the conversation history, which is not implemented.
-            # I will focus on add_transaction and add_category as per the immediate request.
             elif original_intent == "manage_category" and original_data.get('action') == 'add':
-                if not original_data or 'name' not in original_data or 'type' not in original_data:
-                     return "I don't have the details for the category to add."
-
-                type_map = {
-                    "pemasukan": "income",
-                    "pengeluaran": "expense",
-                    "income": "income",
-                    "expense": "expense"
-                }
-
-                category_type = original_data.get('type', '').lower()
-                mapped_type = type_map.get(category_type)
-
-                if not mapped_type:
-                    system_message = f"Invalid category type '{original_data.get('type')}'. Please use 'income' or 'expense'."
-                    return await self._generate_chat_response(session_id, "placeholder", user_info, system_message)
-
-                category_create = FinancialCategoryCreate(name=original_data['name'], type=mapped_type)
-                new_category = await self.finance_service.create_category(user_id, category_create)
-                system_message = f"Successfully added the new category. Details: {new_category}"
+                return await self._execute_add_category(session_id, user_id, original_data, user_info)
             else:
                 system_message = "Action confirmed, but no specific database action was taken for this intent yet."
-
-            return await self._generate_chat_response(session_id, "placeholder", user_info, system_message)
+                return await self._generate_chat_response(session_id, "placeholder", user_info, system_message)
 
         except Exception as e:
             print(f"Error handling confirm action: {e}")
             return "I'm sorry, I encountered an error while confirming the action."
+
+    async def _execute_add_transaction(self, session_id: int, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any], is_first_attempt: bool = False) -> str:
+        """Helper method to contain the logic for adding a transaction."""
+        if not data:
+            return "I don't have the details for the transaction to add."
+
+        category_name = data.pop('category', None)
+        category_id = None
+
+        if category_name:
+            category = await self.finance_service.get_category_by_name(user_id, category_name)
+            if category:
+                category_id = category.id
+            elif is_first_attempt:
+                # Category not found, store pending action
+                chat_session = await self.get_chat_session(session_id, user_id)
+                data['category'] = category_name # put it back for when we re-process
+                chat_session.pending_action = {"intent": "add_transaction", "data": data}
+                await self.db.commit()
+
+                system_message = f"The category '{category_name}' was not found. Please confirm if I should create it first, or you can add it manually."
+                return await self._generate_chat_response(session_id, "placeholder", user_info, system_message)
+            else:
+                # This case happens if it's a pending action and the category is still not found.
+                return "The category is still not found. Please add it first."
+
+        if category_id:
+            data['category_id'] = category_id
+
+        if 'type' in data:
+            type_map = {"pemasukan": "income", "pengeluaran": "expense", "income": "income", "expense": "expense"}
+            data['type'] = type_map.get(data['type'].lower(), data['type'])
+
+        if 'date' not in data or not data.get('date'):
+            data['date'] = datetime.utcnow().date()
+        elif isinstance(data['date'], str):
+            try:
+                data['date'] = datetime.fromisoformat(data['date'].replace('Z', '+00:00')).date()
+            except ValueError:
+                data['date'] = datetime.utcnow().date()
+
+        if 'amount' in data:
+            try:
+                data['amount'] = float(data['amount'])
+            except (ValueError, TypeError):
+                system_message = "The amount provided is not a valid number. Please try again."
+                return await self._generate_chat_response(session_id, "placeholder", user_info, system_message)
+
+        transaction_create = FinancialTransactionCreate(**data)
+        new_transaction = await self.finance_service.create_transaction(user_id, transaction_create)
+        system_message = f"Successfully added the transaction. Details: {new_transaction}"
+        return await self._generate_chat_response(session_id, "placeholder", user_info, system_message)
+
+    async def _execute_add_category(self, session_id: int, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
+        """Helper method to contain the logic for adding a category."""
+        if not data or 'name' not in data or 'type' not in data:
+                return "I don't have the details for the category to add."
+
+        type_map = {"pemasukan": "income", "pengeluaran": "expense", "income": "income", "expense": "expense"}
+        category_type = data.get('type', '').lower()
+        mapped_type = type_map.get(category_type)
+
+        if not mapped_type:
+            system_message = f"Invalid category type '{data.get('type')}'. Please use 'income' or 'expense'."
+            return await self._generate_chat_response(session_id, "placeholder", user_info, system_message)
+
+        category_create = FinancialCategoryCreate(name=data['name'], type=mapped_type)
+        new_category = await self.finance_service.create_category(user_id, category_create)
+
+        # After creating category, check for pending actions
+        chat_session = await self.get_chat_session(session_id, user_id)
+        if chat_session.pending_action:
+            system_message = f"Successfully added the new category '{data['name']}'. I see there was a pending transaction. Would you like to proceed with adding it now?"
+        else:
+            system_message = f"Successfully added the new category. Details: {new_category}"
+
+        return await self._generate_chat_response(session_id, "placeholder", user_info, system_message)
 
     async def _handle_cancel_action(self, session_id: int, user_info: Dict[str, Any]) -> str:
         """Handles the user cancelling an action."""
