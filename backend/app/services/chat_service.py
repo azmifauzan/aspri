@@ -580,12 +580,15 @@ class ChatService:
                 if category_id:
                     original_data['category_id'] = category_id
 
-                # Convert date string to date object if necessary
-                if 'date' in original_data and isinstance(original_data['date'], str):
+                # If date is not provided, default to today
+                if 'date' not in original_data or not original_data.get('date'):
+                    original_data['date'] = datetime.utcnow().date()
+                # If date is a string, convert it to a date object
+                elif isinstance(original_data['date'], str):
                     try:
                         original_data['date'] = datetime.fromisoformat(original_data['date'].replace('Z', '+00:00')).date()
                     except ValueError:
-                        original_data['date'] = datetime.utcnow().date() # fallback
+                        original_data['date'] = datetime.utcnow().date()  # fallback
 
                 transaction_create = FinancialTransactionCreate(**original_data)
                 new_transaction = await self.finance_service.create_transaction(user_id, transaction_create)
