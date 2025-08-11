@@ -566,6 +566,20 @@ class ChatService:
                 if not original_data:
                     return "I don't have the details for the transaction to add."
 
+                category_name = original_data.pop('category', None)
+                category_id = None
+
+                if category_name:
+                    category = await self.finance_service.get_category_by_name(user_id, category_name)
+                    if category:
+                        category_id = category.id
+                    else:
+                        system_message = f"The category '{category_name}' was not found. Please add the category first before assigning it to a transaction."
+                        return await self._generate_chat_response(session_id, "placeholder", user_info, system_message)
+
+                if category_id:
+                    original_data['category_id'] = category_id
+
                 # Convert date string to date object if necessary
                 if 'date' in original_data and isinstance(original_data['date'], str):
                     try:

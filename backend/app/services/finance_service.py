@@ -12,6 +12,15 @@ class FinanceService:
         result = await self.db_session.execute(select(FinancialCategory).filter(FinancialCategory.user_id == user_id))
         return result.scalars().all()
 
+    async def get_category_by_name(self, user_id: int, name: str) -> Optional[FinancialCategory]:
+        result = await self.db_session.execute(
+            select(FinancialCategory).filter(
+                FinancialCategory.user_id == user_id,
+                func.lower(FinancialCategory.name) == name.lower()
+            )
+        )
+        return result.scalars().first()
+
     async def create_category(self, user_id: int, category: FinancialCategoryCreate) -> FinancialCategory:
         db_category = FinancialCategory(**category.dict(), user_id=user_id)
         self.db_session.add(db_category)
