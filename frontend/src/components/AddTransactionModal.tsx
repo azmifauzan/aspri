@@ -13,7 +13,11 @@ interface AddTransactionModalProps {
 
 const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClose, onTransactionAdded }) => {
   const { t } = useTranslation();
-  const { register, handleSubmit, control, reset, formState: { errors } } = useForm<FinancialTransactionCreate>();
+  const { register, handleSubmit, control, reset, formState: { errors } } = useForm<FinancialTransactionCreate>({
+    defaultValues: {
+      type: 'expense'
+    }
+  });
   const [categories, setCategories] = useState<FinancialCategory[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -86,7 +90,6 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
                 <Controller
                   name="type"
                   control={control}
-                  defaultValue="expense"
                   rules={{ required: t('finance.type_required') }}
                   render={({ field }) => (
                     <select {...field} className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-brand">
