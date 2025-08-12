@@ -469,10 +469,10 @@ class ChatService:
         return "Sorry, I can't provide financial tips yet."
 
     async def _handle_show_summary(self, session_id: int, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
-        from datetime import date, timedelta
+        from datetime import datetime, date, timedelta
 
         time_range_str = data.get("time_range", "this month")
-        today = date.today()
+        today = datetime.utcnow().date()
 
         if time_range_str == 'today':
             start_date = today

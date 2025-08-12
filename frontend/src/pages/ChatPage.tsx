@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import ChatBubble from '../components/ChatBubble';
 import { Send, Search, FileText, X, Clock, FileCheck, SearchCheck, GitCompare, PlusCircle, Edit, Trash2, Settings2, List, Lightbulb, PieChart } from 'lucide-react';
-import axios from 'axios';
+import api from '../services/api';
 
 // Define types based on backend schemas
 type Message = {
@@ -67,11 +67,7 @@ export default function ChatPage() {
 
   const loadChatSessions = async () => {
     try {
-      const response = await axios.get<{sessions: ChatSession[]}>(`${API_BASE_URL}/chat/sessions`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        }
-      });
+      const response = await api.get<{sessions: ChatSession[]}>(`/chat/sessions`);
       setSessions(response.data.sessions);
     } catch (error: any) {
       console.error('Error loading chat sessions:', error);
@@ -83,11 +79,7 @@ export default function ChatPage() {
 
   const loadMessagesForSession = async (sessionId: number) => {
     try {
-      const response = await axios.get<ChatSession>(`${API_BASE_URL}/chat/sessions/${sessionId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        }
-      });
+      const response = await api.get<ChatSession>(`/chat/sessions/${sessionId}`);
       setMessages(response.data.messages ?? []);
     } catch (error: any) {
       console.error('Error loading messages:', error);
@@ -120,12 +112,8 @@ export default function ChatPage() {
     if (!sessionToSendTo || !sessionToSendTo.id) {
       try {
         console.log('No current session, creating new session');
-        const response = await axios.post<ChatSession>(`${API_BASE_URL}/chat/sessions`, {
+        const response = await api.post<ChatSession>(`/chat/sessions`, {
           title: inputText.substring(0, 30) // Use first 30 chars of message as title
-        }, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          }
         });
         
         const newSession = {
@@ -159,15 +147,11 @@ export default function ChatPage() {
     setIsLoading(true);
 
     try {
-      console.log('Sending request to:', `${API_BASE_URL}/chat/sessions/${sessionToSendTo.id}/messages`);
-      const response = await axios.post<Message>(`${API_BASE_URL}/chat/sessions/${sessionToSendTo.id}/messages`, {
+      console.log('Sending request to:', `/chat/sessions/${sessionToSendTo.id}/messages`);
+      const response = await api.post<Message>(`/chat/sessions/${sessionToSendTo.id}/messages`, {
         content: inputText,
         role: 'user',
         message_type: 'text'
-      }, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        }
       });
       
       const aiMessage = response.data;
@@ -241,11 +225,7 @@ export default function ChatPage() {
     e.stopPropagation(); // Prevent activating the session
     if (window.confirm(t('chat.confirm_delete_session'))) {
       try {
-        await axios.delete(`${API_BASE_URL}/chat/sessions/${sessionId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          }
-        });
+        await api.delete(`/chat/sessions/${sessionId}`);
         setSessions(sessions.filter(s => s.id !== sessionId));
       } catch (error: any) {
         console.error('Error deleting session:', error);
