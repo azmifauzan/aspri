@@ -26,6 +26,7 @@ from app.services.minio_service import MinIOService
 from app.services.google_contact_service import GoogleContactService
 from app.services.finance_service import FinanceService
 from app.services.user_service import UserService
+from app.services.llm_log_service import LLMLogService
 
 
 # LangChain GenAI imports
@@ -38,6 +39,7 @@ class ChatService:
         self.db = db
         self.chromadb_service = ChromaDBService()
         self.finance_service = FinanceService(db)
+        self.llm_log_service = LLMLogService(db)
         
         # Initialize LangChain GenAI Chat model (Gemini 2.5 Flash)
         self.chat_model = ChatGoogleGenerativeAI(
@@ -268,6 +270,14 @@ class ChatService:
             # Get response from Gemini
             response = self.chat_model.invoke([HumanMessage(content=prompt)])
 
+            # Log the interaction
+            await self.llm_log_service.create_log(
+                prompt_type="intent_extraction",
+                prompt_data={"prompt": prompt},
+                llm_response=response.content,
+                chat_session_id=session_id
+            )
+
             # Extract and parse the JSON response
             json_response_str = response.content.strip()
             # It may have ```json  and ``` at the end, so we need to remove it
@@ -331,6 +341,15 @@ class ChatService:
             )
             
             response = self.chat_model.invoke([HumanMessage(content=prompt)])
+
+            # Log the interaction
+            await self.llm_log_service.create_log(
+                prompt_type="chat_response",
+                prompt_data={"prompt": prompt},
+                llm_response=response.content,
+                chat_session_id=session_id
+            )
+
             return response.content
             
         except Exception as e:
@@ -357,6 +376,14 @@ class ChatService:
             )
             
             response = self.chat_model.invoke([HumanMessage(content=prompt)])
+
+            await self.llm_log_service.create_log(
+                prompt_type="document_search_response",
+                prompt_data={"prompt": prompt},
+                llm_response=response.content,
+                user_id=user_id
+            )
+
             return response.content
             
         except Exception as e:
@@ -547,6 +574,14 @@ class ChatService:
                 document_content=document_content
             )
             response = self.chat_model.invoke([HumanMessage(content=prompt)])
+
+            await self.llm_log_service.create_log(
+                prompt_type="summarize_document_response",
+                prompt_data={"prompt": prompt},
+                llm_response=response.content,
+                user_id=user_id
+            )
+
             return response.content
 
         except Exception as e:
@@ -601,6 +636,14 @@ class ChatService:
                 document_comparisons=document_comparisons
             )
             response = self.chat_model.invoke([HumanMessage(content=prompt)])
+
+            await self.llm_log_service.create_log(
+                prompt_type="compare_documents_response",
+                prompt_data={"prompt": prompt},
+                llm_response=response.content,
+                user_id=user_id
+            )
+
             return response.content
 
         except Exception as e:
