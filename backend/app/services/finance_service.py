@@ -4,6 +4,7 @@ from sqlalchemy import func
 from app.db.models.finance import FinancialCategory, FinancialTransaction
 from app.schemas.finance import FinancialCategoryCreate, FinancialCategoryUpdate, FinancialTransactionCreate, FinancialTransactionUpdate
 from typing import List, Optional
+from datetime import date
 
 class FinanceService:
     def __init__(self, db_session: AsyncSession):
