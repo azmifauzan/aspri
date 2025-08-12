@@ -472,6 +472,7 @@ class ChatService:
         from datetime import datetime, date, timedelta
 
         time_range_str = data.get("time_range", "this month")
+        transaction_type = data.get("type", "all")
         today = datetime.utcnow().date()
 
         if time_range_str == 'today':
@@ -490,16 +491,27 @@ class ChatService:
             start_date = today.replace(day=1)
             end_date = (start_date + timedelta(days=31)).replace(day=1) - timedelta(days=1)
 
-        summary_data = await self.finance_service.get_summary(user_id, start_date, end_date)
+        type_to_fetch = transaction_type if transaction_type in ['income', 'expense'] else None
+        summary_data = await self.finance_service.get_summary(user_id, start_date, end_date, transaction_type=type_to_fetch)
 
-        system_message = (
-            f"The user asked for a financial summary for the period '{time_range_str}' (from {start_date} to {end_date}).\n"
-            f"Here is the data:\n"
-            f"- Total Income: {summary_data['total_income']}\n"
-            f"- Total Expense: {summary_data['total_expense']}\n"
-            f"- Net Income: {summary_data['net_income']}\n"
-            "Please present this summary to the user in a clear and friendly way, according to your persona."
-        )
+        if transaction_type == 'income':
+            system_message = (
+                f"The user asked for their income summary for '{time_range_str}'.\n"
+                f"Data: Total Income = {summary_data['total_income']}.\n"
+                "Present this to the user."
+            )
+        elif transaction_type == 'expense':
+            system_message = (
+                f"The user asked for their expense summary for '{time_range_str}'.\n"
+                f"Data: Total Expense = {summary_data['total_expense']}.\n"
+                "Present this to the user."
+            )
+        else:
+            system_message = (
+                f"The user asked for a financial summary for '{time_range_str}'.\n"
+                f"Data: Total Income = {summary_data['total_income']}, Total Expense = {summary_data['total_expense']}, Net Income = {summary_data['net_income']}.\n"
+                "Present this summary to the user."
+            )
 
         return await self._generate_chat_response(session_id, "placeholder", user_info, system_message)
 

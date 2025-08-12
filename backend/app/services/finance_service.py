@@ -69,7 +69,7 @@ class FinanceService:
         await self.db_session.refresh(db_transaction)
         return db_transaction
 
-    async def get_summary(self, user_id: int, start_date: date, end_date: date) -> dict:
+    async def get_summary(self, user_id: int, start_date: date, end_date: date, transaction_type: Optional[str] = None) -> dict:
         query = (
             select(
                 FinancialTransaction.type,
@@ -80,8 +80,12 @@ class FinanceService:
                 FinancialTransaction.date >= start_date,
                 FinancialTransaction.date <= end_date
             )
-            .group_by(FinancialTransaction.type)
         )
+
+        if transaction_type and transaction_type in ['income', 'expense']:
+            query = query.filter(FinancialTransaction.type == transaction_type)
+
+        query = query.group_by(FinancialTransaction.type)
 
         result = await self.db_session.execute(query)
         rows = result.all()
