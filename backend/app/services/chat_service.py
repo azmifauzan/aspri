@@ -193,7 +193,7 @@ class ChatService:
         await self.db.flush()
         
         # Classify user intent and extract data
-        intent_data = await self.classify_user_intent(session_id, message_data.content)
+        intent_data = await self.classify_user_intent(session_id, user_id, message_data.content)
         intent = intent_data.get("intent", "chat")
         data = intent_data.get("data")
         user_message.intent = intent
@@ -230,10 +230,10 @@ class ChatService:
         elif intent == "search_contact":
             ai_response = await self._handle_search_contact(user_id, data, user_info)
         elif intent == "cancel_action":
-            ai_response = await self._handle_cancel_action(session_id, user_info)
+            ai_response = await self._handle_cancel_action(session_id, user_id, user_info)
         else:
             # Default to chat response
-            ai_response = await self._generate_chat_response(session_id, message_data.content, user_info)
+            ai_response = await self._generate_chat_response(session_id, user_id, message_data.content, user_info)
         
         # Save AI response
         ai_message = ChatMessage(
@@ -256,7 +256,7 @@ class ChatService:
         
         return ai_message
 
-    async def classify_user_intent(self, session_id: int, message: str) -> Dict[str, Any]:
+    async def classify_user_intent(self, session_id: int, user_id: int, message: str) -> Dict[str, Any]:
         """Classify user intent and extract data using Gemini, with chat history."""
         try:
             history = await self._get_conversation_history(session_id)
@@ -273,8 +273,9 @@ class ChatService:
             # Log the interaction
             await self.llm_log_service.create_log(
                 prompt_type="intent_extraction",
-                prompt_data={"prompt": prompt},
+                prompt_data={"history": history, "message": message},
                 llm_response=response.content,
+                user_id=user_id,
                 chat_session_id=session_id
             )
 
@@ -345,9 +346,9 @@ class ChatService:
             # Log the interaction
             await self.llm_log_service.create_log(
                 prompt_type="chat_response",
-                prompt_data={"prompt": prompt},
+                prompt_data={"user_query": query, "search_results": formatted_results},
                 llm_response=response.content,
-                chat_session_id=session_id
+                user_id=user_id
             )
 
             return response.content
@@ -356,7 +357,7 @@ class ChatService:
             print(f"Error handling document search: {e}")
             return "I encountered an error while searching your documents. Please try rephrasing your query."
 
-    async def _generate_chat_response(self, session_id: int, user_message: str, user_info: Dict[str, Any], system_message: str = None) -> str:
+    async def _generate_chat_response(self, session_id: int, user_id: int, user_message: str, user_info: Dict[str, Any], system_message: str = None) -> str:
         """Generate chat response using Gemini, optionally with a system message."""
         try:
             history = await self._get_conversation_history(session_id)
@@ -378,10 +379,16 @@ class ChatService:
             response = self.chat_model.invoke([HumanMessage(content=prompt)])
 
             await self.llm_log_service.create_log(
-                prompt_type="document_search_response",
-                prompt_data={"prompt": prompt},
+                prompt_type="chat_response",
+                prompt_data={
+                    "user_info": user_info,
+                    "history": history,
+                    "user_message": user_message,
+                    "system_message": system_message
+                },
                 llm_response=response.content,
-                user_id=user_id
+                user_id=user_id,
+                chat_session_id=session_id
             )
 
             return response.content
@@ -430,45 +437,45 @@ class ChatService:
 
     async def _handle_add_transaction(self, session_id: int, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
         if not data:
-            return await self._generate_chat_response(session_id, "placeholder", user_info, "The user wants to add a transaction, but didn't provide enough details. Ask them to provide details like amount, description, type, and date.")
+            return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, "The user wants to add a transaction, but didn't provide enough details. Ask them to provide details like amount, description, type, and date.")
 
         system_message = (
             f"The user wants to add a new transaction with these details: {data}. "
             "Please confirm with the user if the details are correct before proceeding. Ask for a 'yes' or 'no' response."
         )
-        return await self._generate_chat_response(session_id, "placeholder", user_info, system_message)
+        return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, system_message)
 
     async def _handle_edit_transaction(self, session_id: int, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
         if not data:
-            return await self._generate_chat_response(session_id, "placeholder", user_info, "The user wants to edit a transaction but hasn't specified which one or what to change. Ask for more details.")
+            return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, "The user wants to edit a transaction but hasn't specified which one or what to change. Ask for more details.")
 
         system_message = (
             f"The user wants to edit a transaction. They want to find a transaction matching '{data.get('original')}' and update it with '{data.get('new')}'. "
             "Please confirm with the user if this is correct. Ask for a 'yes' or 'no' response."
         )
-        return await self._generate_chat_response(session_id, "placeholder", user_info, system_message)
+        return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, system_message)
 
     async def _handle_delete_transaction(self, session_id: int, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
         if not data:
-            return await self._generate_chat_response(session_id, "placeholder", user_info, "The user wants to delete a transaction but hasn't specified which one. Ask for more details.")
+            return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, "The user wants to delete a transaction but hasn't specified which one. Ask for more details.")
 
         system_message = (
             f"The user wants to delete a transaction matching these details: {data}. "
             "Please confirm with the user that they want to delete this transaction. Ask for a 'yes' or 'no' response."
         )
-        return await self._generate_chat_response(session_id, "placeholder", user_info, system_message)
+        return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, system_message)
 
     async def _handle_manage_category(self, session_id: int, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
         """Handles category management directly without a confirmation step."""
         if not data or not data.get('action') or not data.get('name'):
-            return await self._generate_chat_response(session_id, "placeholder", user_info, "The user wants to manage a category but hasn't provided enough details. Ask for the action (add, edit, delete) and the category name.")
+            return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, "The user wants to manage a category but hasn't provided enough details. Ask for the action (add, edit, delete) and the category name.")
 
         action = data.get('action')
 
         if action == 'add':
             # This logic is moved from the old _execute_add_category
             if 'type' not in data:
-                 return await self._generate_chat_response(session_id, "placeholder", user_info, "Please specify a type ('income' or 'expense') for the new category.")
+                 return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, "Please specify a type ('income' or 'expense') for the new category.")
 
             type_map = {"pemasukan": "income", "pengeluaran": "expense", "income": "income", "expense": "expense"}
             category_type = data.get('type', '').lower()
@@ -476,17 +483,17 @@ class ChatService:
 
             if not mapped_type:
                 system_message = f"Invalid category type '{data.get('type')}'. Please use 'income' or 'expense'."
-                return await self._generate_chat_response(session_id, "placeholder", user_info, system_message)
+                return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, system_message)
 
             category_create = FinancialCategoryCreate(name=data['name'], type=mapped_type)
             new_category = await self.finance_service.create_category(user_id, category_create)
 
             system_message = f"Action completed. The new category has been successfully added. Details: {new_category}"
-            return await self._generate_chat_response(session_id, "placeholder", user_info, system_message)
+            return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, system_message)
 
         # Placeholder for future edit/delete logic
         else:
-            return await self._generate_chat_response(session_id, "placeholder", user_info, f"Sorry, I can't {action} categories just yet.")
+            return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, f"Sorry, I can't {action} categories just yet.")
 
 
     async def _handle_list_transaction(self, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
@@ -540,7 +547,7 @@ class ChatService:
                 "Present this summary to the user."
             )
 
-        return await self._generate_chat_response(session_id, "placeholder", user_info, system_message)
+        return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, system_message)
 
 
     async def _handle_summarize_specific_document(self, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
@@ -577,7 +584,7 @@ class ChatService:
 
             await self.llm_log_service.create_log(
                 prompt_type="summarize_document_response",
-                prompt_data={"prompt": prompt},
+                prompt_data={"document_name": document_name, "document_content": document_content},
                 llm_response=response.content,
                 user_id=user_id
             )
@@ -639,7 +646,7 @@ class ChatService:
 
             await self.llm_log_service.create_log(
                 prompt_type="compare_documents_response",
-                prompt_data={"prompt": prompt},
+                prompt_data={"document_comparisons": document_comparisons},
                 llm_response=response.content,
                 user_id=user_id
             )
@@ -701,16 +708,6 @@ class ChatService:
         except Exception as e:
             print(f"Error handling confirm action: {e}")
             return "I'm sorry, I encountered an error while confirming the action."
-
-    async def _handle_edit_transaction(self, session_id: int, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
-        if not data:
-            return await self._generate_chat_response(session_id, "placeholder", user_info, "The user wants to edit a transaction but hasn't specified which one or what to change. Ask for more details.")
-
-        system_message = (
-            f"The user wants to edit a transaction. They want to find a transaction matching '{data.get('original')}' and update it with '{data.get('new')}'. "
-            "Please confirm with the user if this is correct. Ask for a 'yes' or 'no' response."
-        )
-        return await self._generate_chat_response(session_id, "placeholder", user_info, system_message)
 
     async def _execute_add_transaction(self, session_id: int, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any], is_first_attempt: bool = False) -> str:
         """Helper method to contain the logic for adding a transaction."""
