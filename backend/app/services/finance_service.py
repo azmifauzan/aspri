@@ -68,6 +68,39 @@ class FinanceService:
         await self.db_session.refresh(db_transaction)
         return db_transaction
 
+    async def get_summary(self, user_id: int, start_date: date, end_date: date) -> dict:
+        query = (
+            select(
+                FinancialTransaction.type,
+                func.sum(FinancialTransaction.amount).label("total_amount")
+            )
+            .filter(
+                FinancialTransaction.user_id == user_id,
+                FinancialTransaction.date >= start_date,
+                FinancialTransaction.date <= end_date
+            )
+            .group_by(FinancialTransaction.type)
+        )
+
+        result = await self.db_session.execute(query)
+        rows = result.all()
+
+        summary = {
+            "total_income": 0.0,
+            "total_expense": 0.0,
+            "net_income": 0.0
+        }
+
+        for row in rows:
+            if row.type == 'income':
+                summary['total_income'] = row.total_amount or 0.0
+            elif row.type == 'expense':
+                summary['total_expense'] = row.total_amount or 0.0
+
+        summary['net_income'] = summary['total_income'] - summary['total_expense']
+
+        return summary
+
     async def update_transaction(self, transaction_id: int, transaction_update: FinancialTransactionUpdate) -> Optional[FinancialTransaction]:
         result = await self.db_session.execute(select(FinancialTransaction).filter(FinancialTransaction.id == transaction_id))
         db_transaction = result.scalars().first()

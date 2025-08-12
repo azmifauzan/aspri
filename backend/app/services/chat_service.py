@@ -58,6 +58,7 @@ class ChatService:
             "For 'edit_transaction', extract: original (details to find the transaction, if the user mentions 'it' or 'the last one', set original to 'last') and new (the updates to apply, e.g., new category, new amount).\n"
             "For 'delete_transaction', extract: details to identify the transaction.\n"
             "For 'manage_category', extract: action (add, edit, delete), name, and type.\n"
+            "For 'show_summary', extract: time_range (e.g., 'today', 'this month', 'last week') and type ('income', 'expense', or 'all'). If the user doesn't specify a type, assume 'all'.\n"
             "For 'summarize_specific_document', extract: document_name.\n"
             "For 'search_by_semantic', extract: query.\n"
             "For 'compare_document', extract: document_names (as a list).\n"
@@ -215,7 +216,7 @@ class ChatService:
         elif intent == "financial_tips":
             ai_response = await self._handle_financial_tips(user_id, data, user_info)
         elif intent == "show_summary":
-            ai_response = await self._handle_show_summary(user_id, data, user_info)
+            ai_response = await self._handle_show_summary(session_id, user_id, data, user_info)
         elif intent == "summarize_specific_document":
             ai_response = await self._handle_summarize_specific_document(user_id, data, user_info)
         elif intent == "search_by_semantic":
@@ -467,8 +468,41 @@ class ChatService:
     async def _handle_financial_tips(self, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
         return "Sorry, I can't provide financial tips yet."
 
-    async def _handle_show_summary(self, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
-        return "Sorry, I can't show a summary yet."
+    async def _handle_show_summary(self, session_id: int, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
+        from datetime import date, timedelta
+
+        time_range_str = data.get("time_range", "this month")
+        today = date.today()
+
+        if time_range_str == 'today':
+            start_date = today
+            end_date = today
+        elif time_range_str == 'this week':
+            start_date = today - timedelta(days=today.weekday())
+            end_date = start_date + timedelta(days=6)
+        elif time_range_str == 'last week':
+            end_date = today - timedelta(days=today.weekday() + 1)
+            start_date = end_date - timedelta(days=6)
+        elif time_range_str == 'this month':
+            start_date = today.replace(day=1)
+            end_date = (start_date + timedelta(days=31)).replace(day=1) - timedelta(days=1)
+        else: # Default to this month
+            start_date = today.replace(day=1)
+            end_date = (start_date + timedelta(days=31)).replace(day=1) - timedelta(days=1)
+
+        summary_data = await self.finance_service.get_summary(user_id, start_date, end_date)
+
+        system_message = (
+            f"The user asked for a financial summary for the period '{time_range_str}' (from {start_date} to {end_date}).\n"
+            f"Here is the data:\n"
+            f"- Total Income: {summary_data['total_income']}\n"
+            f"- Total Expense: {summary_data['total_expense']}\n"
+            f"- Net Income: {summary_data['net_income']}\n"
+            "Please present this summary to the user in a clear and friendly way, according to your persona."
+        )
+
+        return await self._generate_chat_response(session_id, "placeholder", user_info, system_message)
+
 
     async def _handle_summarize_specific_document(self, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
         try:
