@@ -55,7 +55,7 @@ class ChatService:
             "'delete_transaction', 'manage_category', 'list_transaction', 'financial_tips', 'show_summary', "
             "'summarize_specific_document', 'search_by_semantic', 'compare_document', 'confirm_action', 'cancel_action', 'search_contact'.\n\n"
             "For 'add_transaction', extract: amount, description, date, type, category.\n"
-            "For 'edit_transaction', extract: original (to find it) and new (the updates).\n"
+            "For 'edit_transaction', extract: original (details to find the transaction, if the user mentions 'it' or 'the last one', set original to 'last') and new (the updates to apply, e.g., new category, new amount).\n"
             "For 'delete_transaction', extract: details to identify the transaction.\n"
             "For 'manage_category', extract: action (add, edit, delete), name, and type.\n"
             "For 'summarize_specific_document', extract: document_name.\n"
@@ -583,6 +583,9 @@ class ChatService:
             if original_intent == "add_transaction":
                 return await self._execute_add_transaction(session_id, user_id, original_data, user_info, is_first_attempt=True)
 
+            elif original_intent == "edit_transaction":
+                return await self._execute_edit_transaction(session_id, user_id, original_data, user_info)
+
             elif original_intent == "manage_category" and original_data.get('action') == 'add':
                 return await self._execute_add_category(session_id, user_id, original_data, user_info)
             else:
@@ -592,6 +595,16 @@ class ChatService:
         except Exception as e:
             print(f"Error handling confirm action: {e}")
             return "I'm sorry, I encountered an error while confirming the action."
+
+    async def _handle_edit_transaction(self, session_id: int, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
+        if not data:
+            return await self._generate_chat_response(session_id, "placeholder", user_info, "The user wants to edit a transaction but hasn't specified which one or what to change. Ask for more details.")
+
+        system_message = (
+            f"The user wants to edit a transaction. They want to find a transaction matching '{data.get('original')}' and update it with '{data.get('new')}'. "
+            "Please confirm with the user if this is correct. Ask for a 'yes' or 'no' response."
+        )
+        return await self._generate_chat_response(session_id, "placeholder", user_info, system_message)
 
     async def _execute_add_transaction(self, session_id: int, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any], is_first_attempt: bool = False) -> str:
         """Helper method to contain the logic for adding a transaction."""
@@ -643,6 +656,49 @@ class ChatService:
         transaction_create = FinancialTransactionCreate(**data)
         new_transaction = await self.finance_service.create_transaction(user_id, transaction_create)
         system_message = f"Successfully added the transaction. Details: {new_transaction}"
+        return await self._generate_chat_response(session_id, "placeholder", user_info, system_message)
+
+    async def _execute_edit_transaction(self, session_id: int, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
+        """Helper method to contain the logic for editing a transaction."""
+        if not data or 'original' not in data or 'new' not in data:
+            return await self._generate_chat_response(session_id, "placeholder", user_info, "I'm not sure which transaction to edit or what to change. Please be more specific.")
+
+        if data['original'] != 'last':
+            # For now, we only support editing the 'last' transaction
+            return await self._generate_chat_response(session_id, "placeholder", user_info, "Sorry, I can only edit the most recent transaction for now.")
+
+        last_transaction = await self.finance_service.get_last_transaction(user_id)
+        if not last_transaction:
+            return await self._generate_chat_response(session_id, "placeholder", user_info, "There are no transactions to edit.")
+
+        update_payload = {}
+        new_data = data['new']
+
+        # Check for category update
+        if 'category' in new_data:
+            category_name = new_data['category']
+            category = await self.finance_service.get_category_by_name(user_id, category_name)
+            if not category:
+                return await self._generate_chat_response(session_id, "placeholder", user_info, f"I couldn't find the category '{category_name}'. Please create it first.")
+            update_payload['category_id'] = category.id
+
+        # Add other updatable fields here if necessary (e.g., amount, description)
+        if 'amount' in new_data:
+            try:
+                update_payload['amount'] = float(new_data['amount'])
+            except (ValueError, TypeError):
+                return await self._generate_chat_response(session_id, "placeholder", user_info, "The new amount provided is not a valid number.")
+
+        if 'description' in new_data:
+            update_payload['description'] = new_data['description']
+
+
+        if not update_payload:
+            return await self._generate_chat_response(session_id, "placeholder", user_info, "You didn't specify any changes. What would you like to update?")
+
+        updated_transaction = await self.finance_service.update_transaction(last_transaction.id, update_payload)
+
+        system_message = f"Successfully updated the last transaction. The new details are: {updated_transaction}"
         return await self._generate_chat_response(session_id, "placeholder", user_info, system_message)
 
     async def _execute_add_category(self, session_id: int, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:

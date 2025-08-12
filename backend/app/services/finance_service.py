@@ -52,6 +52,15 @@ class FinanceService:
         result = await self.db_session.execute(select(FinancialTransaction).filter(FinancialTransaction.user_id == user_id))
         return result.scalars().all()
 
+    async def get_last_transaction(self, user_id: int) -> Optional[FinancialTransaction]:
+        result = await self.db_session.execute(
+            select(FinancialTransaction)
+            .filter(FinancialTransaction.user_id == user_id)
+            .order_by(FinancialTransaction.created_at.desc())
+            .limit(1)
+        )
+        return result.scalars().first()
+
     async def create_transaction(self, user_id: int, transaction: FinancialTransactionCreate) -> FinancialTransaction:
         db_transaction = FinancialTransaction(**transaction.dict(), user_id=user_id)
         self.db_session.add(db_transaction)
