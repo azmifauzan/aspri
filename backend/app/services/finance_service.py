@@ -83,7 +83,7 @@ class FinanceService:
         )
 
         if transaction_type and transaction_type in ['income', 'expense']:
-            query = query.filter(FinancialTransaction.type == transaction_type)
+            query = query.filter(func.lower(FinancialTransaction.type) == transaction_type.lower())
 
         query = query.group_by(FinancialTransaction.type)
 
