@@ -110,10 +110,11 @@ async def send_chat_message(
         )
         return ChatMessageResponse.model_validate(response_message)
     except Exception as e:
-        logger.error(f"Error sending chat message: {e}")
+        error_message = f"An unexpected error occurred: {e.__class__.__name__}"
+        logger.error(f"Error sending chat message: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to send chat message: {str(e)}"
+            detail=error_message
         )
 
 @router.post("/intent", response_model=ChatIntentResponse)

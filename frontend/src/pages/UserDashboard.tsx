@@ -7,6 +7,7 @@ import DocumentsPage from './DocumentsPage';
 import ChatPage from './ChatPage';
 import FinancePage from './FinancePage';
 import ContactsPage from './ContactsPage';
+import CategoryPage from './CategoryPage'; // Import CategoryPage
 import ThemeToggle from '../components/ThemeToggle';
 import LangToggle from '../components/LangToggle';
 import {
@@ -72,6 +73,15 @@ export default function UserDashboard() {
     return null;
   }
 
+  const getPageTitle = () => {
+    if (activeItem === 'categories') {
+      return t('Manajemen Kategori');
+    }
+    const menuItem = menuItems.find(item => item.id === activeItem);
+    return menuItem ? t(menuItem.label) : '';
+  };
+
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-zinc-900 flex">
       {/* Sidebar */}
@@ -103,12 +113,14 @@ export default function UserDashboard() {
               <ul>
                 {menuItems.map((item) => {
                   const Icon = item.icon;
+                  // Special active state for categories page, should highlight finance menu
+                  const isActive = activeItem === item.id || (activeItem === 'categories' && item.id === 'finance');
                   return (
                     <li key={item.id}>
                       <button
                         onClick={() => handleMenuClick(item.id)}
                         className={`w-full flex items-center px-4 py-3 text-left transition-colors ${
-                          activeItem === item.id
+                          isActive
                             ? 'bg-brand/10 text-brand border-l-4 border-brand'
                             : 'text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-700'
                         }`}
@@ -149,7 +161,7 @@ export default function UserDashboard() {
                 <Menu size={20} />
               </button>
               <h1 className="text-lg font-semibold text-zinc-900 dark:text-white capitalize">
-                {t(`dashboard.menu.${activeItem}`)}
+                {getPageTitle()}
               </h1>
             </div>
             
@@ -308,7 +320,13 @@ export default function UserDashboard() {
           
           {activeItem === 'finance' && (
             <div className="w-full">
-              <FinancePage />
+              <FinancePage setActiveItem={setActiveItem} />
+            </div>
+          )}
+
+          {activeItem === 'categories' && (
+            <div className="w-full">
+              <CategoryPage setActiveItem={setActiveItem} />
             </div>
           )}
 
