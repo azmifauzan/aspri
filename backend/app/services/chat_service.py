@@ -214,9 +214,9 @@ class ChatService:
         elif intent == "manage_category":
             ai_response = await self._handle_manage_category(session_id, user_id, data, user_info)
         elif intent == "list_transaction":
-            ai_response = await self._handle_list_transaction(user_id, data, user_info)
+            ai_response = await self._handle_list_transaction(session_id, user_id, data, user_info)
         elif intent == "financial_tips":
-            ai_response = await self._handle_financial_tips(user_id, data, user_info)
+            ai_response = await self._handle_financial_tips(session_id, user_id, data, user_info)
         elif intent == "show_summary":
             ai_response = await self._handle_show_summary(session_id, user_id, data, user_info)
         elif intent == "summarize_specific_document":
@@ -496,11 +496,70 @@ class ChatService:
             return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, f"Sorry, I can't {action} categories just yet.")
 
 
-    async def _handle_list_transaction(self, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
-        return "Sorry, I can't list transactions yet."
+    async def _handle_list_transaction(self, session_id: int, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
+        """Handles listing user's financial transactions."""
+        try:
+            transactions = await self.finance_service.get_transactions(user_id)
 
-    async def _handle_financial_tips(self, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
-        return "Sorry, I can't provide financial tips yet."
+            if not transactions:
+                system_message = "The user has no transactions recorded. Let them know this and maybe encourage them to add one."
+                return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, system_message)
+
+            # Format the last 10 transactions for display
+            formatted_transactions = []
+            for t in transactions[-10:]:
+                # Assuming category is loaded or accessible. If not, this might need adjustment.
+                category_name = t.category.name if t.category else "Uncategorized"
+                formatted_transactions.append(
+                    f"- Date: {t.date}, Type: {t.type.name}, Amount: {t.amount}, Desc: {t.description}, Category: {category_name}"
+                )
+
+            transaction_list_str = "\n".join(formatted_transactions)
+
+            system_message = (
+                f"The user has asked for their transaction list. Here are the last 10:\n{transaction_list_str}\n\n"
+                "Present this list to the user in a clear and organized way, according to your persona."
+            )
+            return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, system_message)
+
+        except Exception as e:
+            print(f"Error in _handle_list_transaction: {e}")
+            system_message = "An unexpected error occurred while trying to retrieve the transaction list. Apologize to the user and suggest they try again later."
+            return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, system_message)
+
+    async def _handle_financial_tips(self, session_id: int, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
+        """Generates financial tips based on the user's recent activity."""
+        try:
+            # Get financial summary for the last 30 days
+            end_date = datetime.utcnow().date()
+            from datetime import timedelta
+            start_date = end_date - timedelta(days=30)
+
+            summary = await self.finance_service.get_summary(user_id, start_date, end_date)
+
+            # Check if there's enough data to provide tips
+            if summary['total_income'] == 0 and summary['total_expense'] == 0:
+                system_message = "I don't have enough data about your finances to give tips yet. Try adding some transactions first!"
+                return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, system_message)
+
+            # Create a detailed prompt for the LLM
+            prompt_data = (
+                f"Here is the user's financial summary for the last 30 days:\n"
+                f"- Total Income: {summary['total_income']}\n"
+                f"- Total Expense: {summary['total_expense']}\n"
+                f"- Net Income: {summary['net_income']}\n\n"
+                "Based on this data, please provide 2-3 actionable and personalized financial tips for the user. "
+                "Consider their income vs. expense ratio. If expenses are high, suggest ways to save. "
+                "If income is good, suggest investment or saving strategies. "
+                "Keep the tone helpful and aligned with your persona."
+            )
+
+            return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, system_message=prompt_data)
+
+        except Exception as e:
+            print(f"Error in _handle_financial_tips: {e}")
+            system_message = "I had trouble analyzing the financial data to generate tips. Please try again later."
+            return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, system_message)
 
     async def _handle_show_summary(self, session_id: int, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
         from datetime import datetime, date, timedelta

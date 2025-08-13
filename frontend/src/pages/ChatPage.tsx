@@ -41,6 +41,7 @@ export default function ChatPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Scroll to bottom of messages
   const scrollToBottom = () => {
@@ -160,6 +161,7 @@ export default function ChatPage() {
       }
       setMessages(prev => [...prev, aiMessage]);
       setIsLoading(false);
+      inputRef.current?.focus();
       
       // Refresh sessions to update the last updated time
       loadChatSessions();
@@ -371,13 +373,15 @@ export default function ChatPage() {
 
         {/* Input area */}
         <div className="bg-white dark:bg-zinc-800 border-t border-gray-200 dark:border-zinc-700 p-4">
-          <div className="flex items-end gap-2">
-            <div className="flex-1 bg-gray-100 dark:bg-zinc-700 rounded-lg p-2">
+          <div className="flex items-stretch gap-2">
+            <div className="flex-1 bg-gray-100 dark:bg-zinc-700 rounded-lg flex">
               <textarea
+                ref={inputRef}
                 value={inputText}
                 onChange={handleInputChange}
                 onKeyDown={handleKeyPress}
                 placeholder={t('chat.type_message') || "Type your message..."}
+                aria-label="Chat input"
                 className="w-full bg-transparent border-none focus:ring-0 resize-none py-2 px-3 text-zinc-900 dark:text-white placeholder-zinc-500"
                 rows={1}
                 disabled={isLoading}
@@ -386,7 +390,7 @@ export default function ChatPage() {
             <button
               onClick={handleSendClick}
               disabled={!inputText.trim() || isLoading}
-              className="bg-brand hover:bg-brand/90 text-white p-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-brand hover:bg-brand/90 text-white p-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
             >
               <Send size={20} />
             </button>
