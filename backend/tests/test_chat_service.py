@@ -6,6 +6,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.services.chat_service import ChatService
 from app.db.models.document import Document
+from app.db.models.finance import FinancialTransaction, FinancialCategory
+from app.db.models.finance import TransactionType
+from datetime import date
 
 # Since we are in a testing environment that might not have all dependencies,
 # we will mock them.
@@ -23,9 +26,14 @@ def chat_service(mock_db_session):
         mock_llm.return_value = MagicMock()
         mock_chromadb.return_value = MagicMock()
 
+        # Configure the mock DB session to handle the execute call chain
+        mock_result = MagicMock()
+        mock_result.scalars.return_value.all.return_value = []
+        mock_db_session.execute.return_value = mock_result
+
         service = ChatService(db=mock_db_session)
         # We can also mock the invoke method directly on the instance if needed
-        service.chat_model.invoke = AsyncMock()
+        service.chat_model.invoke = MagicMock()
         return service
 
 @pytest.mark.asyncio
@@ -49,7 +57,7 @@ async def test_classify_user_intent(chat_service, user_message, mock_llm_respons
     chat_service.chat_model.invoke.return_value = mock_response
 
     # Call the method
-    result = await chat_service.classify_user_intent(user_message)
+    result = await chat_service.classify_user_intent(1, 1, user_message)
 
     # Assertions
     assert result["intent"] == expected_intent
@@ -165,10 +173,83 @@ async def test_handle_add_transaction(chat_service):
         "date": "2024-01-01",
         "category": "testing"
     }
-    result = await chat_service._handle_add_transaction(1, data, {})
 
-    assert "Type: expense" in result
-    assert "Amount: 100" in result
-    assert "Description: test" in result
-    assert "Date: 2024-01-01" in result
-    assert "Category: testing" in result
+    # Mock the LLM response for this test
+    expected_response = "Confirmation message about adding a transaction."
+    chat_service.chat_model.invoke.return_value.content = expected_response
+
+    result = await chat_service._handle_add_transaction(1, 1, data, {})
+
+    assert result == expected_response
+    # Verify that the LLM was called, which implies the confirmation prompt was generated
+    chat_service.chat_model.invoke.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_handle_list_transaction_with_transactions(chat_service):
+    """Test _handle_list_transaction when transactions exist."""
+    # Mock the finance service to return some transactions
+    mock_category = FinancialCategory(id=1, name="Food", type="expense")
+    mock_transactions = [
+        FinancialTransaction(id=1, date=date(2024, 1, 1), type=TransactionType.EXPENSE, amount=50000, description="Lunch", category=mock_category),
+        FinancialTransaction(id=2, date=date(2024, 1, 2), type=TransactionType.INCOME, amount=1000000, description="Salary", category=None)
+    ]
+    chat_service.finance_service.get_transactions = AsyncMock(return_value=mock_transactions)
+
+    # Mock the LLM response
+    expected_response = "Here are your transactions."
+    chat_service.chat_model.invoke.return_value.content = expected_response
+
+    result = await chat_service._handle_list_transaction(1, 1, {}, {})
+
+    assert result == expected_response
+    chat_service.finance_service.get_transactions.assert_called_once_with(1)
+    # Check that the prompt contains transaction details
+    prompt_content = chat_service.chat_model.invoke.call_args[0][0][0].content
+    assert "Lunch" in prompt_content
+    assert "Salary" in prompt_content
+
+@pytest.mark.asyncio
+async def test_handle_list_transaction_no_transactions(chat_service):
+    """Test _handle_list_transaction when no transactions exist."""
+    chat_service.finance_service.get_transactions = AsyncMock(return_value=[])
+    expected_response = "You have no transactions."
+    chat_service.chat_model.invoke.return_value.content = expected_response
+
+    result = await chat_service._handle_list_transaction(1, 1, {}, {})
+
+    assert result == expected_response
+    chat_service.finance_service.get_transactions.assert_called_once_with(1)
+    prompt_content = chat_service.chat_model.invoke.call_args[0][0][0].content
+    assert "no transactions recorded" in prompt_content
+
+@pytest.mark.asyncio
+async def test_handle_financial_tips_with_data(chat_service):
+    """Test _handle_financial_tips when financial data is available."""
+    summary_data = {'total_income': 5000, 'total_expense': 2000, 'net_income': 3000}
+    chat_service.finance_service.get_summary = AsyncMock(return_value=summary_data)
+    expected_response = "Here are some financial tips."
+    chat_service.chat_model.invoke.return_value.content = expected_response
+
+    result = await chat_service._handle_financial_tips(1, 1, {}, {})
+
+    assert result == expected_response
+    chat_service.finance_service.get_summary.assert_called_once()
+    prompt_content = chat_service.chat_model.invoke.call_args[0][0][0].content
+    assert "Total Income: 5000" in prompt_content
+    assert "Total Expense: 2000" in prompt_content
+
+@pytest.mark.asyncio
+async def test_handle_financial_tips_no_data(chat_service):
+    """Test _handle_financial_tips when no financial data is available."""
+    summary_data = {'total_income': 0, 'total_expense': 0, 'net_income': 0}
+    chat_service.finance_service.get_summary = AsyncMock(return_value=summary_data)
+    expected_response = "Not enough data for tips."
+    chat_service.chat_model.invoke.return_value.content = expected_response
+
+    result = await chat_service._handle_financial_tips(1, 1, {}, {})
+
+    assert result == expected_response
+    chat_service.finance_service.get_summary.assert_called_once()
+    prompt_content = chat_service.chat_model.invoke.call_args[0][0][0].content
+    assert "don't have enough data" in prompt_content
