@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import func
+from sqlalchemy.orm import selectinload
 from app.db.models.finance import FinancialCategory, FinancialTransaction
 from app.schemas.finance import FinancialCategoryCreate, FinancialCategoryUpdate, FinancialTransactionCreate, FinancialTransactionUpdate
 from typing import List, Optional
@@ -50,7 +51,11 @@ class FinanceService:
         return False
 
     async def get_transactions(self, user_id: int) -> List[FinancialTransaction]:
-        result = await self.db_session.execute(select(FinancialTransaction).filter(FinancialTransaction.user_id == user_id))
+        result = await self.db_session.execute(
+            select(FinancialTransaction)
+            .options(selectinload(FinancialTransaction.category))
+            .filter(FinancialTransaction.user_id == user_id)
+        )
         return result.scalars().all()
 
     async def get_last_transaction(self, user_id: int) -> Optional[FinancialTransaction]:
