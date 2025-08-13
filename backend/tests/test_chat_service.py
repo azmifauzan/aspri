@@ -23,9 +23,14 @@ def chat_service(mock_db_session):
         mock_llm.return_value = MagicMock()
         mock_chromadb.return_value = MagicMock()
 
+        # Configure the mock DB session to handle the execute call chain
+        mock_result = MagicMock()
+        mock_result.scalars.return_value.all.return_value = []
+        mock_db_session.execute.return_value = mock_result
+
         service = ChatService(db=mock_db_session)
         # We can also mock the invoke method directly on the instance if needed
-        service.chat_model.invoke = AsyncMock()
+        service.chat_model.invoke = MagicMock()
         return service
 
 @pytest.mark.asyncio
@@ -49,7 +54,7 @@ async def test_classify_user_intent(chat_service, user_message, mock_llm_respons
     chat_service.chat_model.invoke.return_value = mock_response
 
     # Call the method
-    result = await chat_service.classify_user_intent(user_message)
+    result = await chat_service.classify_user_intent(1, 1, user_message)
 
     # Assertions
     assert result["intent"] == expected_intent
@@ -165,10 +170,13 @@ async def test_handle_add_transaction(chat_service):
         "date": "2024-01-01",
         "category": "testing"
     }
-    result = await chat_service._handle_add_transaction(1, data, {})
 
-    assert "Type: expense" in result
-    assert "Amount: 100" in result
-    assert "Description: test" in result
-    assert "Date: 2024-01-01" in result
-    assert "Category: testing" in result
+    # Mock the LLM response for this test
+    expected_response = "Confirmation message about adding a transaction."
+    chat_service.chat_model.invoke.return_value.content = expected_response
+
+    result = await chat_service._handle_add_transaction(1, 1, data, {})
+
+    assert result == expected_response
+    # Verify that the LLM was called, which implies the confirmation prompt was generated
+    chat_service.chat_model.invoke.assert_called_once()

@@ -703,7 +703,7 @@ class ChatService:
 
             else:
                 system_message = "Action confirmed, but no specific database action was taken for this intent yet."
-                return await self._generate_chat_response(session_id, "placeholder", user_info, system_message)
+                return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, system_message)
 
         except Exception as e:
             print(f"Error handling confirm action: {e}")
@@ -759,7 +759,7 @@ class ChatService:
         transaction_create = FinancialTransactionCreate(**data)
         new_transaction = await self.finance_service.create_transaction(user_id, transaction_create)
         system_message = f"Successfully added the transaction. Details: {new_transaction}"
-        return await self._generate_chat_response(session_id, "placeholder", user_info, system_message)
+        return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, system_message)
 
     async def _execute_edit_transaction(self, session_id: int, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
         """Helper method to contain the logic for editing a transaction."""
@@ -797,17 +797,17 @@ class ChatService:
 
 
         if not update_payload:
-            return await self._generate_chat_response(session_id, "placeholder", user_info, "You didn't specify any changes. What would you like to update?")
+            return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, "You didn't specify any changes. What would you like to update?")
 
         updated_transaction = await self.finance_service.update_transaction(last_transaction.id, update_payload)
 
         system_message = f"Successfully updated the last transaction. The new details are: {updated_transaction}"
-        return await self._generate_chat_response(session_id, "placeholder", user_info, system_message)
+        return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, system_message)
 
-    async def _handle_cancel_action(self, session_id: int, user_info: Dict[str, Any]) -> str:
+    async def _handle_cancel_action(self, session_id: int, user_id: int, user_info: Dict[str, Any]) -> str:
         """Handles the user cancelling an action."""
         system_message = "The user has cancelled the previous action. Acknowledge this and ask what they would like to do next."
-        return await self._generate_chat_response(session_id, "placeholder", user_info, system_message)
+        return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, system_message)
 
     async def _handle_search_contact(self, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
         """Handle contact search intent."""
