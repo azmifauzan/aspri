@@ -98,11 +98,10 @@ class FinanceService:
         }
 
         for row in rows:
-            # Handle case-insensitivity in Python
-            row_type = row.type.lower() if hasattr(row.type, 'lower') else row.type
-            if row_type == 'income':
+            # The row.type is an Enum member. Compare its name.
+            if row.type.name.lower() == 'income':
                 summary['total_income'] = row.total_amount or 0.0
-            elif row_type == 'expense':
+            elif row.type.name.lower() == 'expense':
                 summary['total_expense'] = row.total_amount or 0.0
 
         # If a specific type was requested, zero out the other one
