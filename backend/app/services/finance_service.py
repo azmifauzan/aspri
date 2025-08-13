@@ -82,8 +82,9 @@ class FinanceService:
             )
         )
 
-        if transaction_type and transaction_type in ['income', 'expense']:
-            query = query.filter(func.lower(FinancialTransaction.type) == transaction_type.lower())
+        # We will filter by type in python after fetching, to avoid case-sensitivity issues
+        # if transaction_type and transaction_type in ['income', 'expense']:
+        #     query = query.filter(func.lower(FinancialTransaction.type) == transaction_type.lower())
 
         query = query.group_by(FinancialTransaction.type)
 
@@ -97,10 +98,18 @@ class FinanceService:
         }
 
         for row in rows:
-            if row.type == 'income':
+            # Handle case-insensitivity in Python
+            row_type = row.type.lower() if hasattr(row.type, 'lower') else row.type
+            if row_type == 'income':
                 summary['total_income'] = row.total_amount or 0.0
-            elif row.type == 'expense':
+            elif row_type == 'expense':
                 summary['total_expense'] = row.total_amount or 0.0
+
+        # If a specific type was requested, zero out the other one
+        if transaction_type == 'income':
+            summary['total_expense'] = 0.0
+        elif transaction_type == 'expense':
+            summary['total_income'] = 0.0
 
         summary['net_income'] = summary['total_income'] - summary['total_expense']
 
