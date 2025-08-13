@@ -114,7 +114,7 @@ export default function ChatPage() {
       try {
         console.log('No current session, creating new session');
         const response = await api.post<ChatSession>(`/chat/sessions`, {
-          title: inputText.substring(0, 30) // Use first 30 chars of message as title
+          title: inputText.split(' ').slice(0, 5).join(' ') // Use first 5 words as title
         });
         
         const newSession = {
