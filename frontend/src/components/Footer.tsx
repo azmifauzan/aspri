@@ -42,8 +42,12 @@ export default function Footer() {
         </div>
 
         {/* Garis & copyright */}
-        <div className="border-t border-zinc-700 pt-6 text-center text-xs text-zinc-500">
-          © {new Date().getFullYear()} ASPRI. All rights reserved.
+        <div className="border-t border-zinc-700 pt-6 text-center text-xs text-zinc-500 flex flex-col md:flex-row justify-between items-center">
+          <span>© {new Date().getFullYear()} ASPRI. All rights reserved.</span>
+          <div className="flex gap-4 mt-4 md:mt-0">
+            <a href="/terms" className="hover:text-white">{t('legal.terms_of_service.title')}</a>
+            <a href="/privacy" className="hover:text-white">{t('legal.privacy_policy.title')}</a>
+          </div>
         </div>
       </div>
     </footer>
