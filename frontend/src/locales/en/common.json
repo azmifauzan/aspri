@@ -8,7 +8,9 @@
         "contact": "Contact",
         "login": "Login",
         "register": "Register",
-        "logout": "Logout"
+    "logout": "Logout",
+    "terms": "Terms of Service",
+    "privacy": "Privacy Policy"
     },
     "hero": {
         "heading": "ASPRI - AI-Powered Personal Assistant",
@@ -77,6 +79,7 @@
         "welcome_back": "Welcome Back",
         "sign_in_description": "Sign in to continue to your account",
         "signing_in": "Signing in...",
+        "sign_in_with_google": "Sign in with Google",
         "privacy_notice": "By signing in, you agree to our Privacy Policy and Terms of Service.",
         "why_sign_in": "Why sign in?",
         "feature_1": "Access your personalized dashboard",
@@ -288,5 +291,16 @@
         "error_adding_category": "Failed to add category. Please try again.",
         "error_updating_category": "Failed to update category. Please try again.",
         "error_deleting_category": "Failed to delete category. Please try again."
+    },
+    "legal": {
+        "privacy_policy": {
+            "title": "Privacy Policy",
+            "content": "This is a placeholder for the Privacy Policy. You should replace this with your own policy. We are committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our application. We may collect personal information such as your name, email address, and other contact details. We use this information to provide and improve our services, to communicate with you, and to comply with legal obligations. We do not sell or share your personal information with third parties for their marketing purposes without your explicit consent."
+        },
+        "terms_of_service": {
+            "title": "Terms of Service",
+            "content": "This is a placeholder for the Terms of Service. You should replace this with your own terms. By accessing or using our application, you agree to be bound by these Terms of Service. If you disagree with any part of the terms, then you do not have permission to access the service. We may terminate or suspend your account immediately, without prior notice or liability, for any reason whatsoever, including without limitation if you breach the Terms. All provisions of the Terms which by their nature should survive termination shall survive termination, including, without limitation, ownership provisions, warranty disclaimers, indemnity and limitations of liability."
+        },
+        "terms_and_privacy": "Terms & Privacy"
     }
 }

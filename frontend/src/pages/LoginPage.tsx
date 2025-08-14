@@ -3,14 +3,15 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, LogIn } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
+import GoogleLogo from '../assets/google.svg';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { login, user, isLoading } = useAuth();
+  const { user, isLoading } = useAuth();
   const { t } = useTranslation();
 
   useEffect(() => {
@@ -68,10 +69,13 @@ export default function LoginPage() {
               ) : (
                 <button
                   onClick={handleLoginClick}
-                  className="w-full flex items-center justify-center gap-3 bg-brand hover:bg-brand/90 text-white font-semibold py-3 px-6 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand"
+                  className="w-full flex items-center justify-center gap-3 bg-white border border-zinc-200 dark:border-zinc-700 shadow-sm hover:shadow-md text-zinc-900 font-semibold py-3 px-6 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#4285F4]"
+                  style={{ boxShadow: '0 1px 2px rgba(60,64,67,.08)' }}
+                  type="button"
+                  aria-label={t('auth.sign_in_with_google')}
                 >
-                  <LogIn size={20} />
-                  <span>{t('auth.sign_in_with_google')}</span>
+                  <img src={GoogleLogo} alt="Google" className="w-5 h-5" style={{ marginRight: 8 }} />
+                  <span className="text-sm font-medium text-zinc-900" style={{ color: '#5F6368' }}>{t('auth.sign_in_with_google')}</span>
                 </button>
               )}
             </div>
@@ -79,7 +83,15 @@ export default function LoginPage() {
             {/* Additional Info */}
             <div className="mt-8 text-center">
               <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                {t('auth.privacy_notice')}
+                By signing in, you agree to our{' '}
+                <Link to="/terms" className="underline hover:text-brand">
+                  {t('legal.terms_of_service.title')}
+                </Link>{' '}
+                and{' '}
+                <Link to="/privacy" className="underline hover:text-brand">
+                  {t('legal.privacy_policy.title')}
+                </Link>
+                .
               </p>
             </div>
           </div>

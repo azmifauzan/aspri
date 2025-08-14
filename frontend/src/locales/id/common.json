@@ -8,7 +8,9 @@
         "contact": "Kontak",
         "login": "Masuk",
         "register": "Daftar",
-        "logout": "Keluar"
+    "logout": "Keluar",
+    "terms": "Ketentuan Layanan",
+    "privacy": "Kebijakan Privasi"
     },
     "hero": {
         "heading": "ASPRI - Asisten Pribadi Berbasis AI",
@@ -77,6 +79,7 @@
         "welcome_back": "Selamat Datang Kembali",
         "sign_in_description": "Masuk untuk melanjutkan ke akun Anda",
         "signing_in": "Sedang masuk...",
+        "sign_in_with_google": "Masuk dengan Google",
         "privacy_notice": "Dengan masuk, Anda menyetujui Kebijakan Privasi dan Ketentuan Layanan kami.",
         "why_sign_in": "Mengapa harus masuk?",
         "feature_1": "Akses dashboard personal Anda",
@@ -288,5 +291,16 @@
         "error_adding_category": "Gagal menambah kategori. Silakan coba lagi.",
         "error_updating_category": "Gagal memperbarui kategori. Silakan coba lagi.",
         "error_deleting_category": "Gagal menghapus kategori. Silakan coba lagi."
+    },
+    "legal": {
+        "privacy_policy": {
+            "title": "Kebijakan Privasi",
+            "content": "Ini adalah placeholder untuk Kebijakan Privasi. Anda harus menggantinya dengan kebijakan Anda sendiri. Kami berkomitmen untuk melindungi privasi Anda. Kebijakan Privasi ini menjelaskan bagaimana kami mengumpulkan, menggunakan, mengungkapkan, dan menjaga informasi Anda saat Anda menggunakan aplikasi kami. Kami dapat mengumpulkan informasi pribadi seperti nama, alamat email, dan detail kontak lainnya. Kami menggunakan informasi ini untuk menyediakan dan meningkatkan layanan kami, untuk berkomunikasi dengan Anda, dan untuk mematuhi kewajiban hukum. Kami tidak menjual atau membagikan informasi pribadi Anda dengan pihak ketiga untuk tujuan pemasaran mereka tanpa persetujuan eksplisit Anda."
+        },
+        "terms_of_service": {
+            "title": "Ketentuan Layanan",
+            "content": "Ini adalah placeholder untuk Ketentuan Layanan. Anda harus menggantinya dengan ketentuan Anda sendiri. Dengan mengakses atau menggunakan aplikasi kami, Anda setuju untuk terikat oleh Ketentuan Layanan ini. Jika Anda tidak setuju dengan bagian mana pun dari ketentuan ini, maka Anda tidak memiliki izin untuk mengakses layanan. Kami dapat menghentikan atau menangguhkan akun Anda dengan segera, tanpa pemberitahuan atau kewajiban sebelumnya, untuk alasan apa pun, termasuk tanpa batasan jika Anda melanggar Ketentuan. Semua ketentuan dari Ketentuan yang menurut sifatnya harus tetap berlaku setelah penghentian akan tetap berlaku, termasuk, tanpa batasan, ketentuan kepemilikan, penafian garansi, ganti rugi, dan batasan tanggung jawab."
+        },
+        "terms_and_privacy": "Ketentuan & Privasi"
     }
 }

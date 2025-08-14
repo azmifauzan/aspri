@@ -14,6 +14,12 @@ const links = [
   { id: "contact", label: "nav.contact" },
 ];
 
+// Links for legal pages
+const legalLinks = [
+  { to: "/terms", label: "nav.terms" },
+  { to: "/privacy", label: "nav.privacy" },
+];
+
 /* ✅ hanya satu itemClass */
 const itemClass =
   "py-2 px-4 text-zinc-700 dark:text-white hover:text-brand dark:hover:text-brand transition text-sm font-medium";
@@ -26,13 +32,15 @@ export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Check if we're on the landing page to show navigation links
+  // Check if we're on the landing page, login, terms, or privacy to show navigation links
   const isLandingPage = location.pathname === '/';
   const isLoginPage = location.pathname === '/login';
+  const isTermsPage = location.pathname === '/terms';
+  const isPrivacyPage = location.pathname === '/privacy';
   const isDashboard = location.pathname === '/dashboard';
 
-  // Show navigation on landing page and login page
-  const showNavigation = isLandingPage || isLoginPage;
+  // Show navigation on landing, login, terms, and privacy pages
+  const showNavigation = isLandingPage || isLoginPage || isTermsPage || isPrivacyPage;
 
   const handleLogout = () => {
     setUserDropdownOpen(false);
@@ -70,6 +78,12 @@ export default function Navbar() {
                   {t(l.label)}
                 </a>
               ))}
+              {/* Legal links */}
+              {/* {legalLinks.map((l) => (
+                <Link key={l.to} to={l.to} className={itemClass}>
+                  {t(l.label)}
+                </Link>
+              ))} */}
             </nav>
           )}
         </div>
@@ -185,16 +199,31 @@ export default function Navbar() {
       {open && (
         <nav className="md:hidden bg-white dark:bg-zinc-900 border-t dark:border-zinc-700 px-4 pb-4 pt-2 shadow">
           {/* Navigation links - only on landing page and login page */}
-          {showNavigation && links.map((l) => (
-            <a
-              key={l.id}
-              href={`/#${l.id}`}
-              className={`${itemClass} block`}
-              onClick={() => setOpen(false)}
-            >
-              {t(l.label)}
-            </a>
-          ))}
+          {showNavigation && (
+            <>
+              {links.map((l) => (
+                <a
+                  key={l.id}
+                  href={`/#${l.id}`}
+                  className={`${itemClass} block`}
+                  onClick={() => setOpen(false)}
+                >
+                  {t(l.label)}
+                </a>
+              ))}
+              {/* Legal links for mobile */}
+              {legalLinks.map((l) => (
+                <Link
+                  key={l.to}
+                  to={l.to}
+                  className={`${itemClass} block`}
+                  onClick={() => setOpen(false)}
+                >
+                  {t(l.label)}
+                </Link>
+              ))}
+            </>
+          )}
           
           {/* Mobile authentication */}
           {user ? (
