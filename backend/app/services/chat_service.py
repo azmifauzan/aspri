@@ -34,6 +34,30 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import PromptTemplate
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 
+# =========================
+# 🚦 Policy: Auto / Confirm / Never
+# =========================
+# Intent yang aman dieksekusi otomatis (read-only / tanpa side-effect)
+ALLOW_AUTO_INTENTS = {
+    "document_search",
+    "search_by_semantic",
+    "list_transaction",
+    "show_summary",
+    "financial_tips",
+    "search_contact",
+    "compare_document",
+    "summarize_specific_document",
+}
+# Intent yang WAJIB konfirmasi dulu (ada side-effect tulis/ubah/hapus)
+CONFIRM_FIRST_INTENTS = {
+    "add_transaction",
+    "edit_transaction",
+    "delete_transaction",
+}
+# Intent yang TIDAK BOLEH auto (kalau di masa depan ada aksi destruktif)
+NEVER_AUTO_INTENTS = set()
+
+
 class ChatService:
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -178,6 +202,82 @@ class ChatService:
         
         return True
 
+    # =========================
+    # 🔁 Helper: store pending + build confirmation text
+    # =========================
+    async def _store_pending_action(self, session_id: int, user_id: int, intent: str, data: Dict[str, Any]) -> None:
+        chat_session = await self.get_chat_session(session_id, user_id)
+        if not chat_session:
+            return
+        chat_session.pending_action = {"intent": intent, "data": data}
+        await self.db.commit()
+
+    async def _build_confirmation_text(
+        self,
+        session_id: int,
+        user_id: int,
+        intent: str,
+        data: Dict[str, Any],
+        user_info: Dict[str, Any],
+    ) -> str:
+        """Build a human-friendly confirmation message, but render it via LLM
+        so the tone stays consistent with the Aspri persona.
+        """
+        # Raw summary (system-side)
+        if intent == "add_transaction":
+            amt = data.get("amount")
+            dt = data.get("date")
+            typ = data.get("type")
+            cat = data.get("category")
+            desc = data.get("description")
+            raw_summary = (
+                "Konfirmasi tambah transaksi berikut:\n"
+                f"- Jumlah: {amt}\n- Tanggal: {dt}\n- Tipe: {typ}\n- Kategori: {cat}\n- Deskripsi: {desc}\n\n"
+                "Instruksi balasan: Minta user untuk balas **ya** untuk konfirmasi atau **batal** untuk membatalkan."
+            )
+        elif intent == "edit_transaction":
+            raw_summary = (
+                "Konfirmasi ubah transaksi:\n"
+                f"- Target: {data.get('original')}\n- Perubahan: {data.get('new')}\n\n"
+                "Instruksi balasan: Minta user untuk balas **ya** untuk konfirmasi atau **batal** untuk membatalkan."
+            )
+        elif intent == "delete_transaction":
+            raw_summary = (
+                "Konfirmasi hapus transaksi dengan kriteria berikut:\n"
+                f"- Detail: {data}\n\n"
+                "Instruksi balasan: Minta user untuk balas **ya** untuk konfirmasi atau **batal** untuk membatalkan."
+            )
+        else:
+            raw_summary = (
+                f"Konfirmasi aksi '{intent}' dengan argumen berikut:\n{json.dumps(data or {}, ensure_ascii=False)}\n\n"
+                "Instruksi balasan: Minta user untuk balas **ya** untuk konfirmasi atau **batal** untuk membatalkan."
+            )
+
+        # Kirim ke LLM agar diformat sesuai persona + bahasa user
+        system_message = (
+            "Ubah ringkasan teknis di bawah ini menjadi pesan konfirmasi singkat yang ramah, "
+            "konsisten dengan persona asisten, dan gunakan bahasa yang sama dengan pesan user. "
+            "Akhiri dengan instruksi yang jelas untuk membalas **ya** (konfirmasi) atau **batal**."
+        )
+        # Gunakan _generate_chat_response agar persona konsisten
+        rendered = await self._generate_chat_response(
+            session_id=session_id,
+            user_id=user_id,
+            user_message="placeholder",
+            user_info=user_info,
+            system_message=f"{system_message}\n\nRingkasan:\n{raw_summary}"
+        )
+        return rendered
+
+    def _is_data_complete_for_add(self, data: Optional[Dict[str, Any]]) -> bool:
+        if not data:
+            return False
+        required = {"amount", "description", "type"}
+        return required.issubset(set(data.keys()))
+
+    # =========================
+    # ✉️ Main entry
+    # =========================
     async def send_message(self, session_id: int, user_id: int, message_data: ChatMessageCreate) -> ChatMessage:
         """Send a message and get AI response"""
         # Save user message
@@ -201,39 +301,65 @@ class ChatService:
         
         # Get user info for personalization
         user_info = await self._get_user_info(user_id)
-        
-        # Generate AI response based on intent
-        if intent == "document_search":
-            ai_response = await self._handle_document_search(user_id, data.get("query") if data else message_data.content, user_info)
-        elif intent == "add_transaction":
-            ai_response = await self._handle_add_transaction(session_id, user_id, data, user_info)
-        elif intent == "edit_transaction":
-            ai_response = await self._handle_edit_transaction(session_id, user_id, data, user_info)
-        elif intent == "delete_transaction":
-            ai_response = await self._handle_delete_transaction(session_id, user_id, data, user_info)
-        elif intent == "manage_category":
-            ai_response = await self._handle_manage_category(session_id, user_id, data, user_info)
-        elif intent == "list_transaction":
-            ai_response = await self._handle_list_transaction(session_id, user_id, data, user_info)
-        elif intent == "financial_tips":
-            ai_response = await self._handle_financial_tips(session_id, user_id, data, user_info)
-        elif intent == "show_summary":
-            ai_response = await self._handle_show_summary(session_id, user_id, data, user_info)
-        elif intent == "summarize_specific_document":
-            ai_response = await self._handle_summarize_specific_document(user_id, data, user_info)
-        elif intent == "search_by_semantic":
-            ai_response = await self._handle_search_by_semantic(user_id, data, user_info)
-        elif intent == "compare_document":
-            ai_response = await self._handle_compare_document(user_id, data, user_info)
-        elif intent == "confirm_action":
-            ai_response = await self._handle_confirm_action(session_id, user_id, user_info)
-        elif intent == "search_contact":
-            ai_response = await self._handle_search_contact(user_id, data, user_info)
-        elif intent == "cancel_action":
-            ai_response = await self._handle_cancel_action(session_id, user_id, user_info)
+
+        # =========================
+        # 🚦 Policy Gate
+        # =========================
+        if intent in NEVER_AUTO_INTENTS:
+            ai_response = "Maaf, aksi ini tidak dapat dijalankan otomatis."
+        elif intent in CONFIRM_FIRST_INTENTS:
+            if intent == "add_transaction" and not self._is_data_complete_for_add(data):
+                ai_response = await self._generate_chat_response(
+                    session_id, user_id, "placeholder", user_info,
+                    "Kamu ingin menambahkan transaksi. Tolong beri detail minimal: jumlah (amount), deskripsi, tipe (income/expense), dan opsional tanggal/kategori."
+                )
+            else:
+                await self._store_pending_action(session_id, user_id, intent, data or {})
+                ai_response = await self._build_confirmation_text(
+                    session_id=session_id,
+                    user_id=user_id,
+                    intent=intent,
+                    data=data or {},
+                    user_info=user_info
+                )
+        elif intent in ALLOW_AUTO_INTENTS:
+            # langsung eksekusi handler terkait (read-only / aman)
+            if intent == "document_search":
+                ai_response = await self._handle_document_search(user_id, data.get("query") if data else message_data.content, user_info)
+            elif intent == "search_by_semantic":
+                ai_response = await self._handle_search_by_semantic(user_id, data, user_info)
+            elif intent == "list_transaction":
+                ai_response = await self._handle_list_transaction(session_id, user_id, data, user_info)
+            elif intent == "show_summary":
+                ai_response = await self._handle_show_summary(session_id, user_id, data or {}, user_info)
+            elif intent == "financial_tips":
+                ai_response = await self._handle_financial_tips(session_id, user_id, data, user_info)
+            elif intent == "search_contact":
+                ai_response = await self._handle_search_contact(user_id, data, user_info)
+            elif intent == "compare_document":
+                ai_response = await self._handle_compare_document(user_id, data, user_info)
+            elif intent == "summarize_specific_document":
+                ai_response = await self._handle_summarize_specific_document(user_id, data, user_info)
+            else:
+                # fallback ke chat jika masuk allowlist tapi belum ada handler khusus
+                ai_response = await self._generate_chat_response(session_id, user_id, message_data.content, user_info)
         else:
-            # Default to chat response
-            ai_response = await self._generate_chat_response(session_id, user_id, message_data.content, user_info)
+            # Intent lain: pakai handler yang ada / default chat
+            if intent == "manage_category":
+                ai_response = await self._handle_manage_category(session_id, user_id, data, user_info)
+            elif intent == "confirm_action":
+                ai_response = await self._handle_confirm_action(session_id, user_id, user_info)
+            elif intent == "cancel_action":
+                ai_response = await self._handle_cancel_action(session_id, user_id, user_info)
+            elif intent == "add_transaction":
+                # (fallback lama jika tidak masuk CONFIRM_FIRST_INTENTS — harusnya tidak terjadi)
+                ai_response = await self._handle_add_transaction(session_id, user_id, data, user_info)
+            elif intent == "edit_transaction":
+                ai_response = await self._handle_edit_transaction(session_id, user_id, data, user_info)
+            elif intent == "delete_transaction":
+                ai_response = await self._handle_delete_transaction(session_id, user_id, data, user_info)
+            else:
+                ai_response = await self._generate_chat_response(session_id, user_id, message_data.content, user_info)
         
         # Save AI response
         ai_message = ChatMessage(
@@ -735,7 +861,11 @@ class ChatService:
                 # Re-route to the appropriate handler with the stored data
                 if original_intent == "add_transaction":
                      return await self._execute_add_transaction(session_id, user_id, original_data, user_info)
-                # Add other pending actions here if needed in the future
+                elif original_intent == "edit_transaction":
+                    return await self._execute_edit_transaction(session_id, user_id, original_data, user_info)
+                elif original_intent == "delete_transaction":
+                    # Belum ada eksekusi delete; tetap konfirmasi selesai
+                    return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, "Aksi hapus telah dikonfirmasi, namun eksekusi hapus belum diimplementasikan.")
                 else:
                     return "I'm not sure how to handle this pending action."
 
@@ -788,7 +918,7 @@ class ChatService:
                 await self.db.commit()
 
                 system_message = f"The category '{category_name}' was not found. Please confirm if I should create it first, or you can add it manually."
-                return await self._generate_chat_response(session_id, "placeholder", user_info, system_message)
+                return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, system_message)
             else:
                 # This case happens if it's a pending action and the category is still not found.
                 return "The category is still not found. Please add it first."
@@ -813,7 +943,7 @@ class ChatService:
                 data['amount'] = float(data['amount'])
             except (ValueError, TypeError):
                 system_message = "The amount provided is not a valid number. Please try again."
-                return await self._generate_chat_response(session_id, "placeholder", user_info, system_message)
+                return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, system_message)
 
         transaction_create = FinancialTransactionCreate(**data)
         new_transaction = await self.finance_service.create_transaction(user_id, transaction_create)
@@ -823,15 +953,15 @@ class ChatService:
     async def _execute_edit_transaction(self, session_id: int, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
         """Helper method to contain the logic for editing a transaction."""
         if not data or 'original' not in data or 'new' not in data:
-            return await self._generate_chat_response(session_id, "placeholder", user_info, "I'm not sure which transaction to edit or what to change. Please be more specific.")
+            return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, "I'm not sure which transaction to edit or what to change. Please be more specific.")
 
         if data['original'] != 'last':
             # For now, we only support editing the 'last' transaction
-            return await self._generate_chat_response(session_id, "placeholder", user_info, "Sorry, I can only edit the most recent transaction for now.")
+            return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, "Sorry, I can only edit the most recent transaction for now.")
 
         last_transaction = await self.finance_service.get_last_transaction(user_id)
         if not last_transaction:
-            return await self._generate_chat_response(session_id, "placeholder", user_info, "There are no transactions to edit.")
+            return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, "There are no transactions to edit.")
 
         update_payload = {}
         new_data = data['new']
@@ -841,7 +971,7 @@ class ChatService:
             category_name = new_data['category']
             category = await self.finance_service.get_category_by_name(user_id, category_name)
             if not category:
-                return await self._generate_chat_response(session_id, "placeholder", user_info, f"I couldn't find the category '{category_name}'. Please create it first.")
+                return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, f"I couldn't find the category '{category_name}'. Please create it first.")
             update_payload['category_id'] = category.id
 
         # Add other updatable fields here if necessary (e.g., amount, description)
@@ -849,7 +979,7 @@ class ChatService:
             try:
                 update_payload['amount'] = float(new_data['amount'])
             except (ValueError, TypeError):
-                return await self._generate_chat_response(session_id, "placeholder", user_info, "The new amount provided is not a valid number.")
+                return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, "The new amount provided is not a valid number.")
 
         if 'description' in new_data:
             update_payload['description'] = new_data['description']
