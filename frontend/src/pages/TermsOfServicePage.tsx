@@ -1,4 +1,6 @@
+
 import { useTranslation } from 'react-i18next';
+import ReactMarkdown from 'react-markdown';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
@@ -14,7 +16,7 @@ export default function TermsOfServicePage() {
             {t('legal.terms_of_service.title')}
           </h1>
           <div className="prose dark:prose-invert max-w-none text-justify">
-            <p>{t('legal.terms_of_service.content')}</p>
+            <ReactMarkdown>{t('legal.terms_of_service.content')}</ReactMarkdown>
           </div>
         </div>
       </main>

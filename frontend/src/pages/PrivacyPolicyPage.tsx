@@ -1,4 +1,6 @@
+
 import { useTranslation } from 'react-i18next';
+import ReactMarkdown from 'react-markdown';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
@@ -14,7 +16,7 @@ export default function PrivacyPolicyPage() {
             {t('legal.privacy_policy.title')}
           </h1>
           <div className="prose dark:prose-invert max-w-none text-justify">
-            <p>{t('legal.privacy_policy.content')}</p>
+            <ReactMarkdown>{t('legal.privacy_policy.content')}</ReactMarkdown>
           </div>
         </div>
       </main>
