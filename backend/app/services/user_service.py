@@ -2,7 +2,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.db.models.user import User
-from app.schemas.user import UserRegistration
+from app.schemas.user import UserRegistration, UserUpdate
 from datetime import datetime, timedelta, date
 from typing import Optional
 
@@ -49,22 +49,6 @@ class UserService:
         await self.db.refresh(user)
         return user
 
-    async def update_user_tokens(
-        self,
-        user: User,
-        access_token: str,
-        refresh_token: Optional[str] = None
-    ) -> User:
-        """Update Google API tokens for an existing user"""
-        user.google_access_token = access_token
-        user.google_token_expiry = datetime.utcnow() + timedelta(hours=1)
-        if refresh_token:
-            user.google_refresh_token = refresh_token
-
-        await self.db.commit()
-        await self.db.refresh(user)
-        return user
-
     async def complete_registration(self, user_id: int, registration_data: UserRegistration) -> User:
         """Complete user registration with additional data"""
         user = await self.get_user_by_id(user_id)
@@ -87,6 +71,47 @@ class UserService:
         user.is_registered = True
         user.updated_at = date.today()
         
+        await self.db.commit()
+        await self.db.refresh(user)
+        return user
+
+    async def update_user(self, user_id: int, update_data: UserUpdate) -> Optional[User]:
+        """Update user details"""
+        user = await self.get_user_by_id(user_id)
+        if not user:
+            return None
+
+        # Update fields from the request
+        update_data_dict = update_data.model_dump(exclude_unset=True)
+
+        for key, value in update_data_dict.items():
+            if hasattr(user, key):
+                setattr(user, key, value)
+
+        # Validate birth date and month if they are being updated
+        if 'birth_date' in update_data_dict and user.birth_date and not (1 <= user.birth_date <= 31):
+            raise ValueError("Birth date must be between 1 and 31")
+        if 'birth_month' in update_data_dict and user.birth_month and not (1 <= user.birth_month <= 12):
+            raise ValueError("Birth month must be between 1 and 12")
+
+        user.updated_at = date.today()
+
+        await self.db.commit()
+        await self.db.refresh(user)
+        return user
+
+    async def update_user_tokens(
+        self,
+        user: User,
+        access_token: str,
+        refresh_token: Optional[str] = None
+    ) -> User:
+        """Update Google API tokens for an existing user"""
+        user.google_access_token = access_token
+        user.google_token_expiry = datetime.utcnow() + timedelta(hours=1)
+        if refresh_token:
+            user.google_refresh_token = refresh_token
+
         await self.db.commit()
         await self.db.refresh(user)
         return user

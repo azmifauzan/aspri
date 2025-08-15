@@ -19,6 +19,14 @@ class UserRegistration(BaseModel):
     aspri_name: str  # Name for their ASPRI assistant
     aspri_persona: str  # Personality for ASPRI
 
+class UserUpdate(BaseModel):
+    name: Optional[str] = None
+    birth_date: Optional[int] = None
+    birth_month: Optional[int] = None
+    call_preference: Optional[str] = None
+    aspri_name: Optional[str] = None
+    aspri_persona: Optional[str] = None
+
 class UserResponse(BaseModel):
     id: int
     email: str

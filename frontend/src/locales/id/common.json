@@ -146,6 +146,15 @@
             "finance": "Keuangan",
             "contacts": "Kontak"
         }
+},
+"profile": {
+    "title": "Profil Pengguna",
+    "save_changes": "Simpan Perubahan",
+    "saving": "Menyimpan...",
+    "success_message": "Profil berhasil diperbarui!",
+    "errors": {
+        "update_failed": "Gagal memperbarui profil: "
+    }
     },
     "contacts": {
         "title": "Kontak",

@@ -146,6 +146,15 @@
             "finance": "Finance",
             "contacts": "Contacts"
         }
+},
+"profile": {
+    "title": "User Profile",
+    "save_changes": "Save Changes",
+    "saving": "Saving...",
+    "success_message": "Profile updated successfully!",
+    "errors": {
+        "update_failed": "Failed to update profile: "
+    }
     },
     "contacts": {
         "title": "Contacts",
