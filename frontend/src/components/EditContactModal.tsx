@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, User, Mail, Phone } from 'lucide-react';
-import { Contact } from '../services/contactService';
+import type { Contact } from '../services/contactService';
 
 interface EditContactModalProps {
   isOpen: boolean;

@@ -9,6 +9,7 @@ from app.api.finance import router as finance_router
 from app.api.contacts import router as contacts_router
 import os
 from dotenv import load_dotenv
+from app.db.database import engine
 
 load_dotenv()
 
@@ -47,6 +48,10 @@ def read_root():
 @app.get("/health")
 def health_check():
     return {"status": "healthy"}
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    await engine.dispose()
 
 if __name__ == "__main__":
     import uvicorn

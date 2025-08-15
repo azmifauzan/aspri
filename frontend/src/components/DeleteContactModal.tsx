@@ -1,7 +1,7 @@
 // src/components/DeleteContactModal.tsx
 import { useTranslation } from 'react-i18next';
 import { X, AlertTriangle } from 'lucide-react';
-import { Contact } from '../services/contactService';
+import type { Contact } from '../services/contactService';
 
 interface DeleteContactModalProps {
   isOpen: boolean;

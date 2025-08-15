@@ -1,44 +1,64 @@
-version: '3.8'
+version: "3.9"
 
 services:
-  db:
-    image: mariadb:11.8
+  backend:
+    build:
+      context: ./backend
+    container_name: aspri-backend
+    env_file:
+      - ./backend/.env
+    ports:
+      - "8888:8888"
+    depends_on:
+      - db
+      - minio
+      - chromadb
+    networks:
+      - aspri-net
+    # Ensure proper DB/Service hostnames inside Docker
     environment:
-      MYSQL_DATABASE: aspri_db
-      MYSQL_USER: aspri_user
-      MYSQL_PASSWORD: aspri_password
-      MYSQL_ROOT_PASSWORD: root_password
-    volumes:
-      - mariadb_data:/var/lib/mysql
+      DATABASE_URL: mysql+aiomysql://aspri_user:aspri_password@db:3306/aspri_db
+      MINIO_ENDPOINT: minio:9000
+      CHROMADB_HOST: chromadb
+      CHROMADB_PORT: "8000"
+      FRONTEND_URL: http://frontend
+    command: ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8888"]
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        - VITE_API_BASE_URL=/api
+    container_name: aspri-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - aspri-net
+    environment:
+      # Vite build uses this at build time; runtime env is not read by built SPA
+      VITE_API_BASE_URL: http://backend:8888
+
+  db:
+    image: mariadb:11
+    container_name: aspri-db
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: rootpassword
+      MARIADB_DATABASE: aspri_db
+      MARIADB_USER: aspri_user
+      MARIADB_PASSWORD: aspri_password
     ports:
       - "3306:3306"
-    healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    networks:
-      - aspri-network
-
-  chromadb:
-    image: chromadb/chroma:latest
-    ports:
-      - "8000:8000"
-    environment:
-      CHROMA_SERVER_HOST: 0.0.0.0
-      CHROMA_SERVER_PORT: 8000
     volumes:
-      - chromadb_data:/chroma/chroma
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      - db-data:/var/lib/mysql
     networks:
-      - aspri-network
+      - aspri-net
 
   minio:
-    image: minio/minio:latest
+    image: minio/minio:RELEASE.2025-01-20T16-50-39Z
+    container_name: aspri-minio
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: minioadmin
@@ -47,71 +67,22 @@ services:
       - "9000:9000"
       - "9001:9001"
     volumes:
-      - minio_data:/data
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 30s
-      timeout: 20s
-      retries: 3
+      - minio-data:/data
     networks:
-      - aspri-network
+      - aspri-net
 
-  backend:
-    build: 
-      context: ./backend
-      dockerfile: Dockerfile
-    environment:
-      DATABASE_URL: mysql+aiomysql://aspri_user:aspri_password@db:3306/aspri_db
-      SECRET_KEY: your-secret-key-change-in-production
-      GOOGLE_CLIENT_ID: your-google-client-id
-      GOOGLE_CLIENT_SECRET: your-google-client-secret
-      GOOGLE_API_KEY: your-google-ai-api-key
-      MINIO_ENDPOINT: minio:9000
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
-      MINIO_SECURE: false
-      MINIO_BUCKET_NAME: documents
-      CHROMADB_HOST: chromadb
-      CHROMADB_PORT: 8000
-      CHROMADB_COLLECTION_NAME: document_embeddings
+  chromadb:
+    image: chromadb/chroma:0.5.20
+    container_name: aspri-chromadb
     ports:
-      - "8888:8888"
-    depends_on:
-      db:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
-      chromadb:
-        condition: service_healthy
-    volumes:
-      - ./backend:/app
-    command: >
-      sh -c "
-        alembic upgrade head &&
-        python scripts/init_config.py &&
-        uvicorn app.main:app --host 0.0.0.0 --port 8888 --reload
-      "
+      - "8000:8000"
     networks:
-      - aspri-network
-
-  frontend:
-    build: 
-      context: ./frontend
-      dockerfile: Dockerfile
-    ports:
-      - "3000:80"
-    depends_on:
-      - backend
-    environment:
-      - NODE_ENV=production
-    networks:
-      - aspri-network
-
-volumes:
-  mariadb_data:
-  minio_data:
-  chromadb_data:
+      - aspri-net
 
 networks:
-  aspri-network:
+  aspri-net:
     driver: bridge
+
+volumes:
+  db-data:
+  minio-data:

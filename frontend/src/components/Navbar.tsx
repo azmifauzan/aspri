@@ -1,7 +1,7 @@
 // src/components/Navbar.tsx
 import { useState } from "react";
 import { Menu, X, User, LogOut, Settings, ChevronDown } from "lucide-react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import ThemeToggle from "./ThemeToggle";
 import LangToggle from "./LangToggle";
 import { useTranslation } from "react-i18next";
@@ -29,7 +29,6 @@ export default function Navbar() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const { t } = useTranslation();
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
   const location = useLocation();
 
   // Check if we're on the landing page, login, terms, or privacy to show navigation links

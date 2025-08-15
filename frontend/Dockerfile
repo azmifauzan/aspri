@@ -1,36 +1,24 @@
-# Frontend Dockerfile
-FROM node:24-alpine AS build
+# syntax=docker/dockerfile:1
 
-# Set working directory
+# Build stage
+FROM node:20-alpine AS build
 WORKDIR /app
-
-# Copy package files
 COPY package*.json ./
-
-# Install dependencies
-RUN npm install
-
-# Copy source code
+COPY tsconfig*.json ./
+COPY vite.config.ts ./
+COPY eslint.config.js ./
+COPY postcss.config.js ./
+COPY tailwind.config.js ./
+# Build-time API base URL for Vite (default to '/api' to use nginx proxy)
+ARG VITE_API_BASE_URL=https://api.aspriai.my.id
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+RUN npm ci || npm install
 COPY . .
-
-# Build the application
 RUN npm run build
 
-# Production stage
-FROM nginx:alpine
-
-# Copy built assets from build stage
+# Nginx stage
+FROM nginx:1.27-alpine
 COPY --from=build /app/dist /usr/share/nginx/html
-
-# Copy nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# Expose port
 EXPOSE 80
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:80 || exit 1
-
-# Start nginx
 CMD ["nginx", "-g", "daemon off;"]

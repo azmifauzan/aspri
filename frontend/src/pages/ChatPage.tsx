@@ -29,8 +29,6 @@ type ChatSession = {
   messages?: Message[];
 };
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-
 export default function ChatPage() {
   const { user, token } = useAuth();
   const { t } = useTranslation();

@@ -22,8 +22,8 @@ export default function Footer() {
 
             <div className="flex items-center gap-3">
               <Mail size={18} />
-              <a href="mailto:support@aspri.io" className="hover:text-white">
-                support@aspri.io
+              <a href="mailto:aspriai.myid@gmail.com" className="hover:text-white">
+                aspriai.myid@gmail.com
               </a>
             </div>
 

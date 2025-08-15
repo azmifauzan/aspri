@@ -1,7 +1,8 @@
 // src/pages/ContactsPage.tsx
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getContacts, createContact, updateContact, deleteContact, Contact } from '../services/contactService';
+import { getContacts, createContact, updateContact, deleteContact } from '../services/contactService';
+import type { Contact } from '../services/contactService';
 import { PlusCircle, Edit, Trash2, User, Mail, Phone, Search, X } from 'lucide-react';
 import AddContactModal from '../components/AddContactModal';
 import EditContactModal from '../components/EditContactModal';

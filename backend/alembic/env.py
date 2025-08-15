@@ -26,6 +26,10 @@ if config.config_file_name is not None:
 database_url = os.getenv("DATABASE_URL", "mysql+aiomysql://aspri_user:aspri_password@localhost:3306/aspri_db")
 config.set_main_option("sqlalchemy.url", database_url)
 
+# Ensure DATABASE_URL is set in the environment
+if not database_url:
+    raise RuntimeError("DATABASE_URL environment variable is not set")
+
 # add your model's MetaData object here for 'autogenerate' support
 target_metadata = Base.metadata
 
