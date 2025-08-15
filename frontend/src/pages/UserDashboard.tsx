@@ -8,6 +8,7 @@ import ChatPage from './ChatPage';
 import FinancePage from './FinancePage';
 import ContactsPage from './ContactsPage';
 import CategoryPage from './CategoryPage'; // Import CategoryPage
+import ProfilePage from './ProfilePage'; // Import ProfilePage
 import ThemeToggle from '../components/ThemeToggle';
 import LangToggle from '../components/LangToggle';
 import {
@@ -334,6 +335,11 @@ export default function UserDashboard() {
           {activeItem === 'contacts' && (
             <div className="w-full h-full">
               <ContactsPage />
+            </div>
+          )}
+          {activeItem === 'profile' && (
+            <div className="w-full">
+              <ProfilePage />
             </div>
           )}
           {/* Other pages will be added here */}

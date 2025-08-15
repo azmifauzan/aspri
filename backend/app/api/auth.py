@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.database import get_db
-from app.schemas.user import UserCreate, LoginResponse, UserRegistration, UserResponse
+from app.schemas.user import UserCreate, LoginResponse, UserRegistration, UserResponse, UpdateUserRequest
 from app.services.user_service import UserService
 from app.core.auth import (
     create_access_token,
@@ -176,3 +176,25 @@ async def get_current_user(
         )
     
     return UserResponse.model_validate(user)
+
+@router.put("/me", response_model=UserResponse)
+async def update_current_user(
+    form_data: UpdateUserRequest,
+    current_user_id: int = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Update current user information.
+    Requires JWT authentication.
+    """
+    user_service = UserService(db)
+    user = await user_service.get_user_by_id(current_user_id)
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    updated_user = await user_service.update_user(current_user_id, form_data)
+    return UserResponse.model_validate(updated_user)
