@@ -27,6 +27,13 @@ class UserUpdate(BaseModel):
     aspri_name: Optional[str] = None
     aspri_persona: Optional[str] = None
 
+class UpdateUserRequest(UserUpdate):
+    """
+    Schema for updating user details.
+    Inherits from UserUpdate.
+    """
+    pass
+
 class UserResponse(BaseModel):
     id: int
     email: str
