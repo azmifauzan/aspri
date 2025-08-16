@@ -13,8 +13,9 @@ dist-ssr
 *.local
 
 # Ignore compiled JS and declaration files generated into src
-frontend/src/**/*.js
-frontend/src/**/*.d.ts
+src/**/*.js
+src/**/*.d.ts
+vite-env.d.ts
 
 # Editor directories and files
 .vscode/*
