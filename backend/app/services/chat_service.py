@@ -24,6 +24,7 @@ from app.services.document_service import DocumentService
 from app.services.chromadb_service import ChromaDBService
 from app.services.minio_service import MinIOService
 from app.services.google_contact_service import GoogleContactService
+from app.services.google_calendar_service import GoogleCalendarService
 from app.services.finance_service import FinanceService
 from app.services.user_service import UserService
 from app.services.llm_log_service import LLMLogService
@@ -47,12 +48,16 @@ ALLOW_AUTO_INTENTS = {
     "search_contact",
     "compare_document",
     "summarize_specific_document",
+    "list_events",
 }
 # Intent yang WAJIB konfirmasi dulu (ada side-effect tulis/ubah/hapus)
 CONFIRM_FIRST_INTENTS = {
     "add_transaction",
     "edit_transaction",
     "delete_transaction",
+    "add_event",
+    "update_event",
+    "delete_event",
 }
 # Intent yang TIDAK BOLEH auto (kalau di masa depan ada aksi destruktif)
 NEVER_AUTO_INTENTS = set()
@@ -79,7 +84,8 @@ class ChatService:
             "Return the response as a JSON object with two keys: 'intent' and 'data'.\n\n"
             "Possible intents are: 'chat', 'document_search', 'add_transaction', 'edit_transaction', "
             "'delete_transaction', 'manage_category', 'list_transaction', 'financial_tips', 'show_summary', "
-            "'summarize_specific_document', 'search_by_semantic', 'compare_document', 'confirm_action', 'cancel_action', 'search_contact'.\n\n"
+            "'summarize_specific_document', 'search_by_semantic', 'compare_document', 'confirm_action', 'cancel_action', "
+            "'search_contact', 'list_events', 'add_event', 'update_event', 'delete_event'.\n\n"
             "For 'add_transaction', extract: amount, description, date, type, category.\n"
             "For 'edit_transaction', extract: original (details to find the transaction, if the user mentions 'it' or 'the last one', set original to 'last') and new (the updates to apply, e.g., new category, new amount).\n"
             "For 'delete_transaction', extract: details to identify the transaction.\n"
@@ -89,6 +95,10 @@ class ChatService:
             "For 'search_by_semantic', extract: query.\n"
             "For 'compare_document', extract: document_names (as a list).\n"
             "For 'search_contact', extract: contact_name.\n"
+            "For 'list_events', extract: time_range (e.g., 'today', 'this week', 'next week').\n"
+            "For 'add_event', extract: summary, description, start_time, end_time.\n"
+            "For 'update_event', extract: original (details to find the event) and new (the updates to apply).\n"
+            "For 'delete_event', extract: details to identify the event.\n"
             "If the user says 'yes', 'yup', 'correct', or similar, classify the intent as 'confirm_action'.\n"
             "If the user says 'no', 'nope', 'cancel', or similar, classify the intent as 'cancel_action'.\n"
             "For all other intents, the 'data' field can be null.\n\n"
@@ -340,6 +350,8 @@ class ChatService:
                 ai_response = await self._handle_compare_document(user_id, data, user_info)
             elif intent == "summarize_specific_document":
                 ai_response = await self._handle_summarize_specific_document(user_id, data, user_info)
+            elif intent == "list_events":
+                ai_response = await self._handle_list_events(user_id, data, user_info)
             else:
                 # fallback ke chat jika masuk allowlist tapi belum ada handler khusus
                 ai_response = await self._generate_chat_response(session_id, user_id, message_data.content, user_info)
@@ -358,6 +370,12 @@ class ChatService:
                 ai_response = await self._handle_edit_transaction(session_id, user_id, data, user_info)
             elif intent == "delete_transaction":
                 ai_response = await self._handle_delete_transaction(session_id, user_id, data, user_info)
+            elif intent == "add_event":
+                ai_response = await self._handle_add_event(session_id, user_id, data, user_info)
+            elif intent == "update_event":
+                ai_response = await self._handle_update_event(session_id, user_id, data, user_info)
+            elif intent == "delete_event":
+                ai_response = await self._handle_delete_event(session_id, user_id, data, user_info)
             else:
                 ai_response = await self._generate_chat_response(session_id, user_id, message_data.content, user_info)
         
@@ -420,7 +438,8 @@ class ChatService:
                 "chat", "document_search", "add_transaction", "edit_transaction",
                 "delete_transaction", "manage_category", "list_transaction",
                 "financial_tips", "show_summary", "summarize_specific_document",
-                "search_by_semantic", "compare_document", "confirm_action", "cancel_action", "search_contact"
+                "search_by_semantic", "compare_document", "confirm_action", "cancel_action", "search_contact",
+                "list_events", "add_event", "update_event", "delete_event"
             ]
             if intent_data.get("intent") in valid_intents:
                 return intent_data
@@ -429,6 +448,50 @@ class ChatService:
         except Exception as e:
             print(f"Error classifying intent or extracting data: {e}")
             return {"intent": "chat", "data": None}  # Default to chat on error
+
+    async def _handle_list_events(self, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
+        """Handles listing events from Google Calendar."""
+        try:
+            user_service = UserService(self.db)
+            user = await user_service.get_user_by_id(user_id)
+            calendar_service = GoogleCalendarService(user, self.db)
+            events = await calendar_service.list_events()
+
+            if not events:
+                return "You have no upcoming events."
+
+            formatted_events = []
+            for event in events:
+                start = event.get('start', {}).get('dateTime', event.get('start', {}).get('date'))
+                formatted_events.append(f"- {event.get('summary')} at {start}")
+
+            return "Here are your upcoming events:\n" + "\n".join(formatted_events)
+        except Exception as e:
+            return f"An error occurred: {e}"
+
+    async def _handle_add_event(self, session_id: int, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
+        """Handles adding an event to Google Calendar."""
+        if not data or 'summary' not in data or 'start_time' not in data or 'end_time' not in data:
+            return "Please provide event details: summary, start time, and end time."
+
+        system_message = f"You want to add an event: '{data['summary']}' from {data['start_time']} to {data['end_time']}. Correct?"
+        return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, system_message)
+
+    async def _handle_update_event(self, session_id: int, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
+        """Handles updating an event in Google Calendar."""
+        if not data or 'original' not in data or 'new' not in data:
+            return "Please specify which event to update and the new details."
+
+        system_message = f"You want to update an event. Find event matching '{data['original']}' and update it with '{data['new']}'. Correct?"
+        return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, system_message)
+
+    async def _handle_delete_event(self, session_id: int, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
+        """Handles deleting an event from Google Calendar."""
+        if not data or 'details' not in data:
+            return "Please specify which event to delete."
+
+        system_message = f"You want to delete an event matching: {data['details']}. Correct?"
+        return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, system_message)
 
     async def _handle_document_search(self, user_id: int, query: str, user_info: Dict[str, Any]) -> str:
         """Handle document search intent"""
@@ -866,6 +929,12 @@ class ChatService:
                 elif original_intent == "delete_transaction":
                     # Belum ada eksekusi delete; tetap konfirmasi selesai
                     return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, "Aksi hapus telah dikonfirmasi, namun eksekusi hapus belum diimplementasikan.")
+                elif original_intent == "add_event":
+                    return await self._execute_add_event(user_id, original_data, user_info)
+                elif original_intent == "update_event":
+                    return await self._execute_update_event(user_id, original_data, user_info)
+                elif original_intent == "delete_event":
+                    return await self._execute_delete_event(user_id, original_data, user_info)
                 else:
                     return "I'm not sure how to handle this pending action."
 
@@ -889,6 +958,15 @@ class ChatService:
 
             elif original_intent == "edit_transaction":
                 return await self._execute_edit_transaction(session_id, user_id, original_data, user_info)
+
+            elif original_intent == "add_event":
+                return await self._execute_add_event(user_id, original_data, user_info)
+
+            elif original_intent == "update_event":
+                return await self._execute_update_event(user_id, original_data, user_info)
+
+            elif original_intent == "delete_event":
+                return await self._execute_delete_event(user_id, original_data, user_info)
 
             else:
                 system_message = "Action confirmed, but no specific database action was taken for this intent yet."
@@ -992,6 +1070,35 @@ class ChatService:
 
         system_message = f"Successfully updated the last transaction. The new details are: {updated_transaction}"
         return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, system_message)
+
+    async def _execute_add_event(self, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
+        """Executes adding an event to Google Calendar."""
+        try:
+            user_service = UserService(self.db)
+            user = await user_service.get_user_by_id(user_id)
+            calendar_service = GoogleCalendarService(user, self.db)
+
+            event_data = {
+                "summary": data.get("summary"),
+                "start": {"dateTime": data.get("start_time"), "timeZone": "UTC"},
+                "end": {"dateTime": data.get("end_time"), "timeZone": "UTC"},
+                "description": data.get("description")
+            }
+
+            created_event = await calendar_service.add_event(event_data)
+            return f"Event '{created_event.get('summary')}' has been added to your calendar."
+        except Exception as e:
+            return f"An error occurred while adding the event: {e}"
+
+    async def _execute_update_event(self, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
+        """Executes updating an event in Google Calendar."""
+        # This is a simplified implementation. A real one would need to find the event first.
+        return "Event update functionality is not fully implemented yet."
+
+    async def _execute_delete_event(self, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
+        """Executes deleting an event from Google Calendar."""
+        # This is a simplified implementation. A real one would need to find the event first.
+        return "Event deletion functionality is not fully implemented yet."
 
     async def _handle_cancel_action(self, session_id: int, user_id: int, user_info: Dict[str, Any]) -> str:
         """Handles the user cancelling an action."""

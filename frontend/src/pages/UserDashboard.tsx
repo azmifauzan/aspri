@@ -62,9 +62,12 @@ export default function UserDashboard() {
   };
 
   const handleMenuClick = (itemId: string) => {
-    setActiveItem(itemId);
+    if (itemId === 'calendar') {
+      navigate('/calendar');
+    } else {
+      setActiveItem(itemId);
+    }
     setSidebarOpen(false);
-    // In a real app, you would navigate to the appropriate page or component
   };
 
   if (!user) {

@@ -357,6 +357,30 @@ export default function ChatPage() {
                       <span>{t('chat.showing_summary')}</span>
                     </div>
                   )}
+                  {message.intent === 'list_events' && (
+                    <div className="mt-2 flex items-center text-xs text-teal-600">
+                      <Calendar size={12} className="mr-1" />
+                      <span>{t('chat.listing_events')}</span>
+                    </div>
+                  )}
+                  {message.intent === 'add_event' && (
+                    <div className="mt-2 flex items-center text-xs text-green-600">
+                      <PlusCircle size={12} className="mr-1" />
+                      <span>{t('chat.adding_event')}</span>
+                    </div>
+                  )}
+                  {message.intent === 'update_event' && (
+                    <div className="mt-2 flex items-center text-xs text-blue-600">
+                      <Edit size={12} className="mr-1" />
+                      <span>{t('chat.updating_event')}</span>
+                    </div>
+                  )}
+                  {message.intent === 'delete_event' && (
+                    <div className="mt-2 flex items-center text-xs text-red-600">
+                      <Trash2 size={12} className="mr-1" />
+                      <span>{t('chat.deleting_event')}</span>
+                    </div>
+                  )}
                 </div>
               ))}
               {isLoading && (

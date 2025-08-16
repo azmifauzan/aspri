@@ -202,6 +202,10 @@
         "listing_transaction": "Listing transactions...",
         "providing_financial_tips": "Providing financial tips...",
         "showing_summary": "Showing summary...",
+        "listing_events": "Listing calendar events...",
+        "adding_event": "Adding event to calendar...",
+        "updating_event": "Updating event on calendar...",
+        "deleting_event": "Deleting event from calendar...",
         "recent_chats": "Recent Chats",
         "confirm_delete_session": "Are you sure you want to delete this chat session?"
     },

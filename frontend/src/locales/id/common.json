@@ -202,6 +202,10 @@
         "listing_transaction": "Menampilkan daftar transaksi...",
         "providing_financial_tips": "Memberikan tips keuangan...",
         "showing_summary": "Menampilkan ringkasan...",
+        "listing_events": "Menampilkan acara kalender...",
+        "adding_event": "Menambahkan acara ke kalender...",
+        "updating_event": "Memperbarui acara di kalender...",
+        "deleting_event": "Menghapus acara dari kalender...",
         "recent_chats": "Percakapan Terakhir",
         "confirm_delete_session": "Apakah Anda yakin ingin menghapus sesi obrolan ini?"
     },
