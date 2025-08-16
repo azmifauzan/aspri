@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# Ignore compiled JS and declaration files generated into src
+src/**/*.js
+src/**/*.d.ts
+vite-env.d.ts
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
