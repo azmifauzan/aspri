@@ -1,6 +1,7 @@
 // src/pages/UserDashboard.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import DocumentsPage from './DocumentsPage';
@@ -41,6 +42,7 @@ export default function UserDashboard() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeItem, setActiveItem] = useState('dashboard');
+  const location = useLocation();
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
   const handleLogout = () => {
@@ -62,13 +64,31 @@ export default function UserDashboard() {
   };
 
   const handleMenuClick = (itemId: string) => {
-    if (itemId === 'calendar') {
-      navigate('/calendar');
-    } else {
-      setActiveItem(itemId);
-    }
+    const pathMap: Record<string, string> = {
+      dashboard: '/dashboard',
+      chat: '/chat',
+      documents: '/documents',
+      finance: '/finance',
+      contacts: '/contacts',
+      calendar: '/calendar',
+      profile: '/profile',
+    };
+    const path = pathMap[itemId] || '/dashboard';
+    navigate(path);
+    setActiveItem(itemId);
     setSidebarOpen(false);
   };
+
+  useEffect(() => {
+    // Set active item based on current pathname
+  if (location.pathname.startsWith('/chat')) setActiveItem('chat');
+  else if (location.pathname.startsWith('/documents')) setActiveItem('documents');
+  else if (location.pathname.startsWith('/finance')) setActiveItem('finance');
+  else if (location.pathname.startsWith('/contacts')) setActiveItem('contacts');
+  else if (location.pathname === '/calendar') setActiveItem('calendar');
+  else if (location.pathname.startsWith('/profile')) setActiveItem('profile');
+    else setActiveItem('dashboard');
+  }, [location.pathname]);
 
   if (!user) {
     // This should technically not be reached if ProtectedRoute is used,

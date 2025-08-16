@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import ChatBubble from '../components/ChatBubble';
-import { Send, Search, FileText, X, Clock, FileCheck, SearchCheck, GitCompare, PlusCircle, Edit, Trash2, Settings2, List, Lightbulb, PieChart } from 'lucide-react';
+import { Send, Search, FileText, X, Clock, FileCheck, SearchCheck, GitCompare, PlusCircle, Edit, Trash2, Settings2, List, Lightbulb, PieChart, Calendar } from 'lucide-react';
 import api from '../services/api';
 
 // Define types based on backend schemas

@@ -1,5 +1,5 @@
 import api from './api';
-import { Event, EventCreate, EventUpdate } from '../schemas/calendar';
+import type { Event, EventCreate, EventUpdate } from '../schemas/calendar';
 
 export const getEvents = async (calendarId: string = 'primary'): Promise<Event[]> => {
     const response = await api.get(`/calendar/?calendar_id=${calendarId}`);

@@ -84,7 +84,10 @@ class GoogleCalendarService:
                 singleEvents=True,
                 orderBy='startTime'
             ).execute()
-            return events_result.get('items', [])
+            items = events_result.get('items', [])
+            # Normalize events so they match our Pydantic schemas
+            normalized = [self._normalize_event(e) for e in items]
+            return normalized
         except HttpError as err:
             raise Exception(f"Google Calendar API error: {err}")
 
@@ -99,7 +102,7 @@ class GoogleCalendarService:
             service = self._build_service()
             event_body = event_data.dict(exclude_unset=True)
             event = service.events().insert(calendarId=calendar_id, body=event_body).execute()
-            return event
+            return self._normalize_event(event)
         except HttpError as err:
             raise Exception(f"Google Calendar API error: {err}")
 
@@ -114,7 +117,7 @@ class GoogleCalendarService:
             service = self._build_service()
             event_body = event_data.dict(exclude_unset=True)
             event = service.events().update(calendarId=calendar_id, eventId=event_id, body=event_body).execute()
-            return event
+            return self._normalize_event(event)
         except HttpError as err:
             raise Exception(f"Google Calendar API error: {err}")
 
@@ -130,3 +133,54 @@ class GoogleCalendarService:
             service.events().delete(calendarId=calendar_id, eventId=event_id).execute()
         except HttpError as err:
             raise Exception(f"Google Calendar API error: {err}")
+
+    def _normalize_event(self, event: Dict[str, Any]) -> Dict[str, Any]:
+        """Normalize a Google Calendar event to match our Pydantic schema.
+
+        - Convert all-day events that use 'date' to 'dateTime' (keep date string).
+        - Ensure 'start' and 'end' have 'dateTime' keys when appropriate.
+        - Map attendees to a simple list of emails if present, otherwise None.
+        """
+        ev = dict(event)  # shallow copy
+
+        def norm_dt(dt_obj: Dict[str, Any]) -> Dict[str, Any]:
+            if not dt_obj:
+                return {"dateTime": None}
+            # If it's an all-day event, Google uses 'date' not 'dateTime'
+            if 'dateTime' in dt_obj:
+                return { 'dateTime': dt_obj.get('dateTime'), 'timeZone': dt_obj.get('timeZone') }
+            if 'date' in dt_obj:
+                # Convert all-day 'date' (YYYY-MM-DD) to an ISO datetime at midnight so
+                # Pydantic can parse it into a datetime field expected by the schema.
+                d = dt_obj.get('date')
+                if d:
+                    date_time_str = f"{d}T00:00:00"
+                else:
+                    date_time_str = None
+                return { 'dateTime': date_time_str, 'timeZone': dt_obj.get('timeZone') }
+            return { 'dateTime': None }
+
+        ev['start'] = norm_dt(ev.get('start', {}))
+        ev['end'] = norm_dt(ev.get('end', {}))
+
+        # Normalize attendees: our schema expects Optional[List[str]] of emails
+        attendees = ev.get('attendees')
+        if attendees is None:
+            ev['attendees'] = None
+        else:
+            emails = []
+            for a in attendees:
+                if isinstance(a, dict):
+                    email = a.get('email')
+                    if email:
+                        emails.append(email)
+                elif isinstance(a, str):
+                    emails.append(a)
+            ev['attendees'] = emails if emails else None
+
+        # Ensure required fields exist for response model
+        ev.setdefault('id', ev.get('id', ''))
+        ev.setdefault('summary', ev.get('summary', ''))
+        ev.setdefault('description', ev.get('description'))
+
+        return ev

@@ -77,6 +77,51 @@ class ChatService:
             temperature=0.7,
             max_tokens=1000
         )
+        # Attach handler modules and commonly used classes/functions so handlers can access via svc
+        try:
+            from app.services import handlers as _handlers_pkg
+            self.handlers = _handlers_pkg
+        except Exception:
+            self.handlers = None
+
+        # Export commonly used classes and functions to the instance for handler convenience
+        self.UserService = UserService
+        self.GoogleCalendarService = GoogleCalendarService
+        self.DocumentService = DocumentService
+        self.MinIOService = MinIOService
+        self.GoogleContactService = GoogleContactService
+        self.FinancialTransactionCreate = FinancialTransactionCreate
+        self.FinancialCategoryCreate = FinancialCategoryCreate
+        self.DocumentSearchQuery = DocumentSearchQuery
+        self.HumanMessage = HumanMessage
+        self.AIMessage = AIMessage
+        self.SystemMessage = SystemMessage
+        self.select = select
+        self.ChatMessage = ChatMessage
+        self.print = print
+        # Instantiate handler classes when available (some handlers are class-based)
+        try:
+            self.events_handler = self.handlers.events.EventsHandler(self)
+        except Exception:
+            self.events_handler = None
+
+        try:
+            self.documents_handler = self.handlers.documents.DocumentsHandler(self)
+        except Exception:
+            self.documents_handler = None
+
+        try:
+            self.finance_handler = self.handlers.finance.FinanceHandler(self)
+        except Exception:
+            self.finance_handler = None
+        try:
+            self.contacts_handler = self.handlers.contacts.ContactsHandler(self)
+        except Exception:
+            self.contacts_handler = None
+        try:
+            self.confirmations_handler = self.handlers.confirmations.ConfirmationsHandler(self)
+        except Exception:
+            self.confirmations_handler = None
         
         # Intent and data extraction prompt
         self.intent_and_data_extraction_prompt = PromptTemplate.from_template(
@@ -96,6 +141,8 @@ class ChatService:
             "For 'compare_document', extract: document_names (as a list).\n"
             "For 'search_contact', extract: contact_name.\n"
             "For 'list_events', extract: time_range (e.g., 'today', 'this week', 'next week').\n"
+            "When the intent is 'list_events', ALWAYS include a 'time_range' field inside 'data' in the JSON output. "
+            "Acceptable values: 'today', 'this week', 'next week', 'this month', 'upcoming'. If uncertain, prefer the value that best matches the user's phrasing (do not omit this field).\n"
             "For 'add_event', extract: summary, description, start_time, end_time.\n"
             "For 'update_event', extract: original (details to find the event) and new (the updates to apply).\n"
             "For 'delete_event', extract: details to identify the event.\n"
@@ -163,27 +210,27 @@ class ChatService:
         self.db.add(chat_session)
         await self.db.commit()
         await self.db.refresh(chat_session)
-        
+
         return chat_session
 
     async def get_user_chat_sessions(self, user_id: int) -> List[ChatSession]:
-        """Get all chat sessions for a user"""
+        """Return all chat sessions for a user ordered by most recent update."""
         query = select(ChatSession).where(
             ChatSession.user_id == user_id
         ).order_by(ChatSession.updated_at.desc())
-        
+
         result = await self.db.execute(query)
         return result.scalars().all()
 
     async def get_chat_session(self, session_id: int, user_id: int) -> Optional[ChatSession]:
-        """Get a chat session with its messages"""
+        """Get a chat session with its messages for a user."""
         query = select(ChatSession).options(
             selectinload(ChatSession.messages)
         ).where(
             ChatSession.id == session_id,
             ChatSession.user_id == user_id
         )
-        
+
         result = await self.db.execute(query)
         return result.scalar_one_or_none()
 
@@ -192,13 +239,13 @@ class ChatService:
         chat_session = await self.get_chat_session(session_id, user_id)
         if not chat_session:
             return None
-            
+
         chat_session.is_active = True
         chat_session.updated_at = datetime.utcnow()
-        
+
         await self.db.commit()
         await self.db.refresh(chat_session)
-        
+
         return chat_session
 
     async def delete_chat_session(self, session_id: int, user_id: int) -> bool:
@@ -351,7 +398,7 @@ class ChatService:
             elif intent == "summarize_specific_document":
                 ai_response = await self._handle_summarize_specific_document(user_id, data, user_info)
             elif intent == "list_events":
-                ai_response = await self._handle_list_events(user_id, data, user_info)
+                ai_response = await self._handle_list_events(session_id, user_id, data, user_info)
             else:
                 # fallback ke chat jika masuk allowlist tapi belum ada handler khusus
                 ai_response = await self._generate_chat_response(session_id, user_id, message_data.content, user_info)
@@ -442,6 +489,18 @@ class ChatService:
                 "list_events", "add_event", "update_event", "delete_event"
             ]
             if intent_data.get("intent") in valid_intents:
+                # If user asked to list events but extractor didn't provide a time_range,
+                # ask the LLM a focused follow-up to determine the time range so handlers
+                # can call the calendar API with proper filters.
+                # No follow-up required: primary extractor prompt now requests time_range for list_events.
+
+                # As a final safety, ensure list_events always has a time_range key
+                if intent_data.get('intent') == 'list_events':
+                    d = intent_data.get('data') or {}
+                    if not d.get('time_range'):
+                        d['time_range'] = 'upcoming'
+                        intent_data['data'] = d
+
                 return intent_data
             else:
                 return {"intent": "chat", "data": None}  # Default to chat if uncertain
@@ -449,102 +508,45 @@ class ChatService:
             print(f"Error classifying intent or extracting data: {e}")
             return {"intent": "chat", "data": None}  # Default to chat on error
 
-    async def _handle_list_events(self, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
-        """Handles listing events from Google Calendar."""
+    async def _handle_list_events(self, session_id: int, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
+        """Delegate to events handler (class-based if available)."""
         try:
-            user_service = UserService(self.db)
-            user = await user_service.get_user_by_id(user_id)
-            calendar_service = GoogleCalendarService(user, self.db)
-            events = await calendar_service.list_events()
-
-            if not events:
-                return "You have no upcoming events."
-
-            formatted_events = []
-            for event in events:
-                start = event.get('start', {}).get('dateTime', event.get('start', {}).get('date'))
-                formatted_events.append(f"- {event.get('summary')} at {start}")
-
-            return "Here are your upcoming events:\n" + "\n".join(formatted_events)
+            if self.events_handler:
+                return await self.events_handler.list_events(session_id, user_id, data, user_info)
+            raise RuntimeError("EventsHandler not initialized")
+        except Exception as e:
+            return f"An error occurred: {e}"
+    async def _handle_add_event(self, session_id: int, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
+        try:
+            if self.events_handler:
+                return await self.events_handler.add_event(session_id, user_id, data, user_info)
+            raise RuntimeError("EventsHandler not initialized")
         except Exception as e:
             return f"An error occurred: {e}"
 
-    async def _handle_add_event(self, session_id: int, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
-        """Handles adding an event to Google Calendar."""
-        if not data or 'summary' not in data or 'start_time' not in data or 'end_time' not in data:
-            return "Please provide event details: summary, start time, and end time."
-
-        system_message = f"You want to add an event: '{data['summary']}' from {data['start_time']} to {data['end_time']}. Correct?"
-        return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, system_message)
-
     async def _handle_update_event(self, session_id: int, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
-        """Handles updating an event in Google Calendar."""
-        if not data or 'original' not in data or 'new' not in data:
-            return "Please specify which event to update and the new details."
-
-        system_message = f"You want to update an event. Find event matching '{data['original']}' and update it with '{data['new']}'. Correct?"
-        return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, system_message)
+        try:
+            if self.events_handler:
+                return await self.events_handler.update_event(session_id, user_id, data, user_info)
+            raise RuntimeError("EventsHandler not initialized")
+        except Exception as e:
+            return f"An error occurred: {e}"
 
     async def _handle_delete_event(self, session_id: int, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
-        """Handles deleting an event from Google Calendar."""
-        if not data or 'details' not in data:
-            return "Please specify which event to delete."
-
-        system_message = f"You want to delete an event matching: {data['details']}. Correct?"
-        return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, system_message)
+        try:
+            if self.events_handler:
+                return await self.events_handler.delete_event(session_id, user_id, data, user_info)
+            raise RuntimeError("EventsHandler not initialized")
+        except Exception as e:
+            return f"An error occurred: {e}"
 
     async def _handle_document_search(self, user_id: int, query: str, user_info: Dict[str, Any]) -> str:
-        """Handle document search intent"""
         try:
-            print(f"Handling document search for user {user_id} with query: {query}")
-            # Create document service
-            document_service = DocumentService(self.db)
-            
-            # Create search query object
-            search_query = DocumentSearchQuery(query=query, limit=5)
-            
-            # Search documents using vector similarity
-            search_results = await document_service.search_documents(
-                user_id, 
-                search_query
-            )
-            
-            if not search_results:
-                return "I couldn't find any relevant information in your documents for that query."
-            
-            # Format search results
-            formatted_results = "\n\n".join([
-                f"Document: {result['document_filename']}\n"
-                f"Relevance: {result['similarity_score']:.2f}\n"
-                f"Content: {result['chunk_text']}"
-                for result in search_results
-            ])
-            
-            # Generate response using Gemini
-            prompt = self.document_search_prompt.format(
-                assistant_name=user_info.get("aspri_name", "ASPRI"),
-                assistant_persona=user_info.get("aspri_persona", "helpful"),
-                user_name=user_info.get("name", "User"),
-                call_preference=user_info.get("call_preference", "User"),
-                search_results=formatted_results,
-                user_query=query
-            )
-            
-            response = self.chat_model.invoke([HumanMessage(content=prompt)])
-
-            # Log the interaction
-            await self.llm_log_service.create_log(
-                prompt_type="chat_response",
-                prompt_data={"user_query": query, "search_results": formatted_results},
-                llm_response=response.content,
-                user_id=user_id
-            )
-
-            return response.content
-            
+            if self.documents_handler:
+                return await self.documents_handler.document_search(user_id, query, user_info)
+            raise RuntimeError("DocumentsHandler not initialized")
         except Exception as e:
-            print(f"Error handling document search: {e}")
-            return "I encountered an error while searching your documents. Please try rephrasing your query."
+            return f"An error occurred: {e}"
 
     async def _generate_chat_response(self, session_id: int, user_id: int, user_message: str, user_info: Dict[str, Any], system_message: str = None) -> str:
         """Generate chat response using Gemini, optionally with a system message."""
@@ -800,305 +802,79 @@ class ChatService:
 
     async def _handle_summarize_specific_document(self, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
         try:
-            if not data or 'document_name' not in data:
-                return "Please specify the name of the document you want to summarize."
-
-            document_name = data['document_name']
-            document_service = DocumentService(self.db)
-
-            # Fetch the document from the database
-            document = await document_service.get_document_by_filename_and_user_id(document_name, user_id)
-            if not document:
-                return f"I couldn't find a document named '{document_name}'."
-
-            # Get the document content from MinIO
-            minio_service = MinIOService()
-            try:
-                document_content_bytes = await minio_service.get_file(document.minio_object_name)
-                # The document content is in bytes, we need to decode it to string
-                document_content = document_content_bytes.decode('utf-8')
-            except Exception as e:
-                print(f"Error fetching document content from MinIO: {e}")
-                return "I'm sorry, I encountered an error while retrieving the document content."
-
-            # Generate the summary
-            prompt = self.summarize_document_prompt.format(
-                assistant_name=user_info.get("aspri_name", "ASPRI"),
-                assistant_persona=user_info.get("aspri_persona", "helpful"),
-                document_name=document_name,
-                document_content=document_content
-            )
-            response = self.chat_model.invoke([HumanMessage(content=prompt)])
-
-            await self.llm_log_service.create_log(
-                prompt_type="summarize_document_response",
-                prompt_data={"document_name": document_name, "document_content": document_content},
-                llm_response=response.content,
-                user_id=user_id
-            )
-
-            return response.content
-
+            if self.documents_handler:
+                return await self.documents_handler.summarize_specific_document(user_id, data, user_info)
+            raise RuntimeError("DocumentsHandler not initialized")
         except Exception as e:
-            print(f"Error handling summarize specific document: {e}")
-            return "I'm sorry, I encountered an error while summarizing the document."
+            return f"An error occurred: {e}"
 
     async def _handle_search_by_semantic(self, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
         try:
-            if not data or 'query' not in data:
-                return "Please provide a search query."
-
-            query = data['query']
-            return await self._handle_document_search(user_id, query, user_info)
+            # map to document search which expects (user_id, query, user_info)
+            query = None
+            if data and isinstance(data, dict):
+                query = data.get('query')
+            if self.documents_handler:
+                return await self.documents_handler.document_search(user_id, query or '', user_info)
+            raise RuntimeError("DocumentsHandler not initialized")
         except Exception as e:
-            print(f"Error handling search by semantic: {e}")
-            return "I'm sorry, I encountered an error while performing the semantic search."
+            return f"An error occurred: {e}"
 
     async def _handle_compare_document(self, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
         try:
-            if not data or 'document_names' not in data or len(data['document_names']) < 2:
-                return "Please specify at least two documents to compare."
-
-            doc_names = data['document_names']
-            document_service = DocumentService(self.db)
-            minio_service = MinIOService()
-
-            document_contents = []
-            for name in doc_names:
-                document = await document_service.get_document_by_filename_and_user_id(name, user_id)
-                if not document:
-                    return f"I couldn't find a document named '{name}'."
-                try:
-                    content_bytes = await minio_service.get_file(document.minio_object_name)
-                    document_contents.append({
-                        "name": name,
-                        "content": content_bytes.decode('utf-8')
-                    })
-                except Exception as e:
-                    print(f"Error fetching document content for '{name}' from MinIO: {e}")
-                    return f"I'm sorry, I encountered an error while retrieving the content of '{name}'."
-
-            # Create the comparison string
-            document_comparisons = "\n\n---\n\n".join(
-                f"Document: {item['name']}\nContent:\n{item['content']}"
-                for item in document_contents
-            )
-
-            # Generate the comparison
-            prompt = self.compare_documents_prompt.format(
-                assistant_name=user_info.get("aspri_name", "ASPRI"),
-                assistant_persona=user_info.get("aspri_persona", "helpful"),
-                document_comparisons=document_comparisons
-            )
-            response = self.chat_model.invoke([HumanMessage(content=prompt)])
-
-            await self.llm_log_service.create_log(
-                prompt_type="compare_documents_response",
-                prompt_data={"document_comparisons": document_comparisons},
-                llm_response=response.content,
-                user_id=user_id
-            )
-
-            return response.content
-
+            if self.documents_handler:
+                return await self.documents_handler.compare_document(user_id, data, user_info)
+            raise RuntimeError("DocumentsHandler not initialized")
         except Exception as e:
-            print(f"Error handling compare document: {e}")
-            return "I'm sorry, I encountered an error while comparing the documents."
+            return f"An error occurred: {e}"
 
     async def _handle_confirm_action(self, session_id: int, user_id: int, user_info: Dict[str, Any]) -> str:
-        """Handle the confirmation of a previous action, prioritizing pending actions."""
         try:
-            chat_session = await self.get_chat_session(session_id, user_id)
-            if not chat_session:
-                return "Could not find the chat session."
-
-            # Prioritize pending actions stored on the session
-            if chat_session.pending_action:
-                original_intent = chat_session.pending_action.get("intent")
-                original_data = chat_session.pending_action.get("data")
-
-                # Clear the pending action immediately
-                chat_session.pending_action = None
-                await self.db.commit()
-
-                # Re-route to the appropriate handler with the stored data
-                if original_intent == "add_transaction":
-                     return await self._execute_add_transaction(session_id, user_id, original_data, user_info)
-                elif original_intent == "edit_transaction":
-                    return await self._execute_edit_transaction(session_id, user_id, original_data, user_info)
-                elif original_intent == "delete_transaction":
-                    # Belum ada eksekusi delete; tetap konfirmasi selesai
-                    return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, "Aksi hapus telah dikonfirmasi, namun eksekusi hapus belum diimplementasikan.")
-                elif original_intent == "add_event":
-                    return await self._execute_add_event(user_id, original_data, user_info)
-                elif original_intent == "update_event":
-                    return await self._execute_update_event(user_id, original_data, user_info)
-                elif original_intent == "delete_event":
-                    return await self._execute_delete_event(user_id, original_data, user_info)
-                else:
-                    return "I'm not sure how to handle this pending action."
-
-            # If no pending action, get the last user message that required confirmation
-            query = select(ChatMessage).where(
-                ChatMessage.chat_session_id == session_id,
-                ChatMessage.role == 'user',
-                ChatMessage.intent.notin_(['confirm_action', 'cancel_action', 'chat'])
-            ).order_by(ChatMessage.created_at.desc()).limit(1)
-            result = await self.db.execute(query)
-            last_message = result.scalar_one_or_none()
-
-            if not last_message:
-                return "I'm not sure what you are confirming. Could you please clarify?"
-
-            original_intent = last_message.intent
-            original_data = last_message.structured_data
-
-            if original_intent == "add_transaction":
-                return await self._execute_add_transaction(session_id, user_id, original_data, user_info, is_first_attempt=True)
-
-            elif original_intent == "edit_transaction":
-                return await self._execute_edit_transaction(session_id, user_id, original_data, user_info)
-
-            elif original_intent == "add_event":
-                return await self._execute_add_event(user_id, original_data, user_info)
-
-            elif original_intent == "update_event":
-                return await self._execute_update_event(user_id, original_data, user_info)
-
-            elif original_intent == "delete_event":
-                return await self._execute_delete_event(user_id, original_data, user_info)
-
-            else:
-                system_message = "Action confirmed, but no specific database action was taken for this intent yet."
-                return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, system_message)
-
+            if getattr(self, 'confirmations_handler', None):
+                return await self.confirmations_handler.confirm_action(session_id, user_id, user_info)
+            raise RuntimeError("ConfirmationsHandler not initialized")
         except Exception as e:
-            print(f"Error handling confirm action: {e}")
-            return "I'm sorry, I encountered an error while confirming the action."
+            return f"An error occurred: {e}"
 
     async def _execute_add_transaction(self, session_id: int, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any], is_first_attempt: bool = False) -> str:
-        """Helper method to contain the logic for adding a transaction."""
-        if not data:
-            return "I don't have the details for the transaction to add."
-
-        category_name = data.pop('category', None)
-        category_id = None
-
-        if category_name:
-            category = await self.finance_service.get_category_by_name(user_id, category_name)
-            if category:
-                category_id = category.id
-            elif is_first_attempt:
-                # Category not found, store pending action
-                chat_session = await self.get_chat_session(session_id, user_id)
-                data['category'] = category_name # put it back for when we re-process
-                chat_session.pending_action = {"intent": "add_transaction", "data": data}
-                await self.db.commit()
-
-                system_message = f"The category '{category_name}' was not found. Please confirm if I should create it first, or you can add it manually."
-                return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, system_message)
-            else:
-                # This case happens if it's a pending action and the category is still not found.
-                return "The category is still not found. Please add it first."
-
-        if category_id:
-            data['category_id'] = category_id
-
-        if 'type' in data:
-            type_map = {"pemasukan": "income", "pengeluaran": "expense", "income": "income", "expense": "expense"}
-            data['type'] = type_map.get(data['type'].lower(), data['type'])
-
-        if 'date' not in data or not data.get('date'):
-            data['date'] = datetime.utcnow().date()
-        elif isinstance(data['date'], str):
-            try:
-                data['date'] = datetime.fromisoformat(data['date'].replace('Z', '+00:00')).date()
-            except ValueError:
-                data['date'] = datetime.utcnow().date()
-
-        if 'amount' in data:
-            try:
-                data['amount'] = float(data['amount'])
-            except (ValueError, TypeError):
-                system_message = "The amount provided is not a valid number. Please try again."
-                return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, system_message)
-
-        transaction_create = FinancialTransactionCreate(**data)
-        new_transaction = await self.finance_service.create_transaction(user_id, transaction_create)
-        system_message = f"Successfully added the transaction. Details: {new_transaction}"
-        return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, system_message)
+        try:
+            if self.finance_handler:
+                return await self.finance_handler.execute_add_transaction(session_id, user_id, data, user_info, is_first_attempt=is_first_attempt)
+            raise RuntimeError("FinanceHandler not initialized")
+        except Exception as e:
+            return f"An error occurred: {e}"
 
     async def _execute_edit_transaction(self, session_id: int, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
-        """Helper method to contain the logic for editing a transaction."""
-        if not data or 'original' not in data or 'new' not in data:
-            return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, "I'm not sure which transaction to edit or what to change. Please be more specific.")
-
-        if data['original'] != 'last':
-            # For now, we only support editing the 'last' transaction
-            return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, "Sorry, I can only edit the most recent transaction for now.")
-
-        last_transaction = await self.finance_service.get_last_transaction(user_id)
-        if not last_transaction:
-            return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, "There are no transactions to edit.")
-
-        update_payload = {}
-        new_data = data['new']
-
-        # Check for category update
-        if 'category' in new_data:
-            category_name = new_data['category']
-            category = await self.finance_service.get_category_by_name(user_id, category_name)
-            if not category:
-                return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, f"I couldn't find the category '{category_name}'. Please create it first.")
-            update_payload['category_id'] = category.id
-
-        # Add other updatable fields here if necessary (e.g., amount, description)
-        if 'amount' in new_data:
-            try:
-                update_payload['amount'] = float(new_data['amount'])
-            except (ValueError, TypeError):
-                return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, "The new amount provided is not a valid number.")
-
-        if 'description' in new_data:
-            update_payload['description'] = new_data['description']
-
-
-        if not update_payload:
-            return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, "You didn't specify any changes. What would you like to update?")
-
-        updated_transaction = await self.finance_service.update_transaction(last_transaction.id, update_payload)
-
-        system_message = f"Successfully updated the last transaction. The new details are: {updated_transaction}"
-        return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, system_message)
+        try:
+            if self.finance_handler:
+                return await self.finance_handler.execute_edit_transaction(session_id, user_id, data, user_info)
+            raise RuntimeError("FinanceHandler not initialized")
+        except Exception as e:
+            return f"An error occurred: {e}"
 
     async def _execute_add_event(self, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
-        """Executes adding an event to Google Calendar."""
         try:
-            user_service = UserService(self.db)
-            user = await user_service.get_user_by_id(user_id)
-            calendar_service = GoogleCalendarService(user, self.db)
-
-            event_data = {
-                "summary": data.get("summary"),
-                "start": {"dateTime": data.get("start_time"), "timeZone": "UTC"},
-                "end": {"dateTime": data.get("end_time"), "timeZone": "UTC"},
-                "description": data.get("description")
-            }
-
-            created_event = await calendar_service.add_event(event_data)
-            return f"Event '{created_event.get('summary')}' has been added to your calendar."
+            if self.events_handler:
+                return await self.events_handler.execute_add_event(user_id, data, user_info)
+            raise RuntimeError("EventsHandler not initialized")
         except Exception as e:
-            return f"An error occurred while adding the event: {e}"
+            return f"An error occurred: {e}"
 
     async def _execute_update_event(self, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
-        """Executes updating an event in Google Calendar."""
-        # This is a simplified implementation. A real one would need to find the event first.
-        return "Event update functionality is not fully implemented yet."
+        try:
+            if self.events_handler:
+                return await self.events_handler.execute_update_event(user_id, data, user_info)
+            raise RuntimeError("EventsHandler not initialized")
+        except Exception as e:
+            return f"An error occurred: {e}"
 
     async def _execute_delete_event(self, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
-        """Executes deleting an event from Google Calendar."""
-        # This is a simplified implementation. A real one would need to find the event first.
-        return "Event deletion functionality is not fully implemented yet."
+        try:
+            if self.events_handler:
+                return await self.events_handler.execute_delete_event(user_id, data, user_info)
+            raise RuntimeError("EventsHandler not initialized")
+        except Exception as e:
+            return f"An error occurred: {e}"
 
     async def _handle_cancel_action(self, session_id: int, user_id: int, user_info: Dict[str, Any]) -> str:
         """Handles the user cancelling an action."""
@@ -1106,43 +882,9 @@ class ChatService:
         return await self._generate_chat_response(session_id, user_id, "placeholder", user_info, system_message)
 
     async def _handle_search_contact(self, user_id: int, data: Dict[str, Any], user_info: Dict[str, Any]) -> str:
-        """Handle contact search intent."""
         try:
-            contact_name = data.get("contact_name") if data else None
-            if not contact_name:
-                return "Who would you like to search for in your contacts?"
-
-            # Get user object to pass to the service
-            user_service = UserService(self.db)
-            user = await user_service.get_user_by_id(user_id)
-            if not user or not user.google_access_token:
-                return "It seems your Google account isn't linked for contact access. Please link it in the dashboard."
-
-            # Use the GoogleContactService
-            contact_service = GoogleContactService(user, self.db)
-            all_contacts = await contact_service.list_contacts()
-
-            # Filter contacts by name
-            found_contacts = [
-                c for c in all_contacts
-                if contact_name.lower() in c.get("name", "").lower()
-            ]
-
-            if not found_contacts:
-                return f"I couldn't find anyone named '{contact_name}' in your contacts."
-
-            # Format the response
-            response_lines = [f"I found {len(found_contacts)} contact(s) matching '{contact_name}':"]
-            for contact in found_contacts:
-                contact_info = f"- Name: {contact.get('name')}"
-                if contact.get('email'):
-                    contact_info += f", Email: {contact.get('email')}"
-                if contact.get('phone'):
-                    contact_info += f", Phone: {contact.get('phone')}"
-                response_lines.append(contact_info)
-
-            return "\n".join(response_lines)
-
+            if getattr(self, 'contacts_handler', None):
+                return await self.contacts_handler.search_contact(user_id, data, user_info)
+            raise RuntimeError("ContactsHandler not initialized")
         except Exception as e:
-            print(f"Error handling contact search: {e}")
-            return "I'm sorry, I encountered an error while searching your contacts."
+            return f"An error occurred: {e}"
