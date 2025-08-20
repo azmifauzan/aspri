@@ -41,16 +41,6 @@ class DocumentService:
             model="models/gemini-embedding-001",
             google_api_key=os.getenv("GOOGLE_API_KEY", "your-google-api-key-here")
         )
-        
-    async def _get_embedding(self, text: str) -> List[float]:
-        """Get embedding for text using LangChain GenAI"""
-        try:
-            embeddings = await self.embedding_model.aembed_query(text)
-            return embeddings
-        except Exception as e:
-            print(f"Error getting embedding: {e}")
-            # Fallback to zeros if embedding fails
-            return [0.0] * 3072  # Google embeddings are 3072-dimensional
     
     async def _check_limits(self, user_id: int, file_size: int) -> Dict[str, Any]:
         """Check if file size and document count limits are exceeded"""
@@ -81,15 +71,12 @@ class DocumentService:
     
     async def create_document(self, user_id: int, document_data: DocumentUpload) -> Dict[str, Any]:
         """Create a new document with chunks and embeddings in Supabase"""
-        print("Creating document...")
         file_content = base64.b64decode(document_data.file_content)
         file_size = len(file_content)
-        print(f"File size: {file_size}")
 
         limit_check = await self._check_limits(user_id, file_size)
         if not limit_check["valid"]:
             raise ValueError(limit_check["error"])
-        print("Limits checked.")
 
         # Create document record in Supabase
         document_insert = {
@@ -98,33 +85,23 @@ class DocumentService:
             "file_type": document_data.file_type,
             "file_size": file_size,
         }
-        print(f"Inserting document: {document_insert}")
         document = await self.db.insert('documents', document_insert)
-        print(f"Inserted document: {document}")
         document_id = document[0]['id']
 
         try:
             # Upload to Supabase Storage
-            print("Uploading to storage...")
             storage_object_name = await self.storage_service.upload_document(
                 user_id, document_id, document_data.filename, file_content
             )
-            print(f"Uploaded to storage: {storage_object_name}")
             await self.db.update('documents', {'id': document_id}, {'storage_object_name': storage_object_name})
-            print("Updated document with storage object name.")
 
             # Process document and create embeddings
-            print("Processing document...")
             chunks_data = await self._process_document(document_id, file_content, document_data.file_type, user_id)
-            print(f"Processed {len(chunks_data)} chunks.")
             
             # Add embeddings to Supabase Vector
-            print("Adding embeddings...")
             await self.vector_service.add_document_embeddings(user_id, document_id, chunks_data)
-            print("Embeddings added.")
 
             # Create document chunks in Supabase
-            print("Inserting chunks...")
             for chunk_data in chunks_data:
                 chunk_insert = {
                     "document_id": document_id,
@@ -132,13 +109,11 @@ class DocumentService:
                     "chunk_text": chunk_data['chunk_text'],
                 }
                 await self.db.insert('document_chunks', chunk_insert)
-            print("Chunks inserted.")
 
             return document[0]
 
         except Exception as e:
             # Rollback by deleting the document record
-            print(f"Error creating document: {e}")
             await self.db.delete('documents', {'id': document_id})
             if 'storage_object_name' in locals():
                 await self.storage_service.delete_document(storage_object_name)
