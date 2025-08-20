@@ -9,18 +9,11 @@ services:
       - ./backend/.env
     ports:
       - "8888:8888"
-    depends_on:
-      - db
-      - minio
-      - chromadb
     networks:
       - aspri-net
-    # Ensure proper DB/Service hostnames inside Docker
     environment:
-      DATABASE_URL: mysql+aiomysql://aspri_user:aspri_password@db:3306/aspri_db
-      MINIO_ENDPOINT: minio:9000
-      CHROMADB_HOST: chromadb
-      CHROMADB_PORT: "8000"
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_KEY: ${SUPABASE_KEY}
       FRONTEND_URL: http://frontend
     command: ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8888"]
 
@@ -37,52 +30,8 @@ services:
     networks:
       - aspri-net
     environment:
-      # Vite build uses this at build time; runtime env is not read by built SPA
       VITE_API_BASE_URL: http://backend:8888
-
-  db:
-    image: mariadb:11
-    container_name: aspri-db
-    restart: unless-stopped
-    environment:
-      MARIADB_ROOT_PASSWORD: rootpassword
-      MARIADB_DATABASE: aspri_db
-      MARIADB_USER: aspri_user
-      MARIADB_PASSWORD: aspri_password
-    ports:
-      - "3306:3306"
-    volumes:
-      - db-data:/var/lib/mysql
-    networks:
-      - aspri-net
-
-  minio:
-    image: minio/minio:RELEASE.2025-01-20T16-50-39Z
-    container_name: aspri-minio
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    volumes:
-      - minio-data:/data
-    networks:
-      - aspri-net
-
-  chromadb:
-    image: chromadb/chroma:0.5.20
-    container_name: aspri-chromadb
-    ports:
-      - "8000:8000"
-    networks:
-      - aspri-net
 
 networks:
   aspri-net:
     driver: bridge
-
-volumes:
-  db-data:
-  minio-data:

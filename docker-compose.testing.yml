@@ -1,0 +1,10 @@
+version: "3.9"
+
+services:
+  backend-testing:
+    build:
+      context: ./backend
+    container_name: aspri-backend-testing
+    env_file:
+      - ./backend/.env
+    command: ["pytest", "tests/test_document_api.py", "-s"]

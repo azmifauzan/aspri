@@ -1,0 +1,82 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.11, pytest-8.4.1, pluggy-1.6.0
+rootdir: /app
+plugins: asyncio-1.1.0, anyio-4.9.0, langsmith-0.4.14
+asyncio: mode=Mode.STRICT, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 2 items
+
+backend/tests/test_document_api.py FF
+
+=================================== FAILURES ===================================
+___________________________ test_document_crud_flow ____________________________
+
+client = <starlette.testclient.TestClient object at 0x7fce1a9486b0>
+
+    def test_document_crud_flow(client: TestClient):
+        """Test the complete document CRUD flow"""
+        # 1. Upload a document
+        with open(TEST_TXT_PATH, "rb") as f:
+            file_content = f.read()
+
+        base64_content = base64.b64encode(file_content).decode("utf-8")
+
+        upload_response = client.post(
+            "/documents",
+            json={
+                "filename": "test_document.txt",
+                "file_type": "txt",
+                "file_content": base64_content
+            }
+        )
+
+>       assert upload_response.status_code == 200
+E       assert 500 == 200
+E        +  where 500 = <Response [500 Internal Server Error]>.status_code
+
+backend/tests/test_document_api.py:53: AssertionError
+__________________________ test_document_upload_file ___________________________
+
+client = <starlette.testclient.TestClient object at 0x7fce1a948a70>
+
+    def test_document_upload_file(client: TestClient):
+        """Test document upload using multipart/form-data"""
+        with open(TEST_TXT_PATH, "rb") as f:
+            files = {"file": ("test_upload.txt", f, "text/plain")}
+            response = client.post("/documents/upload", files=files)
+
+>       assert response.status_code == 200
+E       assert 500 == 200
+E        +  where 500 = <Response [500 Internal Server Error]>.status_code
+
+backend/tests/test_document_api.py:98: AssertionError
+=============================== warnings summary ===============================
+../home/jules/.pyenv/versions/3.12.11/lib/python3.12/site-packages/pydantic/_internal/_config.py:323: 11 warnings
+  /home/jules/.pyenv/versions/3.12.11/lib/python3.12/site-packages/pydantic/_internal/_config.py:323: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+    warnings.warn(DEPRECATION_MESSAGE, DeprecationWarning)
+
+../home/jules/.pyenv/versions/3.12.11/lib/python3.12/site-packages/pydantic/_internal/_config.py:373
+  /home/jules/.pyenv/versions/3.12.11/lib/python3.12/site-packages/pydantic/_internal/_config.py:373: UserWarning: Valid config keys have changed in V2:
+  * 'orm_mode' has been renamed to 'from_attributes'
+    warnings.warn(message, UserWarning)
+
+../home/jules/.pyenv/versions/3.12.11/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /home/jules/.pyenv/versions/3.12.11/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+backend/app/schemas/calendar.py:16
+  /app/backend/app/schemas/calendar.py:16: PydanticDeprecatedSince20: Pydantic V1 style `@root_validator` validators are deprecated. You should migrate to Pydantic V2 style `@model_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+    @root_validator(pre=True)
+
+backend/tests/test_document_api.py::test_document_crud_flow
+  /home/jules/.pyenv/versions/3.12.11/lib/python3.12/site-packages/supabase/_sync/client.py:255: DeprecationWarning: The 'timeout' parameter is deprecated. Please configure it in the http client instead.
+    return SyncStorageClient(
+
+backend/tests/test_document_api.py::test_document_crud_flow
+  /home/jules/.pyenv/versions/3.12.11/lib/python3.12/site-packages/supabase/_sync/client.py:255: DeprecationWarning: The 'verify' parameter is deprecated. Please configure it in the http client instead.
+    return SyncStorageClient(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED backend/tests/test_document_api.py::test_document_crud_flow - assert 5...
+FAILED backend/tests/test_document_api.py::test_document_upload_file - assert...
+======================== 2 failed, 16 warnings in 3.76s ========================

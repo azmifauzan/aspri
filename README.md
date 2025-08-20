@@ -8,10 +8,10 @@ ASPRI is an AI-based personal assistant that helps users manage their daily live
 - **JWT Token-based Security**: Protected API endpoints with JWT tokens.
 - **User Registration System**: Complete profile setup with personal preferences.
 - **Document Management**: Upload, process, and search documents.
-- **Vector Search**: Semantic search through documents using ChromaDB.
-- **Object Storage**: Scalable document storage with MinIO.
+- **Vector Search**: Semantic search through documents using Supabase (pgvector).
+- **Object Storage**: Scalable document storage with Supabase.
 - **Configuration Management**: Configurable file size and document limits.
-- **MariaDB Database**: Reliable data storage with async operations using MariaDB.
+- **Supabase Database**: Reliable data storage with async operations using Supabase.
 - **RESTful API**: Well-structured API endpoints for frontend integration.
 - **Chat-first Interface**: All features accessible through conversation, powered by Google Gemini.
 - **Financial Tracking**: Manage income and expenses, categorize transactions, and view financial summaries.
@@ -20,11 +20,7 @@ ASPRI is an AI-based personal assistant that helps users manage their daily live
 
 ### Backend
 - **FastAPI**: Modern, fast web framework for building APIs.
-- **MariaDB**: Robust relational database.
-- **SQLAlchemy**: Python SQL toolkit and ORM with async support.
-- **Alembic**: Database migration tool.
-- **MinIO**: High-performance, S3 compatible object storage.
-- **ChromaDB**: AI-native open-source embedding database.
+- **Supabase**: All-in-one backend-as-a-service platform.
 - **LangChain**: Framework for developing applications powered by language models.
 - **Google Generative AI**: For AI-powered chat and embeddings.
 - **JWT**: JSON Web Tokens for authentication.
@@ -55,18 +51,12 @@ aspri/
 │   │   ├── core/
 │   │   │   └── auth.py          # JWT and OAuth utilities
 │   │   ├── db/
-│   │   │   ├── models/
-│   │   │   │   ├── user.py      # User model
-│   │   │   │   ├── chat.py      # Chat models
-│   │   │   │   ├── document.py  # Document model
-│   │   │   │   └── config.py    # Configuration model
 │   │   │   └── ...
 │   │   ├── schemas/
 │   │   │   └── ...
 │   │   ├── services/
 │   │   │   └── ...
 │   │   └── main.py              # FastAPI application
-│   ├── alembic/                 # Database migrations
 │   ├── requirements.txt         # Python dependencies
 │   ├── Dockerfile               # Backend container configuration
 │   └── .env.template            # Environment variables template
@@ -122,18 +112,13 @@ We recommend using Docker Compose for the easiest setup.
     This will build and start all services:
     - **Frontend**: Accessible at `http://localhost:3000`
     - **Backend API**: Accessible at `http://localhost:8888`
-    - **MariaDB**: Database on port 3306
-    - **MinIO**: Object storage on ports 9000 (API) and 9001 (Console)
-    - **ChromaDB**: Vector database on port 8000
 
 ### Option 2: Manual Setup
 
 **Prerequisites:**
 - Python 3.11+
 - Node.js (v18+)
-- MariaDB (or MySQL)
-- MinIO Server
-- ChromaDB Server
+- Supabase Account
 
 For detailed instructions on setting up the backend manually, please refer to `docs/RUNNING_BACKEND.md`.
 
@@ -176,7 +161,7 @@ For detailed instructions on setting up the backend manually, please refer to `d
 - `id`, `email`, `google_id`, `name`, `birth_date`, `birth_month`, `call_preference`, `aspri_name`, `aspri_persona`, `is_registered`, `created_at`, `updated_at`
 
 ### `documents` table
-- `id`, `user_id`, `filename`, `s3_path`, `file_size`, `file_type`, `created_at`
+- `id`, `user_id`, `filename`, `storage_object_name`, `file_size`, `file_type`, `created_at`
 
 ### `chat_sessions` table
 - `id`, `user_id`, `session_name`, `created_at`
@@ -199,7 +184,6 @@ This application is designed to be deployed using Docker Compose. The root `dock
 - Monitor service health and logs
 
 For detailed deployment guides, see:
-- `docs/RUNNING_BACKEND.md` - Backend setup and configuration
 - `docs/CHAT_FEATURE.md` - Chat feature implementation details
 - `docs/ENVIRONMENT_VARIABLES.md` - Environment configuration guide
 - `docs/ARCHITECTURE.md` - System architecture overview

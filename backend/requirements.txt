@@ -3,14 +3,12 @@ aiohttp==3.12.15
 aiosignal==1.4.0
 annotated-types==0.7.0
 anyio==4.9.0
-aiomysql==0.2.0
 attrs==25.3.0
 certifi==2025.7.14
 click==8.2.1
 colorama==0.4.6
 fastapi==0.116.1
 frozenlist==1.7.0
-greenlet==3.2.3
 h11==0.16.0
 httpcore==1.0.9
 httptools==0.6.4
@@ -23,7 +21,6 @@ pydantic_core==2.33.2
 python-dotenv==1.1.1
 PyYAML==6.0.2
 sniffio==1.3.1
-SQLAlchemy==2.0.42
 starlette==0.47.2
 typing-inspection==0.4.1
 typing_extensions==4.14.1
@@ -35,7 +32,6 @@ yarl==1.20.1
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 python-multipart==0.0.9
-alembic==1.13.3
 email-validator==2.1.0
 google-auth==2.40.3
 google-auth-oauthlib==1.2.2
@@ -49,13 +45,17 @@ langchain-core==0.3.72
 numpy==1.26.4
 pypdf==4.2.0
 docx2txt==0.8
-# MinIO for object storage
-minio==7.2.8
-
-# ChromaDB for vector database
-chromadb==1.0.15
+# Supabase for database, storage, and vector embeddings
+supabase==2.18.1
 
 # Google AI for LangChain
 langchain-google-genai
 google-generativeai
 openai==1.58.1
+
+# Testing
+pytest
+pytest-asyncio
+httpx
+asyncio
+greenlet

@@ -1,12 +1,9 @@
 # app/services/document_service.py
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete, func
-from sqlalchemy.orm import selectinload
+from supabase import Client
 import base64
 import io
 import os
 import tempfile
-import numpy as np
 import mimetypes
 from typing import List, Optional, Tuple, Dict, Any
 from datetime import datetime
@@ -21,8 +18,9 @@ from app.schemas.document import DocumentUpload, DocumentUpdate, DocumentSearchQ
 
 # Services
 from app.services.config_service import ConfigService
-from app.services.minio_service import MinIOService
-from app.services.chromadb_service import ChromaDBService
+from app.services.supabase_storage_service import SupabaseStorageService
+from app.services.supabase_vector_service import SupabaseVectorService
+from app.services.supabase_db_service import SupabaseDBService
 
 # Langchain imports
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -32,11 +30,11 @@ from langchain_community.document_loaders import PyPDFLoader, Docx2txtLoader, Te
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
 class DocumentService:
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: SupabaseDBService):
         self.db = db
         self.config_service = ConfigService(db)
-        self.minio_service = MinIOService()
-        self.chromadb_service = ChromaDBService()
+        self.storage_service = SupabaseStorageService()
+        self.vector_service = SupabaseVectorService()
         
         # Initialize LangChain GenAI embeddings
         self.embedding_model = GoogleGenerativeAIEmbeddings(
@@ -81,224 +79,198 @@ class DocumentService:
         result = await self.db.execute(query)
         return result.scalar_one()
     
-    async def create_document(self, user_id: int, document_data: DocumentUpload) -> Document:
-        """Create a new document with chunks and embeddings"""
-        # Decode base64 file content
+    async def create_document(self, user_id: int, document_data: DocumentUpload) -> Dict[str, Any]:
+        """Create a new document with chunks and embeddings in Supabase"""
+        print("Creating document...")
         file_content = base64.b64decode(document_data.file_content)
         file_size = len(file_content)
-        
-        # Check limits
+        print(f"File size: {file_size}")
+
         limit_check = await self._check_limits(user_id, file_size)
         if not limit_check["valid"]:
             raise ValueError(limit_check["error"])
-        
-        # Create document record
-        document = Document(
-            user_id=user_id,
-            filename=document_data.filename,
-            file_type=document_data.file_type,
-            file_size=file_size,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
-        )
-        
-        self.db.add(document)
-        await self.db.flush()  # Get the document ID
-        
+        print("Limits checked.")
+
+        # Create document record in Supabase
+        document_insert = {
+            "user_id": user_id,
+            "filename": document_data.filename,
+            "file_type": document_data.file_type,
+            "file_size": file_size,
+        }
+        print(f"Inserting document: {document_insert}")
+        document = await self.db.insert('documents', document_insert)
+        print(f"Inserted document: {document}")
+        document_id = document[0]['id']
+
         try:
-            # Upload to MinIO
-            minio_object_name = await self.minio_service.upload_document(
-                user_id, document.id, document_data.filename, file_content
+            # Upload to Supabase Storage
+            print("Uploading to storage...")
+            storage_object_name = await self.storage_service.upload_document(
+                user_id, document_id, document_data.filename, file_content
             )
-            document.minio_object_name = minio_object_name
+            print(f"Uploaded to storage: {storage_object_name}")
+            await self.db.update('documents', {'id': document_id}, {'storage_object_name': storage_object_name})
+            print("Updated document with storage object name.")
+
+            # Process document and create embeddings
+            print("Processing document...")
+            chunks_data = await self._process_document(document_id, file_content, document_data.file_type, user_id)
+            print(f"Processed {len(chunks_data)} chunks.")
             
-            # Process document content, create chunks and embeddings
-            chunks_data = await self._process_document(document.id, file_content, document_data.file_type, user_id)
-            
-            # Store embeddings in ChromaDB
-            await self.chromadb_service.add_document_embeddings(user_id, document.id, chunks_data)
-            
-            # Create document chunks in database (without embeddings)
-            chunks = []
+            # Add embeddings to Supabase Vector
+            print("Adding embeddings...")
+            await self.vector_service.add_document_embeddings(user_id, document_id, chunks_data)
+            print("Embeddings added.")
+
+            # Create document chunks in Supabase
+            print("Inserting chunks...")
             for chunk_data in chunks_data:
-                chunk = DocumentChunk(
-                    document_id=document.id,
-                    chunk_index=chunk_data['chunk_index'],
-                    chunk_text=chunk_data['chunk_text'],
-                    created_at=datetime.utcnow()
-                )
-                chunks.append(chunk)
-            
-            # Add all chunks to the database
-            self.db.add_all(chunks)
-            await self.db.commit()
-            await self.db.refresh(document)
-            
-            return document
-            
+                chunk_insert = {
+                    "document_id": document_id,
+                    "chunk_index": chunk_data['chunk_index'],
+                    "chunk_text": chunk_data['chunk_text'],
+                }
+                await self.db.insert('document_chunks', chunk_insert)
+            print("Chunks inserted.")
+
+            return document[0]
+
         except Exception as e:
-            # Rollback on error
-            await self.db.rollback()
-            # Clean up MinIO if upload was successful
-            if hasattr(document, 'minio_object_name') and document.minio_object_name:
-                await self.minio_service.delete_document(document.minio_object_name)
+            # Rollback by deleting the document record
+            print(f"Error creating document: {e}")
+            await self.db.delete('documents', {'id': document_id})
+            if 'storage_object_name' in locals():
+                await self.storage_service.delete_document(storage_object_name)
             raise e
     
-    async def get_document(self, document_id: int, user_id: int) -> Optional[Document]:
-        """Get a document by ID for a specific user"""
-        query = select(Document).where(
-            Document.id == document_id,
-            Document.user_id == user_id
-        )
-        result = await self.db.execute(query)
-        return result.scalar_one_or_none()
-    
-    async def get_document_by_filename_and_user_id(self, filename: str, user_id: int) -> Optional[Document]:
-        """Get a document by filename for a specific user"""
-        query = select(Document).where(
-            Document.filename == filename,
-            Document.user_id == user_id
-        )
-        result = await self.db.execute(query)
-        return result.scalar_one_or_none()
+    async def get_document(self, document_id: int, user_id: int) -> Optional[Dict[str, Any]]:
+        """Get a document by ID for a specific user from Supabase"""
+        return await self.db.select('documents', {'id': document_id, 'user_id': user_id})
 
-    async def get_document_with_chunks(self, document_id: int, user_id: int) -> Optional[Document]:
-        """Get a document with its chunks by ID for a specific user"""
-        query = select(Document).options(
-            selectinload(Document.chunks)
-        ).where(
-            Document.id == document_id,
-            Document.user_id == user_id
-        )
-        result = await self.db.execute(query)
-        return result.scalar_one_or_none()
-    
-    async def get_user_documents(self, user_id: int, skip: int = 0, limit: int = 100) -> Tuple[List[Document], int]:
-        """Get all documents for a specific user with pagination"""
-        # Count total documents
-        count_query = select(func.count()).select_from(Document).where(Document.user_id == user_id)
-        total = await self.db.execute(count_query)
-        total_count = total.scalar_one()
-        
-        # Get documents with pagination
-        query = select(Document).where(
-            Document.user_id == user_id
-        ).order_by(Document.created_at.desc()).offset(skip).limit(limit)
-        
-        result = await self.db.execute(query)
-        documents = result.scalars().all()
-        
+    async def get_document_by_filename_and_user_id(self, filename: str, user_id: int) -> Optional[Dict[str, Any]]:
+        """Get a document by filename for a specific user from Supabase"""
+        return await self.db.select('documents', {'filename': filename, 'user_id': user_id})
+
+    async def get_document_with_chunks(self, document_id: int, user_id: int) -> Optional[Dict[str, Any]]:
+        """Get a document with its chunks by ID for a specific user from Supabase"""
+        document = await self.get_document(document_id, user_id)
+        if document:
+            chunks = await self.db.select('document_chunks', {'document_id': document_id})
+            document[0]['chunks'] = chunks
+        return document
+
+    async def get_user_documents(self, user_id: int, skip: int = 0, limit: int = 100) -> Tuple[List[Dict[str, Any]], int]:
+        """Get all documents for a specific user with pagination from Supabase"""
+        documents = await self.db.select('documents', {'user_id': user_id}, order_by='created_at', ascending=False, limit=limit, offset=skip)
+        total_count = await self._get_user_document_count(user_id)
         return documents, total_count
     
-    async def update_document(self, document_id: int, user_id: int, document_data: DocumentUpdate) -> Optional[Document]:
-        """Update document metadata and re-process if content changed"""
+    async def update_document(self, document_id: int, user_id: int, document_data: DocumentUpdate) -> Optional[Dict[str, Any]]:
+        """Update document metadata and re-process if content changed in Supabase"""
         document = await self.get_document(document_id, user_id)
         if not document:
             return None
-        
-        # Check if file content is being updated
+
         if hasattr(document_data, 'file_content') and document_data.file_content:
-            # Decode new file content
             file_content = base64.b64decode(document_data.file_content)
             file_size = len(file_content)
-            
-            # Check limits
+
             limit_check = await self._check_limits(user_id, file_size)
             if not limit_check["valid"]:
                 raise ValueError(limit_check["error"])
-            
+
             try:
-                # Delete old embeddings from ChromaDB
-                await self.chromadb_service.delete_document_embeddings(user_id, document_id)
+                # Delete old embeddings and chunks
+                await self.vector_service.delete_document_embeddings(user_id, document_id)
+                await self.db.delete('document_chunks', {'document_id': document_id})
+
+                # Upload new content
+                if document[0]['storage_object_name']:
+                    await self.storage_service.delete_document(document[0]['storage_object_name'])
                 
-                # Delete old document chunks from database
-                await self.db.execute(
-                    delete(DocumentChunk).where(DocumentChunk.document_id == document_id)
+                storage_object_name = await self.storage_service.upload_document(
+                    user_id, document_id, document_data.filename or document[0]['filename'], file_content
                 )
-                
-                # Upload new content to MinIO
-                if document.minio_object_name:
-                    await self.minio_service.delete_document(document.minio_object_name)
-                
-                minio_object_name = await self.minio_service.upload_document(
-                    user_id, document_id, document_data.filename or document.filename, file_content
-                )
-                document.minio_object_name = minio_object_name
-                document.file_size = file_size
-                
-                # Process new document content
+
+                # Process new content and add embeddings
                 chunks_data = await self._process_document(
                     document_id, file_content, 
-                    document_data.file_type or document.file_type, 
+                    document_data.file_type or document[0]['file_type'],
                     user_id
                 )
-                
-                # Store new embeddings in ChromaDB
-                await self.chromadb_service.add_document_embeddings(user_id, document_id, chunks_data)
-                
-                # Create new document chunks in database
-                chunks = []
+                await self.vector_service.add_document_embeddings(user_id, document_id, chunks_data)
+
+                # Create new chunks
                 for chunk_data in chunks_data:
-                    chunk = DocumentChunk(
-                        document_id=document_id,
-                        chunk_index=chunk_data['chunk_index'],
-                        chunk_text=chunk_data['chunk_text'],
-                        created_at=datetime.utcnow()
-                    )
-                    chunks.append(chunk)
+                    await self.db.insert('document_chunks', {
+                        "document_id": document_id,
+                        "chunk_index": chunk_data['chunk_index'],
+                        "chunk_text": chunk_data['chunk_text'],
+                    })
+
+                # Update document record
+                update_data = {
+                    "file_size": file_size,
+                    "storage_object_name": storage_object_name,
+                    "updated_at": datetime.utcnow().isoformat()
+                }
+                if document_data.filename:
+                    update_data['filename'] = document_data.filename
                 
-                self.db.add_all(chunks)
-                
+                await self.db.update('documents', {'id': document_id}, update_data)
+
             except Exception as e:
-                await self.db.rollback()
+                # This part needs careful handling of rollback in Supabase
                 raise e
-        
-        # Update metadata fields if provided
-        if document_data.filename is not None:
-            document.filename = document_data.filename
-            
-        document.updated_at = datetime.utcnow()
-        await self.db.commit()
-        await self.db.refresh(document)
-        
-        return document
+        else:
+            # Update metadata only
+            update_data = {
+                "updated_at": datetime.utcnow().isoformat()
+            }
+            if document_data.filename:
+                update_data['filename'] = document_data.filename
+            await self.db.update('documents', {'id': document_id}, update_data)
+
+        return await self.get_document(document_id, user_id)
     
     async def delete_document(self, document_id: int, user_id: int) -> bool:
-        """Delete a document and its chunks from all storage systems"""
+        """Delete a document and its chunks from all Supabase storage systems"""
         document = await self.get_document(document_id, user_id)
         if not document:
             return False
-        
+
         try:
-            # Delete embeddings from ChromaDB
-            await self.chromadb_service.delete_document_embeddings(user_id, document_id)
-            
-            # Delete document from MinIO
-            if document.minio_object_name:
-                await self.minio_service.delete_document(document.minio_object_name)
-            
-            # Delete from database (cascades to chunks)
-            await self.db.delete(document)
-            await self.db.commit()
-            
+            # Delete embeddings from Supabase Vector
+            await self.vector_service.delete_document_embeddings(user_id, document_id)
+
+            # Delete document from Supabase Storage
+            if document[0]['storage_object_name']:
+                await self.storage_service.delete_document(document[0]['storage_object_name'])
+
+            # Delete from Supabase database
+            await self.db.delete('document_chunks', {'document_id': document_id})
+            await self.db.delete('documents', {'id': document_id})
+
             return True
-            
+
         except Exception as e:
-            await self.db.rollback()
             print(f"Error deleting document: {e}")
             return False
     
     async def search_documents(self, user_id: int, search_query: DocumentSearchQuery) -> List[Dict[str, Any]]:
-        """Search for documents using vector similarity with ChromaDB"""
-        # Get query embedding
-        #query_embedding = await self._get_embedding(search_query.query)
-        print(f"Search query: {search_query.query}, Limit: {search_query.limit}, User ID: {user_id}")
-        # Search in ChromaDB
-        search_results = await self.chromadb_service.search_similar_chunks(
-            user_id, search_query.query, search_query.limit
+        """Search for documents using vector similarity with Supabase"""
+        query_embedding = await self._get_embedding(search_query.query)
+
+        search_results = await self.vector_service.search_similar_chunks(
+            user_id, query_embedding, search_query.limit
         )
         
         return search_results
+
+    async def _get_user_document_count(self, user_id: int) -> int:
+        """Get current document count for user from Supabase"""
+        return await self.db.count('documents', {'user_id': user_id})
     
     async def _process_document(self, document_id: int, file_content: bytes, file_type: str, user_id: int) -> List[Dict[str, Any]]:
         """Process document content, split into chunks, and create embeddings"""
