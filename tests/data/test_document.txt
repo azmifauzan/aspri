@@ -1,4 +1,0 @@
-This is a test document for ASPRI document API testing.
-It contains some sample text that will be processed and embedded.
-The text should be chunked and vector embeddings should be created.
-Later we can search for specific content in this document.
