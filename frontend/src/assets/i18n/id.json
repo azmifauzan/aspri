@@ -1,0 +1,116 @@
+{
+  "common": {
+    "appName": "ASPRI",
+    "loading": "Memuat...",
+    "error": "Kesalahan",
+    "success": "Berhasil",
+    "confirm": "Konfirmasi",
+    "cancel": "Batal",
+    "save": "Simpan",
+    "delete": "Hapus",
+    "edit": "Ubah",
+    "close": "Tutup"
+  },
+  "landing": {
+    "title": "ASPRI - Asisten Pribadi Berbasis AI",
+    "subtitle": "Satu Chat untuk Atur Semua: Jadwal, Keuangan & Catatan",
+    "description": "Kelola hidup Anda lebih mudah dengan asisten pribadi yang memahami bahasa natural. Powered by AI canggih, akses melalui web atau Telegram. Tanpa Google API, data Anda tetap privat.",
+    "getStarted": "Mulai Sekarang",
+    "signIn": "Masuk",
+    "hero": {
+      "heading": "ASPRI - Asisten Pribadi Berbasis AI",
+      "tagline": "Satu chat untuk atur jadwal, keuangan, dan catatan. Berdaya dengan LLM canggih!",
+      "cta_demo": "Coba Sekarang",
+      "cta_feature": "Lihat Fitur",
+      "bullet_1": "Chat natural - bicara seperti dengan asisten sungguhan",
+      "bullet_2": "Dashboard lengkap - pantau jadwal & keuangan sekilas",
+      "bullet_3": "Multi-platform - akses via web atau Telegram",
+      "chat": {
+        "date": "Hari ini",
+        "user1": "Catat pengeluaran Rp25.000 kopi.",
+        "user2": "Buat jadwal meeting besok jam 10 pagi.",
+        "aspri1": "✅ Siap Bos, Sudah Tercatat!",
+        "aspri2": "📅 Jadwal meeting besok jam 10 pagi telah dibuat Bos."
+      }
+    },
+    "problem": {
+      "title": "Masalah Sehari-hari yang Kami Selesaikan",
+      "item_1": {
+        "title": "Jadwal Berantakan",
+        "desc": "Sering lupa meeting atau janji penting? ASPRI mengingatkan otomatis di waktu yang tepat."
+      },
+      "item_2": {
+        "title": "Pengeluaran Tak Tercatat",
+        "desc": "Uang habis tapi nggak tahu kemana? Catat transaksi lewat chat, dapatkan ringkasan cerdas."
+      },
+      "item_3": {
+        "title": "Catatan Berserakan",
+        "desc": "Susah cari catatan penting? Simpan semua di satu tempat dengan pencarian pintar."
+      }
+    },
+    "features": {
+      "title": "Fitur Unggulan ASPRI",
+      "chat": {
+        "title": "Chat Cerdas Multi-Platform",
+        "description": "Berinteraksi dengan asisten pribadi melalui web atau Telegram. Bicara natural seperti chat biasa, ASPRI paham konteks dan bahasa Anda."
+      },
+      "notes": {
+        "title": "Catatan Tersimpan Aman",
+        "description": "Buat, edit, dan cari catatan dengan mudah. Semua tersimpan di database terenkripsi. Fitur block-based editor untuk format konten lebih fleksibel."
+      },
+      "schedule": {
+        "title": "Kalender & Pengingat Pintar",
+        "description": "Atur jadwal, event, dan reminder. ASPRI akan mengingatkan Anda melalui aplikasi atau Telegram. Tidak perlu Google Calendar!"
+      },
+      "finance": {
+        "title": "Pelacakan Keuangan Lengkap",
+        "description": "Catat pemasukan, pengeluaran, dan atur budget. Dashboard interaktif menampilkan grafik dan ringkasan keuangan bulanan Anda."
+      }
+    },
+    "chatpreview": {
+      "title": "Contoh Percakapan dengan ASPRI",
+      "user1": "Catat pengeluaran Rp50.000 untuk makan siang.",
+      "aspri1": "✅ Pengeluaran Rp50.000 untuk makan siang sudah dicatat Bos!",
+      "user2": "Buat jadwal meeting besok jam 3 sore.",
+      "aspri2": "📅 Jadwal meeting besok jam 3 sore telah dibuat Bos! Mau saya set reminder 30 menit sebelumnya?",
+      "user3": "Berapa total pengeluaranku bulan ini?",
+      "aspri3": "Total pengeluaran Bos bulan ini Rp2.450.000. Kategori terbesar: Makanan (45%), Transportasi (25%), Hiburan (15%)."
+    },
+    "privacy": {
+      "title": "Privasi & Keamanan Data",
+      "desc": "Data Anda tersimpan aman di database terenkripsi. Tidak ada dependency ke Google API atau pihak ketiga. Autentikasi manual dengan BCrypt + JWT memastikan akun Anda terlindungi."
+    },
+    "footer": {
+      "description": "ASPRI adalah asisten pribadi berbasis AI yang membantu mengelola jadwal, keuangan, dan catatan Anda dengan mudah. Dengan teknologi LLM canggih, ASPRI menyederhanakan hidup Anda.",
+      "contact": "Hubungi Kami",
+      "copyright": "© 2025 ASPRI. All rights reserved."
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Masuk",
+      "email": "Email",
+      "password": "Kata Sandi",
+      "submit": "Masuk",
+      "noAccount": "Belum punya akun?",
+      "signUp": "Daftar",
+      "forgotPassword": "Lupa kata sandi?",
+      "error": "Email atau kata sandi tidak valid"
+    },
+    "register": {
+      "title": "Daftar",
+      "email": "Email",
+      "password": "Kata Sandi",
+      "confirmPassword": "Konfirmasi Kata Sandi",
+      "submit": "Daftar",
+      "haveAccount": "Sudah punya akun?",
+      "signIn": "Masuk",
+      "passwordMismatch": "Kata sandi tidak cocok",
+      "success": "Pendaftaran berhasil! Silakan cek email Anda untuk verifikasi akun."
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Selamat datang kembali"
+  }
+}
