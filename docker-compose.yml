@@ -30,7 +30,7 @@ services:
       - DATABASE_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB:-aspri}
       - DATABASE_USERNAME=${POSTGRES_USER:-postgres}
       - DATABASE_PASSWORD=${POSTGRES_PASSWORD:-postgres}
-      - JWT_SECRET=${JWT_SECRET:-your-secret-key-minimum-32-characters-for-security-change-this}
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET environment variable is required}
       - JWT_EXPIRATION=${JWT_EXPIRATION:-86400000}
       - JWT_REFRESH_EXPIRATION=${JWT_REFRESH_EXPIRATION:-604800000}
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:4200,http://localhost}

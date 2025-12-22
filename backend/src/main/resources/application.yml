@@ -31,7 +31,7 @@ spring:
 
 # JWT Configuration
 jwt:
-  secret: ${JWT_SECRET:your-secret-key-minimum-32-characters-for-security}
+  secret: ${JWT_SECRET:PLEASE_SET_JWT_SECRET_ENV_VAR}
   expiration: ${JWT_EXPIRATION:86400000}  # 24 hours in milliseconds
   refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}  # 7 days in milliseconds
 

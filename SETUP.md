@@ -48,8 +48,12 @@ Buka file `.env` dan **WAJIB** ubah nilai berikut untuk production:
 # Database
 POSTGRES_PASSWORD=ubah_password_ini
 
-# JWT (WAJIB DIGANTI!)
-JWT_SECRET=buat_secret_key_minimum_32_karakter_yang_kuat_dan_unik
+# JWT (WAJIB! Generate dengan command di bawah)
+# Windows PowerShell:
+# -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 32 | ForEach-Object {[char]$_})
+# Linux/Mac:
+# openssl rand -base64 32
+JWT_SECRET=GENERATE_ME_WITH_COMMAND_ABOVE
 ```
 
 ### 3. Build & Run
@@ -131,8 +135,10 @@ DATABASE_URL=jdbc:postgresql://localhost:5432/aspri
 DATABASE_USERNAME=postgres
 DATABASE_PASSWORD=postgres
 
-# JWT (WAJIB DIGANTI untuk production!)
-JWT_SECRET=your-secret-key-minimum-32-characters-for-security
+# JWT (WAJIB! Generate strong random secret)
+# Windows: -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 32 | ForEach-Object {[char]$_})
+# Linux/Mac: openssl rand -base64 32
+JWT_SECRET=GENERATE_RANDOM_SECRET_MINIMUM_32_CHARS
 JWT_EXPIRATION=86400000
 JWT_REFRESH_EXPIRATION=604800000
 
