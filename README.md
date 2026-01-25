@@ -1,141 +1,201 @@
-# ASPRI (Asisten Pribadi) - Next Gen
+# ASPRI - Asisten Pribadi Berbasis AI
 
-ASPRI adalah aplikasi asisten pribadi cerdas yang dirancang untuk membantu pengelolaan jadwal dan keuangan harian Anda. Versi ini merupakan evolusi dari sistem sebelumnya, dibangun ulang dengan teknologi enterprise-grade untuk performa, skalabilitas, dan independensi yang lebih baik.
+![ASPRI Banner](docs/images/banner.png)
 
-## 🌟 Fitur Utama
+**ASPRI** adalah aplikasi asisten pribadi cerdas yang dirancang untuk membantu pengelolaan jadwal dan keuangan harian Anda melalui interaksi percakapan natural.
 
-*   **Asisten Pribadi Cerdas**: Mengelola jadwal dan keuangan melalui percakapan natural.
-*   **Chat-first + Persona Per User**: Konsep chat-first dipertahankan; asisten mengikuti `aspri_persona`, memanggil user sesuai `call_preference`, dan meminta konfirmasi untuk aksi yang mengubah data.
-*   **Kemandirian Platform**: Sistem autentikasi dan kalender mandiri (tidak bergantung pada Google API atau OAuth provider eksternal).
-*   **Authentication Portable**: BCrypt + JWT manual - dapat di-deploy ke PostgreSQL server manapun tanpa dependency eksternal.
-*   **Integrasi Chat**: Terintegrasi dengan **Telegram** sebagai fokus awal (dan WhatsApp di masa depan). Anda bisa mencatat pengeluaran, membuat note, atau cek jadwal langsung dari aplikasi chat.
-*   **Dashboard Interaktif**: Visualisasi data keuangan dan jadwal dalam satu tampilan yang informatif.
-*   **5 Modul Utama**:
-    1.  **Dashboard**: Ringkasan aktivitas dan status keuangan.
-    2.  **Chat**: Riwayat percakapan dengan asisten + integrasi bot.
-    3.  **Note**: Penyimpanan note advanced (semua di database; menggantikan modul dokumen lama yang memakai MinIO).
-    4.  **Jadwal**: Manajemen kalender, event, dan reminder.
-    5.  **Keuangan**: Pencatatan transaksi, budgeting, dan laporan keuangan.
+## ✨ Fitur Utama
+
+- 🤖 **Asisten Pribadi Cerdas** - Mengelola jadwal dan keuangan melalui percakapan natural
+- 💬 **Chat-First Experience** - Semua fitur dapat diakses lewat percakapan
+- 👤 **Persona Per User** - Asisten mengikuti preferensi dan gaya komunikasi Anda
+- 📱 **Integrasi Telegram** - Catat pengeluaran, buat note, atau cek jadwal langsung dari Telegram
+- 📊 **Dashboard Interaktif** - Visualisasi data keuangan dan jadwal dalam satu tampilan
+
+## 🎯 5 Modul Utama
+
+| Modul | Deskripsi |
+|-------|-----------|
+| **Dashboard** | Ringkasan aktivitas dan status keuangan |
+| **Chat** | Riwayat percakapan dengan asisten + integrasi bot |
+| **Notes** | Penyimpanan note dengan block-based content |
+| **Schedule** | Manajemen kalender, event, dan reminder |
+| **Finance** | Pencatatan transaksi, budgeting, dan laporan |
 
 ## 🛠️ Tech Stack
 
-### Backend
-*   **Language**: Java 25
-*   **Framework**: Spring Boot 4.0.1
-*   **Authentication**: BCrypt + JWT (Manual - No external provider)
-*   **AI Orchestration**: Spring AI (provider-agnostic)
-*   **Database**: PostgreSQL (portable - any PostgreSQL server)
-*   **Migration**: Flyway
-*   **Integration**: Telegram Bots API (rubenlagus/TelegramBots)
+- **Backend**: Laravel 12
+- **Frontend**: Vue 3 + Inertia.js v2
+- **Styling**: Tailwind CSS v4
+- **Database**: SQLite (dev) / PostgreSQL (prod)
+- **AI**: OpenAI GPT-4 / Google Gemini
+- **Bot**: Telegram Bot API
 
-### Frontend
-*   **Framework**: Angular 21
-*   **UI Reference**: TailAdmin (https://tailadmin.com/)
-*   **Styling**: Tailwind CSS v4
-*   **I18N**: 2 bahasa (Bahasa Indonesia & English)
-*   **Theme**: Light & Dark
-*   **State Management**: Angular Signals
+## 📋 Prerequisites
 
-### DevOps
-*   **Containerization**: Docker + Docker Compose
-*   **Database**: PostgreSQL 17
-*   **Web Server**: Nginx (for frontend)
-
-## 📁 Struktur Project
-
-*   `/backend`: Source code backend (Spring Boot)
-*   `/frontend`: Source code frontend (Angular)
-*   `/docs`: Dokumentasi teknis (Arsitektur, Database, AI, Auth)
-*   `/archieve`: Versi lama aplikasi (Python/React) sebagai referensi
-*   `docker-compose.yml`: Orchestration untuk seluruh stack
-*   `.env.example`: Template konfigurasi environment
-
-## 📚 Dokumentasi
-
-Detail teknis dapat ditemukan di folder `docs/`:
-*   [Setup Guide](SETUP.md) - Panduan instalasi lengkap
-*   [Arsitektur Sistem](docs/ARCHITECTURE.md) - Overview arsitektur
-*   [Desain Database](docs/DATABASE.md) - Schema dan struktur data
-*   [Authentication System](docs/AUTH.md) - Detail sistem autentikasi
-*   [Spring AI Integration](docs/AI.md) - Konfigurasi AI provider-agnostic
-*   [Chat Integrations](docs/INTEGRATIONS.md) - Telegram & WhatsApp
-*   [Note Module](docs/NOTE.md) - Rancangan note advanced
+- PHP 8.2+
+- Node.js 20+
+- Composer
+- SQLite or PostgreSQL
 
 ## 🚀 Quick Start
 
-### Menggunakan Docker Compose (Recommended)
+### Installation
 
 ```bash
-# 1. Clone repository
-git clone <repository-url>
+# Clone repository
+git clone https://github.com/azmifauzan/aspri.git
 cd aspri
 
-# 2. Setup environment
-cp .env.example .env
-# Edit .env dan ubah JWT_SECRET & POSTGRES_PASSWORD
+# Setup (installs dependencies, creates .env, runs migrations)
+composer setup
 
-# 3. Jalankan semua services
-docker-compose up -d
-
-# 4. Akses aplikasi
-# Frontend: http://localhost
-# Backend API: http://localhost:8080
-# PostgreSQL: localhost:5432
+# Start development server
+composer dev
 ```
 
-### Development (Manual)
+Buka http://localhost:8000 di browser.
 
-#### Backend
-```bash
-cd backend
-mvn spring-boot:run
-```
+### Manual Setup
 
-#### Frontend
 ```bash
-cd frontend
+# Install PHP dependencies
+composer install
+
+# Install Node dependencies
 npm install
-npm start
+
+# Copy environment file
+cp .env.example .env
+
+# Generate app key
+php artisan key:generate
+
+# Run migrations
+php artisan migrate
+
+# Build assets
+npm run build
+
+# Start Laravel server
+php artisan serve
+
+# (Opsional) Start Vite for hot reload
+npm run dev
 ```
 
-#### Database
-```bash
-# Menggunakan Docker
-docker run -d \
-  --name aspri-postgres \
-  -e POSTGRES_DB=aspri \
-  -e POSTGRES_PASSWORD=postgres \
-  -p 5432:5432 \
-  postgres:17-alpine
-```
+## ⚙️ Configuration
 
-## 🔐 Authentication
+### Environment Variables
 
-ASPRI menggunakan **manual authentication** (bukan Supabase Auth atau OAuth):
-- Password di-hash dengan BCrypt
-- JWT token generated dan validated oleh backend sendiri
-- Fully portable ke PostgreSQL server manapun
-- Tidak ada dependency ke provider eksternal
+```env
+# Application
+APP_NAME=ASPRI
+APP_URL=http://localhost:8000
 
-## 🔑 Environment Variables
-
-Konfigurasi utama yang perlu diset (lihat `.env.example` untuk lengkapnya):
-
-```bash
 # Database
-POSTGRES_PASSWORD=your-secure-password
+DB_CONNECTION=sqlite
+# DB_CONNECTION=pgsql
+# DB_HOST=127.0.0.1
+# DB_DATABASE=aspri
+# DB_USERNAME=postgres
+# DB_PASSWORD=
 
-# JWT (WAJIB DIGANTI!)
-JWT_SECRET=your-secret-key-minimum-32-characters
+# AI Provider
+AI_PROVIDER=openai
+OPENAI_API_KEY=sk-...
+# GEMINI_API_KEY=...
 
-# CORS
-CORS_ALLOWED_ORIGINS=http://localhost:4200
-
-# Optional: Spring AI
-SPRING_AI_OPENAI_API_KEY=your-key
-SPRING_AI_OPENAI_MODEL=gpt-4
-
-# Optional: Telegram Bot
-TELEGRAM_BOT_TOKEN=your-bot-token
+# Telegram Bot
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_WEBHOOK_SECRET=
 ```
 
+## 📁 Project Structure
+
+```
+aspri/
+├── app/
+│   ├── Http/Controllers/
+│   ├── Models/
+│   ├── Services/
+│   │   ├── AI/
+│   │   ├── Chat/
+│   │   └── Telegram/
+│   └── Jobs/
+├── resources/
+│   ├── js/
+│   │   ├── pages/
+│   │   └── components/
+│   └── css/
+├── database/
+│   └── migrations/
+├── routes/
+├── docs/                  # Documentation
+└── tests/
+```
+
+## 📖 Documentation
+
+Dokumentasi lengkap tersedia di folder `docs/`:
+
+- [Architecture](docs/ARCHITECTURE.md) - Arsitektur sistem
+- [Blueprint](docs/BLUEPRINT.md) - Feature specifications
+- [Database](docs/DATABASE.md) - Database schema
+- [Plan](docs/PLAN.md) - Implementation plan
+- [Phases](docs/PHASES.md) - Development phases
+- [AI Integration](docs/AI_INTEGRATION.md) - AI integration guide
+- [Telegram](docs/TELEGRAM.md) - Telegram bot integration
+
+## 🧪 Testing
+
+```bash
+# Run all tests
+php artisan test
+
+# Run specific test
+php artisan test --filter=FinanceTest
+
+# Run with coverage
+php artisan test --coverage
+```
+
+## 🔧 Development
+
+```bash
+# Start development server (Laravel + Vite + Queue)
+composer dev
+
+# Format PHP code
+composer lint
+
+# Format JS/Vue code
+npm run format
+
+# Check linting
+npm run lint
+```
+
+## 🤝 Contributing
+
+1. Fork repository
+2. Create feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open Pull Request
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- [Laravel](https://laravel.com)
+- [Vue.js](https://vuejs.org)
+- [Inertia.js](https://inertiajs.com)
+- [Tailwind CSS](https://tailwindcss.com)
+- [OpenAI](https://openai.com)
+
+---
+
+**ASPRI** - Siap Mengatur Hidup Lebih Baik? 🚀
