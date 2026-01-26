@@ -1,9 +1,25 @@
 <script setup lang="ts">
+import {
+    MonthlySummaryCard,
+    QuickActionsCard,
+    RecentActivityCard,
+    TodayScheduleCard,
+    WeeklyChartCard,
+    WelcomeCard,
+} from '@/components/dashboard';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { dashboard } from '@/routes';
-import { type BreadcrumbItem } from '@/types';
+import type {
+    BreadcrumbItem,
+    DashboardProps,
+    MonthlySummary,
+    RecentActivity,
+    TodayEvent,
+    WeeklyExpense,
+} from '@/types';
 import { Head } from '@inertiajs/vue3';
-import PlaceholderPattern from '../components/PlaceholderPattern.vue';
+
+const props = defineProps<DashboardProps>();
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -11,36 +27,37 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: dashboard().url,
     },
 ];
+
+// Type-safe data access
+const monthlySummary: MonthlySummary = props.monthlySummary;
+const todayEvents: TodayEvent[] = props.todayEvents;
+const weeklyExpenses: WeeklyExpense[] = props.weeklyExpenses;
+const recentActivities: RecentActivity[] = props.recentActivities;
 </script>
 
 <template>
     <Head title="Dashboard" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div
-            class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4"
-        >
-            <div class="grid auto-rows-min gap-4 md:grid-cols-3">
-                <div
-                    class="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border"
-                >
-                    <PlaceholderPattern />
-                </div>
-                <div
-                    class="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border"
-                >
-                    <PlaceholderPattern />
-                </div>
-                <div
-                    class="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border"
-                >
-                    <PlaceholderPattern />
-                </div>
+        <div class="flex h-full flex-1 flex-col gap-4 p-4">
+            <!-- Welcome Card - Full Width -->
+            <WelcomeCard />
+
+            <!-- Grid: Summary, Schedule, Quick Actions -->
+            <div class="grid gap-4 md:grid-cols-3">
+                <MonthlySummaryCard :summary="monthlySummary" />
+                <TodayScheduleCard :events="todayEvents" />
+                <QuickActionsCard />
             </div>
-            <div
-                class="relative min-h-[100vh] flex-1 rounded-xl border border-sidebar-border/70 md:min-h-min dark:border-sidebar-border"
-            >
-                <PlaceholderPattern />
+
+            <!-- Grid: Weekly Chart & Recent Activity -->
+            <div class="grid gap-4 lg:grid-cols-3">
+                <div class="lg:col-span-2">
+                    <WeeklyChartCard :expenses="weeklyExpenses" />
+                </div>
+                <div>
+                    <RecentActivityCard :activities="recentActivities" />
+                </div>
             </div>
         </div>
     </AppLayout>
