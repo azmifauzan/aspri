@@ -31,17 +31,20 @@ class DashboardController extends Controller
             'expenseChange' => $lastExpense > 0 ? round((($expense - $lastExpense) / $lastExpense) * 100, 1) : 0,
         ];
 
-        // Today's Events (Still dummy - Schedule module next)
-        $todayEvents = [
-            [
-                'id' => '1',
-                'title' => 'Meeting dengan Tim',
-                'time' => '09:00',
-                'endTime' => '10:00',
-                'type' => 'meeting',
-            ],
-            // ... kept minimal as placeholder
-        ];
+        // Today's Events
+        $todayEvents = $user->schedules()
+            ->whereDate('start_time', \Carbon\Carbon::today())
+            ->orderBy('start_time')
+            ->get()
+            ->map(function ($schedule) {
+                return [
+                    'id' => (string) $schedule->id,
+                    'title' => $schedule->title,
+                    'time' => $schedule->start_time->format('H:i'),
+                    'endTime' => $schedule->end_time->format('H:i'),
+                    'type' => 'personal', // Default type or logic based on title
+                ];
+            });
 
         // Weekly Expenses
         $weeklyExpenses = [];

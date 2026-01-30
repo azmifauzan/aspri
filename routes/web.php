@@ -27,6 +27,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('finance/categories/{category}', [FinanceController::class, 'destroyCategory'])->name('finance.categories.destroy');
     Route::get('finance/accounts', [FinanceController::class, 'accounts'])->name('finance.accounts');
     Route::post('finance/accounts', [FinanceController::class, 'storeAccount'])->name('finance.accounts.store');
+
+    // Schedule routes
+    Route::resource('schedules', \App\Http\Controllers\ScheduleController::class)->only(['index', 'store', 'update', 'destroy']);
+
+    // Note routes
+    Route::resource('notes', \App\Http\Controllers\NoteController::class)->only(['index', 'store', 'update', 'destroy']);
 });
 
 require __DIR__.'/settings.php';
