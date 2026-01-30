@@ -1,7 +1,5 @@
 # ASPRI - Asisten Pribadi Berbasis AI
 
-![ASPRI Banner](docs/images/banner.png)
-
 **ASPRI** adalah aplikasi asisten pribadi cerdas yang dirancang untuk membantu pengelolaan jadwal dan keuangan harian Anda melalui interaksi percakapan natural.
 
 ## ✨ Fitur Utama
