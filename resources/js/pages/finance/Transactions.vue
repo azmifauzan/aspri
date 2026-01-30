@@ -12,7 +12,6 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { finance } from '@/routes';
 import { categories as financeCategories, transactions as financeTransactions } from '@/routes/finance';
 import type { BreadcrumbItem, FinanceTransactionsProps, FinanceTransaction } from '@/types';
 
@@ -21,7 +20,66 @@ import { Filter, Plus, Search, Tag, Trash2 } from 'lucide-vue-next';
 import { ref, watch } from 'vue';
 
 const props = defineProps<FinanceTransactionsProps>();
-// ... (skip lines) ...
+
+const breadcrumbs: BreadcrumbItem[] = [
+    { title: 'Dashboard', href: '/' },
+    { title: 'Keuangan', href: '/finance' },
+    { title: 'Transaksi', href: '/finance/transactions' },
+];
+
+const showAddModal = ref(false);
+const showDeleteModal = ref(false);
+const transactionToDelete = ref<FinanceTransaction | null>(null);
+const searchQuery = ref(props.filters?.search || '');
+const filterType = ref(props.filters?.type || '');
+
+watch([searchQuery, filterType], () => {
+    router.visit(financeTransactions().url, {
+        data: {
+            search: searchQuery.value,
+            type: filterType.value,
+        },
+        preserveState: true,
+        preserveScroll: true,
+        replace: true,
+    });
+});
+
+const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+    });
+};
+
+const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0,
+    }).format(amount);
+};
+
+const getTransactionColor = (tx: FinanceTransaction) => {
+    return tx.tx_type === 'income' ? 'text-emerald-600' : 'text-red-600';
+};
+
+const confirmDelete = (tx: FinanceTransaction) => {
+    transactionToDelete.value = tx;
+    showDeleteModal.value = true;
+};
+
+const deleteTransaction = () => {
+    if (!transactionToDelete.value) return;
+    
+    router.delete(financeTransactions.destroy(transactionToDelete.value.id).url, {
+        onSuccess: () => {
+            showDeleteModal.value = false;
+        },
+    });
+};
+</script>
 <template>
     <Head title="Transaksi Keuangan" />
 
@@ -68,7 +126,7 @@ const props = defineProps<FinanceTransactionsProps>();
                         <div class="flex gap-2">
                             <select
                                 v-model="filterType"
-                                class="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                class="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                             >
                                 <option value="">Semua</option>
                                 <option value="income">Pemasukan</option>

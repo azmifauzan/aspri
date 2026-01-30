@@ -71,5 +71,10 @@ class User extends Authenticatable
     {
         return $this->hasMany(FinanceTransaction::class);
     }
+
+    public function schedules(): HasMany
+    {
+        return $this->hasMany(Schedule::class);
+    }
 }
 

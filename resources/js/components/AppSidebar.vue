@@ -11,9 +11,11 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard, finance } from '@/routes';
+import notes from '@/routes/notes';
+import schedules from '@/routes/schedules';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
-import { LayoutGrid, Wallet } from 'lucide-vue-next';
+import { Calendar, LayoutGrid, Wallet, StickyNote } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 
 const mainNavItems: NavItem[] = [
@@ -26,6 +28,16 @@ const mainNavItems: NavItem[] = [
         title: 'Keuangan',
         href: finance(),
         icon: Wallet,
+    },
+    {
+        title: 'Jadwal',
+        href: schedules.index(),
+        icon: Calendar,
+    },
+    {
+        title: 'Notes',
+        href: notes.index(),
+        icon: StickyNote,
     },
 ];
 </script>
