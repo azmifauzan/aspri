@@ -11,11 +11,12 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard, finance } from '@/routes';
+import { index as chatIndex } from '@/routes/chat';
 import notes from '@/routes/notes';
 import schedules from '@/routes/schedules';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
-import { Calendar, LayoutGrid, Wallet, StickyNote } from 'lucide-vue-next';
+import { Calendar, LayoutGrid, MessageSquare, StickyNote, Wallet } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 
 const mainNavItems: NavItem[] = [
@@ -23,6 +24,11 @@ const mainNavItems: NavItem[] = [
         title: 'Dashboard',
         href: dashboard(),
         icon: LayoutGrid,
+    },
+    {
+        title: 'Chat',
+        href: chatIndex(),
+        icon: MessageSquare,
     },
     {
         title: 'Keuangan',

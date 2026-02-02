@@ -76,5 +76,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(Schedule::class);
     }
-}
 
+    public function chatThreads(): HasMany
+    {
+        return $this->hasMany(ChatThread::class);
+    }
+
+    public function chatMessages(): HasMany
+    {
+        return $this->hasMany(ChatMessage::class);
+    }
+}

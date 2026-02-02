@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ref, computed } from 'vue';
 import { Plus, Pencil, Trash, List, Calendar as CalendarIcon, ChevronLeft, ChevronRight, MapPin, Clock } from 'lucide-vue-next';
-import { schedules as scheduleRoutes } from '@/routes';
+import * as scheduleRoutes from '@/routes/schedules';
 
 interface Schedule {
     id: number;

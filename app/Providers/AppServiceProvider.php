@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Services\Ai\AiProviderInterface;
+use App\Services\Ai\OpenAiProvider;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +17,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(AiProviderInterface::class, function ($app) {
+            return new OpenAiProvider(
+                config('services.openai.api_key'),
+                config('services.openai.model'),
+            );
+        });
     }
 
     /**
