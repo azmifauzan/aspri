@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
-import AppLayout from '@/Layouts/AppLayout.vue';
-import NoteCard from '@/Components/notes/NoteCard.vue';
-import NoteModal from '@/Components/notes/NoteModal.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
+import AppLayout from '@/layouts/AppLayout.vue';
+import NoteCard from '@/components/notes/NoteCard.vue';
+import NoteModal from '@/components/notes/NoteModal.vue';
+import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-vue-next';
 
 const props = defineProps<{
@@ -49,10 +49,10 @@ const togglePin = (note: any) => {
                 <h2 class="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">
                     My Notes
                 </h2>
-                <PrimaryButton @click="openCreateModal">
+                <Button @click="openCreateModal">
                     <Plus :size="16" class="mr-2" />
                     New Note
-                </PrimaryButton>
+                </Button>
             </div>
         </template>
 

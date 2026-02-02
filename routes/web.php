@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ChatController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FinanceController;
 use Illuminate\Support\Facades\Route;
@@ -14,6 +15,12 @@ Route::get('/', function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // Chat routes
+    Route::get('chat', [ChatController::class, 'index'])->name('chat.index');
+    Route::get('chat/{thread}', [ChatController::class, 'show'])->name('chat.show');
+    Route::post('chat/message', [ChatController::class, 'sendMessage'])->name('chat.send');
+    Route::delete('chat/{thread}', [ChatController::class, 'destroy'])->name('chat.destroy');
 
     // Finance routes
     Route::get('finance', [FinanceController::class, 'index'])->name('finance');
@@ -36,4 +43,3 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 require __DIR__.'/settings.php';
-
