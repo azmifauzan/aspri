@@ -24,6 +24,10 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'telegram_chat_id',
+        'telegram_username',
+        'telegram_link_code',
+        'telegram_link_expires_at',
     ];
 
     /**
@@ -49,6 +53,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
+            'telegram_link_expires_at' => 'datetime',
         ];
     }
 

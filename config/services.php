@@ -41,4 +41,12 @@ return [
         'model' => env('OPENAI_MODEL', 'gpt-4o-mini'),
     ],
 
+    'telegram' => [
+        'bot_token' => env('TELEGRAM_BOT_TOKEN'),
+        'bot_username' => env('TELEGRAM_BOT_USERNAME'),
+        'webhook_secret' => env('TELEGRAM_WEBHOOK_SECRET'),
+        'async_requests' => env('TELEGRAM_ASYNC_REQUESTS', false),
+        'http_client_verify' => env('TELEGRAM_HTTP_CLIENT_VERIFY', true),
+    ],
+
 ];
