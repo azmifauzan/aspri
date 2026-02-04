@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\ChatMessage;
 use App\Models\ChatThread;
+use App\Models\ChatUsageLog;
+use App\Models\SystemSetting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -86,11 +88,15 @@ class ChatFeatureTest extends TestCase
             'aspri_persona' => 'asisten yang ramah',
         ]);
 
-        // Mock the AI response - skip actual API call for testing
-        $this->mock(\App\Services\Ai\ChatService::class, function ($mock) {
-            $mock->shouldReceive('sendMessage')
+        // Mock the ChatOrchestrator response - skip actual API call for testing
+        $this->mock(\App\Services\Ai\ChatOrchestrator::class, function ($mock) {
+            $mock->shouldReceive('processMessage')
                 ->once()
-                ->andReturn('Halo! Apa kabar?');
+                ->andReturn([
+                    'response' => 'Halo! Apa kabar?',
+                    'action_executed' => null,
+                    'pending_action' => null,
+                ]);
         });
 
         $response = $this->actingAs($user)->postJson('/chat/message', [
@@ -121,10 +127,14 @@ class ChatFeatureTest extends TestCase
         ]);
         $thread = ChatThread::factory()->create(['user_id' => $user->id]);
 
-        $this->mock(\App\Services\Ai\ChatService::class, function ($mock) {
-            $mock->shouldReceive('sendMessage')
+        $this->mock(\App\Services\Ai\ChatOrchestrator::class, function ($mock) {
+            $mock->shouldReceive('processMessage')
                 ->once()
-                ->andReturn('Baik, saya akan membantu.');
+                ->andReturn([
+                    'response' => 'Baik, saya akan membantu.',
+                    'action_executed' => null,
+                    'pending_action' => null,
+                ]);
         });
 
         $response = $this->actingAs($user)->postJson('/chat/message', [
@@ -169,5 +179,137 @@ class ChatFeatureTest extends TestCase
 
         $response->assertStatus(422);
         $response->assertJsonValidationErrors(['message']);
+    }
+
+    public function test_user_cannot_send_message_when_daily_limit_reached(): void
+    {
+        // Set up chat limit setting with type integer
+        SystemSetting::setValue('free_trial_daily_chat_limit', 5, ['type' => 'integer']);
+
+        $user = User::factory()->create();
+        $user->profile()->create([
+            'birth_day' => 1,
+            'birth_month' => 1,
+            'call_preference' => 'Kak',
+            'aspri_name' => 'ASPRI',
+            'aspri_persona' => 'asisten yang ramah',
+        ]);
+
+        // Simulate user has reached the daily limit
+        ChatUsageLog::create([
+            'user_id' => $user->id,
+            'usage_date' => now()->toDateString(),
+            'response_count' => 5, // Already at limit
+        ]);
+
+        // Verify limit is reached (5 >= 5 = true)
+        $this->assertEquals(5, $user->getDailyChatLimit());
+        $this->assertEquals(5, ChatUsageLog::getTodayCount($user->id));
+        $this->assertTrue($user->hasReachedChatLimit());
+
+        // User should not be able to send more messages
+        $response = $this->actingAs($user)->postJson('/chat/message', [
+            'message' => 'Halo!',
+        ]);
+
+        $response->assertStatus(429);
+        $response->assertJson([
+            'limit_reached' => true,
+            'remaining' => 0,
+        ]);
+    }
+
+    public function test_user_can_send_message_when_limit_not_reached(): void
+    {
+        // Set up chat limit setting
+        SystemSetting::setValue('free_trial_daily_chat_limit', 50);
+
+        $user = User::factory()->create();
+        $user->profile()->create([
+            'birth_day' => 1,
+            'birth_month' => 1,
+            'call_preference' => 'Kak',
+            'aspri_name' => 'ASPRI',
+            'aspri_persona' => 'asisten yang ramah',
+        ]);
+
+        // No previous usage - user should be able to send
+        $this->assertFalse($user->hasReachedChatLimit());
+
+        $this->mock(\App\Services\Ai\ChatOrchestrator::class, function ($mock) {
+            $mock->shouldReceive('processMessage')
+                ->once()
+                ->andReturn([
+                    'response' => 'Halo! Apa kabar?',
+                    'action_executed' => null,
+                    'pending_action' => null,
+                ]);
+        });
+
+        $response = $this->actingAs($user)->postJson('/chat/message', [
+            'message' => 'Halo!',
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJsonStructure([
+            'thread' => ['id', 'title'],
+            'userMessage' => ['id', 'role', 'content', 'createdAt'],
+            'assistantMessage' => ['id', 'role', 'content', 'createdAt'],
+        ]);
+
+        // Verify usage was incremented
+        $this->assertEquals(1, ChatUsageLog::getTodayCount($user->id));
+    }
+
+    public function test_paid_member_has_higher_chat_limit(): void
+    {
+        // Set up chat limits
+        SystemSetting::setValue('free_trial_daily_chat_limit', 50);
+        SystemSetting::setValue('full_member_daily_chat_limit', 500);
+
+        $user = User::factory()->create();
+        $user->profile()->create([
+            'birth_day' => 1,
+            'birth_month' => 1,
+            'call_preference' => 'Kak',
+            'aspri_name' => 'ASPRI',
+            'aspri_persona' => 'asisten yang ramah',
+        ]);
+
+        // Make user a paid member
+        $user->subscriptions()->create([
+            'plan' => 'monthly',
+            'status' => 'active',
+            'starts_at' => now(),
+            'ends_at' => now()->addMonth(),
+        ]);
+
+        // User has used 100 chats (over free trial limit but under paid limit)
+        ChatUsageLog::create([
+            'user_id' => $user->id,
+            'usage_date' => now()->toDateString(),
+            'response_count' => 100,
+        ]);
+
+        // Paid member should not have reached limit
+        $this->assertTrue($user->isPaidMember());
+        $this->assertFalse($user->hasReachedChatLimit());
+
+        $this->mock(\App\Services\Ai\ChatOrchestrator::class, function ($mock) {
+            $mock->shouldReceive('processMessage')
+                ->once()
+                ->andReturn([
+                    'response' => 'Halo!',
+                    'action_executed' => null,
+                    'pending_action' => null,
+                ]);
+        });
+
+        // Paid member should still be able to chat
+        $response = $this->actingAs($user)->postJson('/chat/message', [
+            'message' => 'Halo!',
+        ]);
+
+        $response->assertStatus(200);
     }
 }

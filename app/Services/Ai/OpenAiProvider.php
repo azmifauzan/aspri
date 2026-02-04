@@ -27,12 +27,20 @@ class OpenAiProvider implements AiProviderInterface
      */
     public function chat(array $messages, array $options = []): string
     {
-        $response = $this->client()->post('/chat/completions', [
+        $payload = [
             'model' => $options['model'] ?? $this->model,
             'messages' => $messages,
-            'temperature' => $options['temperature'] ?? 0.7,
-            'max_tokens' => $options['max_tokens'] ?? 1024,
-        ]);
+            'max_completion_tokens' => $options['max_tokens'] ?? 2048,
+        ];
+
+        // Only add temperature if not using a model that doesn't support it
+        if (! $this->isReasoningModel()) {
+            $payload['temperature'] = $options['temperature'] ?? 0.7;
+        }
+
+        Log::debug('OpenAI API Request', ['model' => $payload['model'], 'message_count' => count($messages)]);
+
+        $response = $this->client()->post('/chat/completions', $payload);
 
         if ($response->failed()) {
             Log::error('OpenAI API Error', [
@@ -44,7 +52,37 @@ class OpenAiProvider implements AiProviderInterface
 
         $data = $response->json();
 
-        return $data['choices'][0]['message']['content'] ?? '';
+        // Handle different response formats (some models use 'content', others may use 'refusal' for safety, etc.)
+        $content = $data['choices'][0]['message']['content'] ?? '';
+
+        // Log for debugging
+        Log::debug('OpenAI API Response', [
+            'has_content' => ! empty($content),
+            'finish_reason' => $data['choices'][0]['finish_reason'] ?? 'unknown',
+            'usage' => $data['usage'] ?? null,
+        ]);
+
+        if (empty($content)) {
+            Log::warning('OpenAI returned empty content', ['response' => $data]);
+        }
+
+        return $content;
+    }
+
+    /**
+     * Check if current model is a reasoning model (o1, o3, gpt-5, etc.) that doesn't support temperature.
+     */
+    protected function isReasoningModel(): bool
+    {
+        $reasoningModels = ['o1', 'o3', 'gpt-5'];
+
+        foreach ($reasoningModels as $prefix) {
+            if (str_starts_with($this->model, $prefix)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -54,18 +92,31 @@ class OpenAiProvider implements AiProviderInterface
     {
         $fullResponse = '';
 
+        $httpOptions = [
+            'stream' => true,
+        ];
+
+        // Disable SSL verification in local/development environment
+        if (app()->environment('local', 'development')) {
+            $httpOptions['verify'] = false;
+        }
+
+        $payload = [
+            'model' => $options['model'] ?? $this->model,
+            'messages' => $messages,
+            'max_completion_tokens' => $options['max_tokens'] ?? 1024,
+            'stream' => true,
+        ];
+
+        // Only add temperature if not using a model that doesn't support it
+        if (! $this->isReasoningModel()) {
+            $payload['temperature'] = $options['temperature'] ?? 0.7;
+        }
+
         $response = Http::withHeaders([
             'Authorization' => 'Bearer '.$this->apiKey,
             'Content-Type' => 'application/json',
-        ])->withOptions([
-            'stream' => true,
-        ])->post($this->baseUrl.'/chat/completions', [
-            'model' => $options['model'] ?? $this->model,
-            'messages' => $messages,
-            'temperature' => $options['temperature'] ?? 0.7,
-            'max_tokens' => $options['max_tokens'] ?? 1024,
-            'stream' => true,
-        ]);
+        ])->withOptions($httpOptions)->post($this->baseUrl.'/chat/completions', $payload);
 
         $body = $response->getBody();
 
@@ -98,12 +149,19 @@ class OpenAiProvider implements AiProviderInterface
 
     protected function client(): PendingRequest
     {
-        return Http::baseUrl($this->baseUrl)
+        $client = Http::baseUrl($this->baseUrl)
             ->withHeaders([
                 'Authorization' => 'Bearer '.$this->apiKey,
                 'Content-Type' => 'application/json',
             ])
-            ->timeout(60);
+            ->timeout(120); // Increased timeout for reasoning models
+
+        // Disable SSL verification in local/development/testing environment
+        if (app()->environment('local', 'development', 'testing')) {
+            $client = $client->withOptions(['verify' => false]);
+        }
+
+        return $client;
     }
 
     /**

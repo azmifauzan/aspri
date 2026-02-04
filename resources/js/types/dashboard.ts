@@ -30,9 +30,25 @@ export interface RecentActivity {
     icon: string;
 }
 
+export interface SubscriptionInfo {
+    status: string;
+    plan: string | null;
+    ends_at: string | null;
+    days_remaining: number;
+    is_paid: boolean;
+}
+
+export interface ChatLimit {
+    used: number;
+    limit: number;
+    remaining: number;
+}
+
 export interface DashboardProps {
     monthlySummary: MonthlySummary;
     todayEvents: TodayEvent[];
     weeklyExpenses: WeeklyExpense[];
     recentActivities: RecentActivity[];
+    subscriptionInfo: SubscriptionInfo;
+    chatLimit: ChatLimit;
 }

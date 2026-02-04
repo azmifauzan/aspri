@@ -1,20 +1,34 @@
 <?php
 
+use App\Http\Controllers\Admin\ActivityLogController;
+use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\PaymentController;
+use App\Http\Controllers\Admin\QueueMonitorController;
+use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FinanceController;
+use App\Http\Controllers\SubscriptionController;
+use App\Services\Admin\SettingsService;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
 
-Route::get('/', function () {
+Route::get('/', function (SettingsService $settingsService) {
     return Inertia::render('Welcome', [
         'canRegister' => Features::enabled(Features::registration()),
+        'pricing' => $settingsService->getSubscriptionSettings(),
     ]);
 })->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // Subscription routes
+    Route::get('subscription', [SubscriptionController::class, 'index'])->name('subscription.index');
+    Route::post('subscription/payment', [SubscriptionController::class, 'submitPayment'])->name('subscription.submit-payment');
+    Route::delete('subscription/payment/{paymentProof}', [SubscriptionController::class, 'cancelPayment'])->name('subscription.cancel-payment');
 
     // Chat routes
     Route::get('chat', [ChatController::class, 'index'])->name('chat.index');
@@ -40,6 +54,53 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Note routes
     Route::resource('notes', \App\Http\Controllers\NoteController::class)->only(['index', 'store', 'update', 'destroy']);
+});
+
+// Admin Routes
+Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    // Dashboard
+    Route::get('/', [AdminDashboardController::class, 'index'])->name('index');
+    Route::get('/monitoring', [AdminDashboardController::class, 'monitoringData'])->name('monitoring');
+
+    // User Management
+    Route::get('/users', [UserManagementController::class, 'index'])->name('users.index');
+    Route::get('/users/{user}', [UserManagementController::class, 'show'])->name('users.show');
+    Route::put('/users/{user}', [UserManagementController::class, 'update'])->name('users.update');
+    Route::post('/users/{user}/toggle-active', [UserManagementController::class, 'toggleActive'])->name('users.toggle-active');
+    Route::post('/users/{user}/reset-password', [UserManagementController::class, 'resetPassword'])->name('users.reset-password');
+    Route::delete('/users/{user}', [UserManagementController::class, 'destroy'])->name('users.destroy');
+
+    // Settings (Super Admin only)
+    Route::middleware('super_admin')->group(function () {
+        Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+        Route::post('/settings/ai', [SettingsController::class, 'updateAi'])->name('settings.update-ai');
+        Route::post('/settings/telegram', [SettingsController::class, 'updateTelegram'])->name('settings.update-telegram');
+        Route::post('/settings/app', [SettingsController::class, 'updateApp'])->name('settings.update-app');
+        Route::post('/settings/subscription', [SettingsController::class, 'updateSubscription'])->name('settings.update-subscription');
+        Route::post('/settings/email', [SettingsController::class, 'updateEmail'])->name('settings.update-email');
+        Route::post('/settings/test-ai', [SettingsController::class, 'testAi'])->name('settings.test-ai');
+        Route::post('/settings/test-telegram', [SettingsController::class, 'testTelegram'])->name('settings.test-telegram');
+        Route::post('/settings/test-email', [SettingsController::class, 'testEmail'])->name('settings.test-email');
+    });
+
+    // Payment Management
+    Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
+    Route::get('/payments/{payment}', [PaymentController::class, 'show'])->name('payments.show');
+    Route::post('/payments/{payment}/approve', [PaymentController::class, 'approve'])->name('payments.approve');
+    Route::post('/payments/{payment}/reject', [PaymentController::class, 'reject'])->name('payments.reject');
+
+    // Activity Logs
+    Route::get('/activity', [ActivityLogController::class, 'index'])->name('activity.index');
+    Route::get('/activity/{activityLog}', [ActivityLogController::class, 'show'])->name('activity.show');
+
+    // Queue Monitoring
+    Route::get('/queues', [QueueMonitorController::class, 'index'])->name('queues.index');
+    Route::get('/queues/data', [QueueMonitorController::class, 'data'])->name('queues.data');
+    Route::post('/queues/{id}/retry', [QueueMonitorController::class, 'retryJob'])->name('queues.retry');
+    Route::post('/queues/retry-all', [QueueMonitorController::class, 'retryAll'])->name('queues.retry-all');
+    Route::delete('/queues/{id}', [QueueMonitorController::class, 'deleteJob'])->name('queues.delete');
+    Route::post('/queues/flush', [QueueMonitorController::class, 'flushFailed'])->name('queues.flush');
+    Route::post('/queues/clear', [QueueMonitorController::class, 'clearPending'])->name('queues.clear');
 });
 
 require __DIR__.'/settings.php';

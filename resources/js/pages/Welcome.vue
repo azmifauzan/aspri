@@ -4,20 +4,45 @@ import { Head, Link } from '@inertiajs/vue3';
 import {
     Bot,
     Calendar,
+    Check,
+    Clock,
+    Crown,
     MessageSquare,
     Sparkles,
     TrendingUp,
     Wallet,
 } from 'lucide-vue-next';
 
-withDefaults(
+interface PricingInfo {
+    monthly_price: number;
+    yearly_price: number;
+    free_trial_days: number;
+    free_trial_daily_chat_limit: number;
+    full_member_daily_chat_limit: number;
+}
+
+const props = withDefaults(
     defineProps<{
         canRegister: boolean;
+        pricing: PricingInfo;
     }>(),
     {
         canRegister: true,
+        pricing: () => ({
+            monthly_price: 10000,
+            yearly_price: 100000,
+            free_trial_days: 30,
+            free_trial_daily_chat_limit: 50,
+            full_member_daily_chat_limit: 500,
+        }),
     },
 );
+
+const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('id-ID').format(value);
+};
+
+const yearlySavings = props.pricing.monthly_price * 12 - props.pricing.yearly_price;
 
 const features = [
     {
@@ -182,6 +207,126 @@ const features = [
                         <p class="text-sm text-muted-foreground">
                             {{ feature.description }}
                         </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pricing Section -->
+        <section id="pricing" class="container mx-auto px-4 py-16 lg:py-24 bg-muted/30">
+            <div class="mx-auto max-w-4xl">
+                <div class="mb-12 text-center">
+                    <h2 class="mb-4 text-3xl font-bold tracking-tight sm:text-4xl">
+                        Harga Terjangkau
+                    </h2>
+                    <p class="text-lg text-muted-foreground">
+                        Mulai dengan {{ pricing.free_trial_days }} hari trial gratis, lalu pilih paket yang sesuai
+                    </p>
+                </div>
+
+                <!-- Free Trial Banner -->
+                <div class="mb-8 rounded-xl border border-primary/20 bg-primary/5 p-6 text-center">
+                    <div class="flex items-center justify-center gap-2 mb-2">
+                        <Clock class="h-5 w-5 text-primary" />
+                        <span class="text-lg font-semibold">Free Trial {{ pricing.free_trial_days }} Hari</span>
+                    </div>
+                    <p class="text-muted-foreground mb-4">
+                        Coba semua fitur dengan {{ pricing.free_trial_daily_chat_limit }} chat AI per hari, tanpa kartu kredit
+                    </p>
+                    <Link
+                        v-if="canRegister"
+                        :href="register()"
+                        class="inline-flex h-10 items-center justify-center rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                    >
+                        Mulai Trial Gratis
+                    </Link>
+                </div>
+
+                <!-- Pricing Cards -->
+                <div class="grid gap-6 md:grid-cols-2">
+                    <!-- Monthly -->
+                    <div class="rounded-xl border border-border/40 bg-card p-6">
+                        <div class="mb-4 flex items-center gap-2">
+                            <Crown class="h-5 w-5 text-primary" />
+                            <h3 class="text-xl font-semibold">Bulanan</h3>
+                        </div>
+                        <div class="mb-4">
+                            <span class="text-4xl font-bold">Rp {{ formatCurrency(pricing.monthly_price) }}</span>
+                            <span class="text-muted-foreground">/bulan</span>
+                        </div>
+                        <ul class="mb-6 space-y-3 text-sm">
+                            <li class="flex items-center gap-2">
+                                <Check class="h-4 w-4 text-green-500" />
+                                {{ pricing.full_member_daily_chat_limit }} chat AI per hari
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <Check class="h-4 w-4 text-green-500" />
+                                Semua fitur premium
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <Check class="h-4 w-4 text-green-500" />
+                                Support prioritas
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <Check class="h-4 w-4 text-green-500" />
+                                Fleksibel tanpa komitmen
+                            </li>
+                        </ul>
+                        <Link
+                            v-if="canRegister"
+                            :href="register()"
+                            class="flex h-10 w-full items-center justify-center rounded-md border border-input bg-background text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+                        >
+                            Pilih Bulanan
+                        </Link>
+                    </div>
+
+                    <!-- Yearly (Best Value) -->
+                    <div class="relative rounded-xl border-2 border-primary bg-card p-6 shadow-lg">
+                        <div class="absolute -top-3 left-1/2 -translate-x-1/2">
+                            <span class="rounded-full bg-green-500 px-3 py-1 text-xs font-semibold text-white">
+                                Hemat {{ Math.round((yearlySavings / (pricing.monthly_price * 12)) * 100) }}%
+                            </span>
+                        </div>
+                        <div class="mb-4 flex items-center gap-2">
+                            <Crown class="h-5 w-5 text-yellow-500" />
+                            <h3 class="text-xl font-semibold">Tahunan</h3>
+                            <span class="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                                Best Value
+                            </span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="text-4xl font-bold">Rp {{ formatCurrency(pricing.yearly_price) }}</span>
+                            <span class="text-muted-foreground">/tahun</span>
+                        </div>
+                        <p class="mb-4 text-sm text-green-600 dark:text-green-400">
+                            Setara Rp {{ formatCurrency(Math.round(pricing.yearly_price / 12)) }}/bulan • Hemat Rp {{ formatCurrency(yearlySavings) }}
+                        </p>
+                        <ul class="mb-6 space-y-3 text-sm">
+                            <li class="flex items-center gap-2">
+                                <Check class="h-4 w-4 text-green-500" />
+                                {{ pricing.full_member_daily_chat_limit }} chat AI per hari
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <Check class="h-4 w-4 text-green-500" />
+                                Semua fitur premium
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <Check class="h-4 w-4 text-green-500" />
+                                Support prioritas
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <Check class="h-4 w-4 text-green-500" />
+                                Harga terbaik untuk pengguna setia
+                            </li>
+                        </ul>
+                        <Link
+                            v-if="canRegister"
+                            :href="register()"
+                            class="flex h-10 w-full items-center justify-center rounded-md bg-primary text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                        >
+                            Pilih Tahunan
+                        </Link>
                     </div>
                 </div>
             </div>

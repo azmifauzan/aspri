@@ -3,8 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Services\Telegram\TelegramBotService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
+use Mockery\MockInterface;
 use Tests\TestCase;
 
 class TelegramWebhookTest extends TestCase
@@ -14,6 +16,12 @@ class TelegramWebhookTest extends TestCase
     public function test_webhook_rejects_unauthorized_requests(): void
     {
         config(['services.telegram.webhook_secret' => 'test-secret']);
+        config(['services.telegram.bot_token' => 'test-token']);
+
+        // Mock TelegramBotService
+        $this->mock(TelegramBotService::class, function (MockInterface $mock) {
+            $mock->shouldReceive('processUpdate')->andReturnNull();
+        });
 
         $response = $this->postJson('/api/telegram/webhook', [
             'update_id' => 123,
@@ -29,6 +37,12 @@ class TelegramWebhookTest extends TestCase
     public function test_webhook_accepts_authorized_requests(): void
     {
         config(['services.telegram.webhook_secret' => 'test-secret']);
+        config(['services.telegram.bot_token' => 'test-token']);
+
+        // Mock TelegramBotService
+        $this->mock(TelegramBotService::class, function (MockInterface $mock) {
+            $mock->shouldReceive('processUpdate')->once()->andReturnNull();
+        });
 
         $response = $this->postJson(
             '/api/telegram/webhook',
@@ -56,6 +70,12 @@ class TelegramWebhookTest extends TestCase
     public function test_link_command_with_valid_code(): void
     {
         config(['services.telegram.webhook_secret' => 'test-secret']);
+        config(['services.telegram.bot_token' => 'test-token']);
+
+        // Mock TelegramBotService
+        $this->mock(TelegramBotService::class, function (MockInterface $mock) {
+            $mock->shouldReceive('processUpdate')->once()->andReturnNull();
+        });
 
         $user = User::factory()->create([
             'telegram_link_code' => 'ABC123',

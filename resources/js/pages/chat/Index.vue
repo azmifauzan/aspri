@@ -24,6 +24,7 @@ const messages = ref<ChatMessage[]>([...props.messages]);
 const isLoading = ref(false);
 const currentThreadId = ref<string | null>(props.currentThread?.id ?? null);
 const threads = ref<ChatThread[]>([...props.threads]);
+const chatInputRef = ref<InstanceType<typeof ChatInput> | null>(null);
 
 // Watch for prop changes (when navigating between threads)
 watch(
@@ -104,6 +105,9 @@ const sendMessage = async (content: string) => {
             // Update URL without full page reload
             window.history.replaceState({}, '', `/chat/${data.thread.id}`);
         }
+
+        // Focus input after successful message
+        chatInputRef.value?.focusInput();
     } catch (error) {
         console.error('Failed to send message:', error);
         // Remove optimistic message on error
@@ -116,6 +120,9 @@ const sendMessage = async (content: string) => {
             content: 'Maaf, terjadi kesalahan. Silakan coba lagi.',
             createdAt: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
         });
+
+        // Focus input after error
+        chatInputRef.value?.focusInput();
     } finally {
         isLoading.value = false;
     }
@@ -159,7 +166,7 @@ const deleteThread = async (threadId: string) => {
     <Head title="Chat" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="flex h-[calc(100vh-4rem)] overflow-hidden">
+        <div class="flex h-[calc(100vh-8rem)] overflow-hidden rounded-lg border bg-background">
             <!-- Sidebar -->
             <ChatSidebar
                 :threads="threads"
@@ -170,19 +177,24 @@ const deleteThread = async (threadId: string) => {
             />
 
             <!-- Main Chat Area -->
-            <div class="flex flex-1 flex-col">
+            <div class="flex flex-1 flex-col overflow-hidden">
                 <!-- Messages -->
-                <ChatMessageList
-                    :messages="messages"
-                    :is-loading="isLoading"
-                    :user-name="user.name"
-                />
+                <div class="flex-1 overflow-hidden">
+                    <ChatMessageList
+                        :messages="messages"
+                        :is-loading="isLoading"
+                        :user-name="user.name"
+                    />
+                </div>
 
                 <!-- Input -->
-                <ChatInput
-                    :is-loading="isLoading"
-                    @send="sendMessage"
-                />
+                <div class="shrink-0">
+                    <ChatInput
+                        ref="chatInputRef"
+                        :is-loading="isLoading"
+                        @send="sendMessage"
+                    />
+                </div>
             </div>
         </div>
     </AppLayout>

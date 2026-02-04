@@ -3,6 +3,7 @@ import {
     MonthlySummaryCard,
     QuickActionsCard,
     RecentActivityCard,
+    SubscriptionCard,
     TodayScheduleCard,
     WeeklyChartCard,
     WelcomeCard,
@@ -11,15 +12,24 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { dashboard } from '@/routes';
 import type {
     BreadcrumbItem,
-    DashboardProps,
+    ChatLimit,
     MonthlySummary,
     RecentActivity,
+    SubscriptionInfo,
     TodayEvent,
     WeeklyExpense,
 } from '@/types';
-import { Head } from '@inertiajs/vue3';
+import { Head, usePage } from '@inertiajs/vue3';
 
-const props = defineProps<DashboardProps>();
+// Use usePage to get props directly since defineProps has issues with some props
+const page = usePage<{
+    monthlySummary: MonthlySummary;
+    todayEvents: TodayEvent[];
+    weeklyExpenses: WeeklyExpense[];
+    recentActivities: RecentActivity[];
+    subscriptionInfo: SubscriptionInfo;
+    chatLimit: ChatLimit;
+}>();
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -28,11 +38,13 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-// Type-safe data access
-const monthlySummary: MonthlySummary = props.monthlySummary;
-const todayEvents: TodayEvent[] = props.todayEvents;
-const weeklyExpenses: WeeklyExpense[] = props.weeklyExpenses;
-const recentActivities: RecentActivity[] = props.recentActivities;
+// Type-safe data access from page props
+const monthlySummary = page.props.monthlySummary;
+const todayEvents = page.props.todayEvents;
+const weeklyExpenses = page.props.weeklyExpenses;
+const recentActivities = page.props.recentActivities;
+const subscriptionInfo = page.props.subscriptionInfo;
+const chatLimit = page.props.chatLimit;
 </script>
 
 <template>
@@ -43,10 +55,11 @@ const recentActivities: RecentActivity[] = props.recentActivities;
             <!-- Welcome Card - Full Width -->
             <WelcomeCard />
 
-            <!-- Grid: Summary, Schedule, Quick Actions -->
-            <div class="grid gap-4 md:grid-cols-3">
+            <!-- Grid: Summary, Schedule, Subscription, Quick Actions -->
+            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <MonthlySummaryCard :summary="monthlySummary" />
                 <TodayScheduleCard :events="todayEvents" />
+                <SubscriptionCard :subscription-info="subscriptionInfo" :chat-limit="chatLimit" />
                 <QuickActionsCard />
             </div>
 

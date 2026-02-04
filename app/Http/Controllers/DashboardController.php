@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ChatUsageLog;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -16,7 +17,7 @@ class DashboardController extends Controller
         $thisMonth = $user->financeTransactions()->thisMonth();
         $income = (float) (clone $thisMonth)->income()->sum('amount');
         $expense = (float) (clone $thisMonth)->expense()->sum('amount');
-        
+
         $lastMonth = $user->financeTransactions()
             ->whereMonth('occurred_at', \Carbon\Carbon::now()->subMonth()->month)
             ->whereYear('occurred_at', \Carbon\Carbon::now()->subMonth()->year);
@@ -55,7 +56,7 @@ class DashboardController extends Controller
                 ->expense()
                 ->whereDate('occurred_at', $date)
                 ->sum('amount');
-            
+
             $weeklyExpenses[] = [
                 'day' => $dayNames[$date->dayOfWeek],
                 'amount' => (float) $amount,
@@ -73,20 +74,37 @@ class DashboardController extends Controller
                     'id' => $tx->id,
                     'type' => $tx->tx_type, // 'income' or 'expense'
                     'title' => $tx->category?->name ?? ($tx->tx_type === 'income' ? 'Pemasukan' : 'Pengeluaran'),
-                    'description' => 'Rp ' . number_format($tx->amount, 0, ',', '.'),
+                    'description' => 'Rp '.number_format($tx->amount, 0, ',', '.'),
                     'time' => $tx->occurred_at->diffForHumans(),
                     'icon' => $tx->category?->icon ?? ($tx->tx_type === 'income' ? 'trending-up' : 'wallet'),
                 ];
             });
-            
+
         // Merge with dummy events/notes until those modules exist
         $recentActivities = $recentTransactions->toArray();
+
+        // Subscription info
+        $subscriptionInfo = $user->getSubscriptionInfo();
+        $chatLimit = [
+            'used' => ChatUsageLog::getTodayCount($user->id),
+            'limit' => $user->getDailyChatLimit(),
+            'remaining' => $user->getRemainingChats(),
+        ];
+
+        // DEBUG
+        logger()->info('Dashboard Data', [
+            'user_id' => $user->id,
+            'subscriptionInfo' => $subscriptionInfo,
+            'chatLimit' => $chatLimit,
+        ]);
 
         return Inertia::render('Dashboard', [
             'monthlySummary' => $monthlySummary,
             'todayEvents' => $todayEvents,
             'weeklyExpenses' => $weeklyExpenses,
             'recentActivities' => $recentActivities,
+            'subscriptionInfo' => $subscriptionInfo,
+            'chatLimit' => $chatLimit,
         ]);
     }
 }

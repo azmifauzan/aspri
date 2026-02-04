@@ -2,11 +2,18 @@
 
 namespace App\Providers;
 
+use App\Services\Admin\SettingsService;
+use App\Services\Ai\ActionExecutorService;
 use App\Services\Ai\AiProviderInterface;
+use App\Services\Ai\ChatOrchestrator;
+use App\Services\Ai\ChatService;
+use App\Services\Ai\IntentParserService;
 use App\Services\Ai\OpenAiProvider;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -18,9 +25,39 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(AiProviderInterface::class, function ($app) {
+            // Get AI config from database via SettingsService
+            // Only if database is available (not during migrations)
+            if (Schema::hasTable('system_settings')) {
+                $settingsService = $app->make(SettingsService::class);
+                $config = $settingsService->getActiveAiConfig();
+
+                return new OpenAiProvider(
+                    $config['api_key'],
+                    $config['model'],
+                );
+            }
+
+            // Fallback to env config during migrations or if table doesn't exist
             return new OpenAiProvider(
                 config('services.openai.api_key'),
                 config('services.openai.model'),
+            );
+        });
+
+        $this->app->singleton(IntentParserService::class, function ($app) {
+            return new IntentParserService($app->make(AiProviderInterface::class));
+        });
+
+        $this->app->singleton(ActionExecutorService::class, function ($app) {
+            return new ActionExecutorService;
+        });
+
+        $this->app->singleton(ChatOrchestrator::class, function ($app) {
+            return new ChatOrchestrator(
+                $app->make(ChatService::class),
+                $app->make(IntentParserService::class),
+                $app->make(ActionExecutorService::class),
+                $app->make(AiProviderInterface::class)
             );
         });
     }
@@ -31,6 +68,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        $this->configureDynamicMail();
     }
 
     protected function configureDefaults(): void
@@ -50,5 +88,38 @@ class AppServiceProvider extends ServiceProvider
                 ->uncompromised()
             : null
         );
+    }
+
+    /**
+     * Configure dynamic mail settings from database.
+     */
+    protected function configureDynamicMail(): void
+    {
+        // Only configure if database is available
+        if (! Schema::hasTable('system_settings')) {
+            return;
+        }
+
+        try {
+            $settingsService = app(SettingsService::class);
+            $smtpConfig = $settingsService->getSmtpConfig();
+
+            // Only override if we have settings in database
+            if ($smtpConfig['host'] && $smtpConfig['username']) {
+                Config::set('mail.default', 'smtp');
+                Config::set('mail.mailers.smtp.host', $smtpConfig['host']);
+                Config::set('mail.mailers.smtp.port', $smtpConfig['port']);
+                Config::set('mail.mailers.smtp.encryption', $smtpConfig['encryption']);
+                Config::set('mail.mailers.smtp.username', $smtpConfig['username']);
+                Config::set('mail.mailers.smtp.password', $smtpConfig['password']);
+
+                if ($smtpConfig['from']['address']) {
+                    Config::set('mail.from.address', $smtpConfig['from']['address']);
+                    Config::set('mail.from.name', $smtpConfig['from']['name']);
+                }
+            }
+        } catch (\Exception $e) {
+            // Silently fail if database is not available
+        }
     }
 }

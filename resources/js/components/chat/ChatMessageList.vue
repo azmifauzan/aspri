@@ -4,7 +4,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { ChatMessage } from '@/types';
 import { Bot, User } from 'lucide-vue-next';
-import { nextTick, ref, watch } from 'vue';
+import { nextTick, ref, watch, type ComponentPublicInstance } from 'vue';
 
 type Props = {
     messages: ChatMessage[];
@@ -14,22 +14,50 @@ type Props = {
 
 const props = defineProps<Props>();
 
-const scrollContainer = ref<HTMLElement | null>(null);
+const scrollContainer = ref<ComponentPublicInstance | null>(null);
+const newMessageIds = ref<Set<string>>(new Set());
 
-const scrollToBottom = () => {
-    nextTick(() => {
-        if (scrollContainer.value) {
-            const scrollArea = scrollContainer.value.querySelector('[data-radix-scroll-area-viewport]');
-            if (scrollArea) {
-                scrollArea.scrollTop = scrollArea.scrollHeight;
+const scrollToBottom = (smooth = true) => {
+    // Try multiple times to ensure scroll happens
+    const attemptScroll = (attempt = 0) => {
+        if (attempt > 3) return;
+        
+        nextTick(() => {
+            if (scrollContainer.value?.$el) {
+                const scrollArea = scrollContainer.value.$el.querySelector('[data-radix-scroll-area-viewport]');
+                if (scrollArea) {
+                    scrollArea.scrollTo({
+                        top: scrollArea.scrollHeight,
+                        behavior: smooth ? 'smooth' : 'auto'
+                    });
+                    
+                    // Retry after a short delay to ensure content is rendered
+                    if (attempt < 3) {
+                        setTimeout(() => attemptScroll(attempt + 1), 50);
+                    }
+                }
             }
-        }
-    });
+        });
+    };
+    
+    attemptScroll();
 };
 
 watch(
     () => props.messages.length,
-    () => {
+    (newLength, oldLength) => {
+        if (newLength > oldLength) {
+            // Mark the last message as new
+            const lastMessage = props.messages[props.messages.length - 1];
+            if (lastMessage) {
+                newMessageIds.value.add(lastMessage.id);
+                
+                // Remove the indicator after animation
+                setTimeout(() => {
+                    newMessageIds.value.delete(lastMessage.id);
+                }, 2000);
+            }
+        }
         scrollToBottom();
     }
 );
@@ -58,10 +86,14 @@ const formatContent = (content: string) => {
         .replace(/`(.*?)`/g, '<code class="bg-muted px-1 py-0.5 rounded text-sm">$1</code>')
         .replace(/\n/g, '<br />');
 };
+
+const isNewMessage = (messageId: string) => {
+    return newMessageIds.value.has(messageId);
+};
 </script>
 
 <template>
-    <ScrollArea ref="scrollContainer" class="flex-1">
+    <ScrollArea ref="scrollContainer" class="h-full">
         <div class="mx-auto max-w-3xl space-y-6 p-4">
             <!-- Empty State -->
             <div
@@ -82,10 +114,11 @@ const formatContent = (content: string) => {
             <div
                 v-for="message in messages"
                 :key="message.id"
-                class="flex gap-3"
-                :class="{
-                    'flex-row-reverse': message.role === 'user',
-                }"
+                class="flex gap-3 transition-all duration-300"
+                :class="[
+                    { 'flex-row-reverse': message.role === 'user' },
+                    { 'animate-in fade-in slide-in-from-bottom-2': isNewMessage(message.id) }
+                ]"
             >
                 <!-- Avatar -->
                 <Avatar class="h-8 w-8 shrink-0">
@@ -102,11 +135,14 @@ const formatContent = (content: string) => {
 
                 <!-- Message Bubble -->
                 <div
-                    class="max-w-[80%] rounded-2xl px-4 py-2"
-                    :class="{
-                        'bg-primary text-primary-foreground': message.role === 'user',
-                        'bg-muted': message.role === 'assistant',
-                    }"
+                    class="max-w-[80%] rounded-2xl px-4 py-2 transition-all duration-300"
+                    :class="[
+                        {
+                            'bg-primary text-primary-foreground': message.role === 'user',
+                            'bg-muted': message.role === 'assistant',
+                        },
+                        { 'ring-2 ring-primary/50': isNewMessage(message.id) }
+                    ]"
                 >
                     <div
                         class="prose prose-sm dark:prose-invert max-w-none"

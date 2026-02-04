@@ -2,7 +2,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Send } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 
 type Props = {
     isLoading: boolean;
@@ -16,12 +16,26 @@ defineProps<Props>();
 const emit = defineEmits<Emits>();
 
 const message = ref('');
+const inputRef = ref<HTMLInputElement | null>(null);
+
+const focusInput = () => {
+    setTimeout(() => {
+        // Access the actual input element from the component
+        const inputElement = inputRef.value as any;
+        if (inputElement?.$el) {
+            inputElement.$el.focus();
+        } else if (inputElement?.focus) {
+            inputElement.focus();
+        }
+    }, 100);
+};
 
 const handleSubmit = () => {
     if (!message.value.trim()) return;
 
     emit('send', message.value);
     message.value = '';
+    focusInput();
 };
 
 const handleKeydown = (e: KeyboardEvent) => {
@@ -30,6 +44,14 @@ const handleKeydown = (e: KeyboardEvent) => {
         handleSubmit();
     }
 };
+
+onMounted(() => {
+    focusInput();
+});
+
+defineExpose({
+    focusInput,
+});
 </script>
 
 <template>
@@ -39,6 +61,7 @@ const handleKeydown = (e: KeyboardEvent) => {
             class="mx-auto flex max-w-3xl items-center gap-2"
         >
             <Input
+                ref="inputRef"
                 v-model="message"
                 placeholder="Ketik pesan..."
                 class="flex-1"

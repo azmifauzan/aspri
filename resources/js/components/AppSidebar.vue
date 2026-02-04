@@ -5,19 +5,33 @@ import {
     Sidebar,
     SidebarContent,
     SidebarFooter,
+    SidebarGroup,
+    SidebarGroupLabel,
     SidebarHeader,
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import { useCurrentUrl } from '@/composables/useCurrentUrl';
+import admin from '@/routes/admin';
 import { dashboard, finance } from '@/routes';
 import { index as chatIndex } from '@/routes/chat';
 import notes from '@/routes/notes';
 import schedules from '@/routes/schedules';
+import subscription from '@/routes/subscription';
 import { type NavItem } from '@/types';
-import { Link } from '@inertiajs/vue3';
-import { Calendar, LayoutGrid, MessageSquare, StickyNote, Wallet } from 'lucide-vue-next';
+import { Link, usePage } from '@inertiajs/vue3';
+import { Calendar, Crown, LayoutGrid, MessageSquare, Settings, StickyNote, Wallet } from 'lucide-vue-next';
+import { computed } from 'vue';
 import AppLogo from './AppLogo.vue';
+
+const page = usePage();
+const { isCurrentUrl } = useCurrentUrl();
+
+const isAdmin = computed(() => {
+    const role = page.props.auth?.user?.role;
+    return role === 'admin' || role === 'super_admin';
+});
 
 const mainNavItems: NavItem[] = [
     {
@@ -45,6 +59,11 @@ const mainNavItems: NavItem[] = [
         href: notes.index(),
         icon: StickyNote,
     },
+    {
+        title: 'Subscription',
+        href: subscription.index(),
+        icon: Crown,
+    },
 ];
 </script>
 
@@ -64,6 +83,21 @@ const mainNavItems: NavItem[] = [
 
         <SidebarContent>
             <NavMain :items="mainNavItems" />
+
+            <!-- Admin Section -->
+            <SidebarGroup v-if="isAdmin" class="px-2 py-0">
+                <SidebarGroupLabel>Administration</SidebarGroupLabel>
+                <SidebarMenu>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton as-child :is-active="isCurrentUrl(admin.index())" tooltip="Admin Panel">
+                            <Link :href="admin.index()">
+                                <Settings />
+                                <span>Admin Panel</span>
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                </SidebarMenu>
+            </SidebarGroup>
         </SidebarContent>
 
         <SidebarFooter>

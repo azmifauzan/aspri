@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { router } from '@inertiajs/vue3';
 import {
     CalendarPlus,
     FileText,
@@ -16,6 +17,7 @@ const quickActions = [
         icon: TrendingDown,
         color: 'text-red-600 dark:text-red-400',
         bgColor: 'bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50',
+        url: '/finance?type=expense',
     },
     {
         id: 'income',
@@ -23,6 +25,7 @@ const quickActions = [
         icon: TrendingUp,
         color: 'text-emerald-600 dark:text-emerald-400',
         bgColor: 'bg-emerald-100 dark:bg-emerald-900/30 hover:bg-emerald-200 dark:hover:bg-emerald-900/50',
+        url: '/finance?type=income',
     },
     {
         id: 'event',
@@ -30,6 +33,7 @@ const quickActions = [
         icon: CalendarPlus,
         color: 'text-blue-600 dark:text-blue-400',
         bgColor: 'bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50',
+        url: '/schedules',
     },
     {
         id: 'note',
@@ -37,12 +41,12 @@ const quickActions = [
         icon: FileText,
         color: 'text-amber-600 dark:text-amber-400',
         bgColor: 'bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 dark:hover:bg-amber-900/50',
+        url: '/notes',
     },
 ];
 
-const handleAction = (actionId: string) => {
-    // TODO: Implement navigation or modal opening
-    console.log('Quick action:', actionId);
+const handleAction = (url: string) => {
+    router.visit(url);
 };
 </script>
 
@@ -62,7 +66,7 @@ const handleAction = (actionId: string) => {
                     variant="ghost"
                     class="h-auto flex-col gap-2 py-4"
                     :class="action.bgColor"
-                    @click="handleAction(action.id)"
+                    @click="handleAction(action.url)"
                 >
                     <component
                         :is="action.icon"

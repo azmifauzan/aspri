@@ -5,15 +5,17 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Chat\SendMessageRequest;
 use App\Models\ChatMessage;
 use App\Models\ChatThread;
-use App\Services\Ai\ChatService;
+use App\Models\ChatUsageLog;
+use App\Services\Ai\ChatOrchestrator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class ChatController extends Controller
 {
-    public function __construct(protected ChatService $chatService) {}
+    public function __construct(protected ChatOrchestrator $chatOrchestrator) {}
 
     /**
      * Display the chat interface.
@@ -36,6 +38,13 @@ class ChatController extends Controller
             'threads' => $threads,
             'currentThread' => null,
             'messages' => [],
+            'chatLimit' => [
+                'daily_limit' => $user->getDailyChatLimit(),
+                'used_today' => ChatUsageLog::getTodayCount($user->id),
+                'remaining' => $user->getRemainingChats(),
+                'is_limited' => $user->hasReachedChatLimit(),
+            ],
+            'subscriptionInfo' => $user->getSubscriptionInfo(),
         ]);
     }
 
@@ -75,6 +84,13 @@ class ChatController extends Controller
                 'title' => $thread->title ?? 'Chat Baru',
             ],
             'messages' => $messages,
+            'chatLimit' => [
+                'daily_limit' => $user->getDailyChatLimit(),
+                'used_today' => ChatUsageLog::getTodayCount($user->id),
+                'remaining' => $user->getRemainingChats(),
+                'is_limited' => $user->hasReachedChatLimit(),
+            ],
+            'subscriptionInfo' => $user->getSubscriptionInfo(),
         ]);
     }
 
@@ -86,6 +102,15 @@ class ChatController extends Controller
         $user = $request->user();
         $threadId = $request->input('thread_id');
         $messageContent = $request->input('message');
+
+        // Check chat limit
+        if ($user->hasReachedChatLimit()) {
+            return response()->json([
+                'error' => 'Anda telah mencapai batas chat harian. Upgrade ke Full Member untuk mendapatkan lebih banyak chat.',
+                'limit_reached' => true,
+                'remaining' => 0,
+            ], 429);
+        }
 
         // Get or create thread
         if ($threadId) {
@@ -116,10 +141,13 @@ class ChatController extends Controller
             ->map(fn ($m) => ['role' => $m->role, 'content' => $m->content])
             ->toArray();
 
-        // Get AI response
+        // Process message through ChatOrchestrator
         try {
-            $aiResponse = $this->chatService->sendMessage($user, $messageContent, $history);
+            $result = $this->chatOrchestrator->processMessage($user, $messageContent, $thread, $history);
+            $aiResponse = $result['response'];
         } catch (\Exception $e) {
+            Log::error('Chat error', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+
             return response()->json([
                 'error' => 'Maaf, terjadi kesalahan saat memproses pesan. Silakan coba lagi.',
             ], 500);
@@ -132,6 +160,9 @@ class ChatController extends Controller
             'role' => 'assistant',
             'content' => $aiResponse,
         ]);
+
+        // Increment chat usage count
+        ChatUsageLog::incrementForUser($user->id);
 
         // Update thread last message time
         $thread->update(['last_message_at' => now()]);
@@ -152,6 +183,12 @@ class ChatController extends Controller
                 'role' => 'assistant',
                 'content' => $assistantMessage->content,
                 'createdAt' => $assistantMessage->created_at->format('H:i'),
+            ],
+            'chatLimit' => [
+                'daily_limit' => $user->getDailyChatLimit(),
+                'used_today' => ChatUsageLog::getTodayCount($user->id),
+                'remaining' => $user->getRemainingChats(),
+                'is_limited' => $user->hasReachedChatLimit(),
             ],
         ]);
     }
