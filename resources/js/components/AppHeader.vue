@@ -3,6 +3,7 @@ import AppLogo from '@/components/AppLogo.vue';
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import Breadcrumbs from '@/components/Breadcrumbs.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -34,9 +35,10 @@ import { getInitials } from '@/composables/useInitials';
 import { toUrl } from '@/lib/utils';
 import { dashboard } from '@/routes';
 import { index as chatIndex } from '@/routes/chat';
+import subscriptionRoutes from '@/routes/subscription';
 import type { BreadcrumbItem, NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { BookOpen, Folder, LayoutGrid, Menu, MessageSquare, Search } from 'lucide-vue-next';
+import { BookOpen, Crown, Folder, LayoutGrid, Menu, MessageSquare, Search } from 'lucide-vue-next';
 import { computed } from 'vue';
 
 type Props = {
@@ -49,6 +51,8 @@ const props = withDefaults(defineProps<Props>(), {
 
 const page = usePage();
 const auth = computed(() => page.props.auth);
+const subscriptionInfo = computed(() => page.props.auth.subscriptionInfo);
+const chatLimit = computed(() => page.props.auth.chatLimit);
 const { isCurrentUrl, whenCurrentUrl } = useCurrentUrl();
 
 const activeItemStyles =
@@ -242,6 +246,48 @@ const rightNavItems: NavItem[] = [
                                 </TooltipProvider>
                             </template>
                         </div>
+                    </div>
+
+                    <!-- Subscription Status & Chat Count -->
+                    <div class="hidden items-center gap-2 lg:flex">
+                        <!-- Chat Count -->
+                        <TooltipProvider :delay-duration="0" v-if="chatLimit">
+                            <Tooltip>
+                                <TooltipTrigger>
+                                    <div class="flex items-center gap-1.5 rounded-md border bg-background px-2.5 py-1.5 text-sm">
+                                        <MessageSquare class="h-4 w-4" />
+                                        <span class="font-medium">{{ chatLimit.remaining }}/{{ chatLimit.limit }}</span>
+                                    </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Chat tersisa hari ini</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+
+                        <!-- Subscription Badge -->
+                        <Badge 
+                            v-if="subscriptionInfo"
+                            :variant="subscriptionInfo.is_paid ? 'default' : 'outline'" 
+                            class="gap-1.5 px-2.5 py-1 font-medium"
+                        >
+                            <Crown class="h-3.5 w-3.5" />
+                            <span v-if="subscriptionInfo.is_paid">Premium</span>
+                            <span v-else>Free</span>
+                        </Badge>
+
+                        <!-- Upgrade Button for Free Users -->
+                        <Button
+                            v-if="subscriptionInfo && !subscriptionInfo.is_paid"
+                            size="sm"
+                            class="h-8 gap-1.5"
+                            as-child
+                        >
+                            <Link :href="subscriptionRoutes.index()">
+                                <Crown class="h-3.5 w-3.5" />
+                                Upgrade
+                            </Link>
+                        </Button>
                     </div>
 
                     <DropdownMenu>

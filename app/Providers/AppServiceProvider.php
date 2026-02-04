@@ -9,6 +9,9 @@ use App\Services\Ai\ChatOrchestrator;
 use App\Services\Ai\ChatService;
 use App\Services\Ai\IntentParserService;
 use App\Services\Ai\OpenAiProvider;
+use App\Services\Plugin\PluginConfigurationService;
+use App\Services\Plugin\PluginManager;
+use App\Services\Plugin\PluginSchedulerService;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Date;
@@ -59,6 +62,22 @@ class AppServiceProvider extends ServiceProvider
                 $app->make(ActionExecutorService::class),
                 $app->make(AiProviderInterface::class)
             );
+        });
+
+        // Plugin system
+        $this->app->singleton(PluginManager::class, function ($app) {
+            $manager = new PluginManager;
+            $manager->discoverPlugins();
+
+            return $manager;
+        });
+
+        $this->app->singleton(PluginConfigurationService::class, function ($app) {
+            return new PluginConfigurationService($app->make(PluginManager::class));
+        });
+
+        $this->app->singleton(PluginSchedulerService::class, function ($app) {
+            return new PluginSchedulerService($app->make(PluginManager::class));
         });
     }
 

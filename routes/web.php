@@ -10,15 +10,23 @@ use App\Http\Controllers\ChatController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FinanceController;
 use App\Http\Controllers\SubscriptionController;
+use App\Models\Plugin;
 use App\Services\Admin\SettingsService;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
 
 Route::get('/', function (SettingsService $settingsService) {
+    // Get featured plugins for landing page
+    $featuredPlugins = Plugin::where('is_system', true)
+        ->orderBy('name')
+        ->take(4)
+        ->get(['slug', 'name', 'description', 'icon']);
+
     return Inertia::render('Welcome', [
         'canRegister' => Features::enabled(Features::registration()),
         'pricing' => $settingsService->getSubscriptionSettings(),
+        'featuredPlugins' => $featuredPlugins,
     ]);
 })->name('home');
 
@@ -54,6 +62,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Note routes
     Route::resource('notes', \App\Http\Controllers\NoteController::class)->only(['index', 'store', 'update', 'destroy']);
+
+    // Plugin routes
+    Route::get('plugins', [\App\Http\Controllers\PluginController::class, 'index'])->name('plugins.index');
+    Route::get('plugins/{plugin}', [\App\Http\Controllers\PluginController::class, 'show'])->name('plugins.show');
+    Route::post('plugins/{plugin}/activate', [\App\Http\Controllers\PluginController::class, 'activate'])->name('plugins.activate');
+    Route::post('plugins/{plugin}/deactivate', [\App\Http\Controllers\PluginController::class, 'deactivate'])->name('plugins.deactivate');
+    Route::post('plugins/{plugin}/config', [\App\Http\Controllers\PluginController::class, 'updateConfig'])->name('plugins.config.update');
+    Route::delete('plugins/{plugin}/config', [\App\Http\Controllers\PluginController::class, 'resetConfig'])->name('plugins.config.reset');
+    Route::post('plugins/{plugin}/schedule', [\App\Http\Controllers\PluginController::class, 'updateSchedule'])->name('plugins.schedule.update');
+    Route::delete('plugins/{plugin}/schedule/{scheduleId}', [\App\Http\Controllers\PluginController::class, 'deleteSchedule'])->name('plugins.schedule.delete');
+    Route::post('plugins/{plugin}/test', [\App\Http\Controllers\PluginController::class, 'testExecute'])->name('plugins.test');
 });
 
 // Admin Routes

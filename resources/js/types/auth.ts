@@ -13,6 +13,18 @@ export type User = {
 
 export type Auth = {
     user: User;
+    subscriptionInfo?: {
+        status: string;
+        plan: string | null;
+        ends_at: string | null;
+        days_remaining: number;
+        is_paid: boolean;
+    };
+    chatLimit?: {
+        used: number;
+        limit: number;
+        remaining: number;
+    };
 };
 
 export type TwoFactorConfigContent = {

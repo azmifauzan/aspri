@@ -13,15 +13,15 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
-import admin from '@/routes/admin';
 import { dashboard, finance } from '@/routes';
+import adminRoutes from '@/routes/admin';
 import { index as chatIndex } from '@/routes/chat';
-import notes from '@/routes/notes';
-import schedules from '@/routes/schedules';
-import subscription from '@/routes/subscription';
+import notesRoutes from '@/routes/notes';
+import pluginsRoutes from '@/routes/plugins';
+import schedulesRoutes from '@/routes/schedules';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { Calendar, Crown, LayoutGrid, MessageSquare, Settings, StickyNote, Wallet } from 'lucide-vue-next';
+import { Calendar, Crown, LayoutGrid, MessageSquare, Puzzle, Settings, StickyNote, Wallet } from 'lucide-vue-next';
 import { computed } from 'vue';
 import AppLogo from './AppLogo.vue';
 
@@ -51,18 +51,18 @@ const mainNavItems: NavItem[] = [
     },
     {
         title: 'Jadwal',
-        href: schedules.index(),
+        href: schedulesRoutes.index(),
         icon: Calendar,
     },
     {
         title: 'Notes',
-        href: notes.index(),
+        href: notesRoutes.index(),
         icon: StickyNote,
     },
     {
-        title: 'Subscription',
-        href: subscription.index(),
-        icon: Crown,
+        title: 'Plugins',
+        href: pluginsRoutes.index(),
+        icon: Puzzle,
     },
 ];
 </script>
@@ -89,8 +89,8 @@ const mainNavItems: NavItem[] = [
                 <SidebarGroupLabel>Administration</SidebarGroupLabel>
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton as-child :is-active="isCurrentUrl(admin.index())" tooltip="Admin Panel">
-                            <Link :href="admin.index()">
+                        <SidebarMenuButton as-child :is-active="isCurrentUrl(adminRoutes.index())" tooltip="Admin Panel">
+                            <Link :href="adminRoutes.index()">
                                 <Settings />
                                 <span>Admin Panel</span>
                             </Link>

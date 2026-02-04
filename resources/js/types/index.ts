@@ -4,6 +4,7 @@ export * from './chat';
 export * from './dashboard';
 export * from './finance';
 export * from './navigation';
+export * from './plugin';
 export * from './ui';
 
 import type { Auth } from './auth';

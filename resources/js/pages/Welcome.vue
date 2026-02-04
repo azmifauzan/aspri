@@ -2,16 +2,20 @@
 import { dashboard, login, register } from '@/routes';
 import { Head, Link } from '@inertiajs/vue3';
 import {
+    BellRing,
     Bot,
     Calendar,
     Check,
     Clock,
     Crown,
+    Droplets,
     MessageSquare,
+    Puzzle,
     Sparkles,
     TrendingUp,
     Wallet,
 } from 'lucide-vue-next';
+import { computed, type Component } from 'vue';
 
 interface PricingInfo {
     monthly_price: number;
@@ -21,10 +25,18 @@ interface PricingInfo {
     full_member_daily_chat_limit: number;
 }
 
+interface FeaturedPlugin {
+    slug: string;
+    name: string;
+    description: string;
+    icon: string;
+}
+
 const props = withDefaults(
     defineProps<{
         canRegister: boolean;
         pricing: PricingInfo;
+        featuredPlugins: FeaturedPlugin[];
     }>(),
     {
         canRegister: true,
@@ -35,6 +47,7 @@ const props = withDefaults(
             free_trial_daily_chat_limit: 50,
             full_member_daily_chat_limit: 500,
         }),
+        featuredPlugins: () => [],
     },
 );
 
@@ -43,6 +56,18 @@ const formatCurrency = (value: number) => {
 };
 
 const yearlySavings = props.pricing.monthly_price * 12 - props.pricing.yearly_price;
+
+// Map icon names to components
+const iconMap: Record<string, Component> = {
+    sparkles: Sparkles,
+    droplets: Droplets,
+    'bell-ring': BellRing,
+    'puzzle-piece': Puzzle,
+};
+
+const getPluginIcon = (iconName: string): Component => {
+    return iconMap[iconName] || Puzzle;
+};
 
 const features = [
     {
@@ -207,6 +232,67 @@ const features = [
                         <p class="text-sm text-muted-foreground">
                             {{ feature.description }}
                         </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Plugin Showcase Section -->
+        <section v-if="featuredPlugins.length > 0" class="container mx-auto px-4 py-16 lg:py-24 bg-muted/20">
+            <div class="mx-auto max-w-6xl">
+                <div class="mb-12 text-center">
+                    <div
+                        class="mb-4 inline-flex items-center gap-2 rounded-full border border-border/40 bg-muted/50 px-4 py-2 text-sm"
+                    >
+                        <Puzzle class="h-4 w-4 text-primary" />
+                        <span class="font-medium">Extend Your Assistant</span>
+                    </div>
+                    <h2
+                        class="mb-4 text-3xl font-bold tracking-tight sm:text-4xl"
+                    >
+                        Plugin untuk Kebutuhan Anda
+                    </h2>
+                    <p class="text-lg text-muted-foreground max-w-2xl mx-auto">
+                        Tambahkan kemampuan ASPRI dengan plugin-plugin yang dirancang untuk membantu rutinitas harian Anda
+                    </p>
+                </div>
+                <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    <div
+                        v-for="plugin in featuredPlugins"
+                        :key="plugin.slug"
+                        class="group relative overflow-hidden rounded-xl border border-border/40 bg-card p-6 transition-all hover:border-primary/50 hover:shadow-lg"
+                    >
+                        <div class="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+                        <div class="relative">
+                            <div
+                                class="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 transition-colors group-hover:bg-primary/20"
+                            >
+                                <component
+                                    :is="getPluginIcon(plugin.icon)"
+                                    class="h-7 w-7 text-primary"
+                                />
+                            </div>
+                            <h3 class="mb-2 text-lg font-semibold">
+                                {{ plugin.name }}
+                            </h3>
+                            <p class="text-sm text-muted-foreground line-clamp-2">
+                                {{ plugin.description }}
+                            </p>
+                        </div>
+                    </div>
+                    <!-- More Plugins Card -->
+                    <div
+                        class="group relative flex items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-border/60 bg-muted/30 p-6 transition-all hover:border-primary/50"
+                    >
+                        <div class="text-center">
+                            <Puzzle class="mx-auto mb-3 h-10 w-10 text-muted-foreground/60" />
+                            <p class="font-medium text-muted-foreground">
+                                Dan masih banyak lagi...
+                            </p>
+                            <p class="mt-1 text-sm text-muted-foreground/80">
+                                Daftar untuk eksplorasi semua plugin
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>

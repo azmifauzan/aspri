@@ -1,0 +1,252 @@
+[
+    {
+        "quote": "Kesuksesan adalah hasil dari persiapan, kerja keras, dan belajar dari kegagalan.",
+        "author": "Colin Powell",
+        "category": "general"
+    },
+    {
+        "quote": "Setiap hari adalah kesempatan baru untuk menjadi lebih baik dari kemarin.",
+        "author": "Unknown",
+        "category": "general"
+    },
+    {
+        "quote": "Jangan menunggu kesempatan, ciptakanlah kesempatan.",
+        "author": "George Bernard Shaw",
+        "category": "general"
+    },
+    {
+        "quote": "Percaya pada dirimu sendiri adalah langkah pertama menuju kesuksesan.",
+        "author": "Unknown",
+        "category": "general"
+    },
+    {
+        "quote": "Masa depan adalah milik mereka yang percaya pada keindahan mimpi-mimpi mereka.",
+        "author": "Eleanor Roosevelt",
+        "category": "general"
+    },
+    {
+        "quote": "Kegagalan hanyalah kesempatan untuk memulai lagi dengan lebih cerdas.",
+        "author": "Henry Ford",
+        "category": "general"
+    },
+    {
+        "quote": "Satu-satunya cara untuk melakukan pekerjaan hebat adalah mencintai apa yang Anda lakukan.",
+        "author": "Steve Jobs",
+        "category": "general"
+    },
+    {
+        "quote": "Hal terbesar dalam hidup bukanlah tidak pernah jatuh, tetapi bangkit setiap kali kita jatuh.",
+        "author": "Nelson Mandela",
+        "category": "general"
+    },
+    {
+        "quote": "Bukan seberapa keras Anda bisa memukul, tapi seberapa keras Anda bisa dipukul dan tetap maju.",
+        "author": "Rocky Balboa",
+        "category": "general"
+    },
+    {
+        "quote": "Hiduplah seolah-olah Anda akan mati besok. Belajarlah seolah-olah Anda akan hidup selamanya.",
+        "author": "Mahatma Gandhi",
+        "category": "general"
+    },
+    {
+        "quote": "Pelanggan yang puas adalah bisnis strategi terbaik.",
+        "author": "Michael LeBoeuf",
+        "category": "business"
+    },
+    {
+        "quote": "Jangan takut gagal, takutlah tidak mencoba.",
+        "author": "Jack Ma",
+        "category": "business"
+    },
+    {
+        "quote": "Visi tanpa eksekusi hanyalah halusinasi.",
+        "author": "Thomas Edison",
+        "category": "business"
+    },
+    {
+        "quote": "Waktu adalah sumber daya paling berharga. Kelola dengan bijak.",
+        "author": "Brian Tracy",
+        "category": "business"
+    },
+    {
+        "quote": "Bisnis hebat dibangun dari tim yang hebat.",
+        "author": "Richard Branson",
+        "category": "business"
+    },
+    {
+        "quote": "Inovasi membedakan pemimpin dari pengikut.",
+        "author": "Steve Jobs",
+        "category": "business"
+    },
+    {
+        "quote": "Mulailah dari yang kecil, pikirkan yang besar, dan berkembanglah dengan cepat.",
+        "author": "Howard Schultz",
+        "category": "business"
+    },
+    {
+        "quote": "Keberhasilan bisnis bukanlah kebetulan. Itu adalah kerja keras, ketekunan, dan cinta pada apa yang Anda lakukan.",
+        "author": "Pelé",
+        "category": "business"
+    },
+    {
+        "quote": "Ide tidak ada nilainya sampai dieksekusi dengan cemerlang.",
+        "author": "Peter Drucker",
+        "category": "business"
+    },
+    {
+        "quote": "Risiko terbesar adalah tidak mengambil risiko sama sekali.",
+        "author": "Mark Zuckerberg",
+        "category": "business"
+    },
+    {
+        "quote": "Kesehatan adalah harta paling berharga. Jaga dengan baik.",
+        "author": "Unknown",
+        "category": "health"
+    },
+    {
+        "quote": "Tubuh Anda adalah cermin gaya hidup Anda. Perlakukan dengan hormat.",
+        "author": "Unknown",
+        "category": "health"
+    },
+    {
+        "quote": "Olahraga memberi makan pikiran dan tubuh Anda.",
+        "author": "Unknown",
+        "category": "health"
+    },
+    {
+        "quote": "Tidur yang cukup adalah investasi terbaik untuk hari esok.",
+        "author": "Unknown",
+        "category": "health"
+    },
+    {
+        "quote": "Makan dengan bijak, hidup dengan sehat, bergerak dengan semangat.",
+        "author": "Unknown",
+        "category": "health"
+    },
+    {
+        "quote": "Kesehatan mental sama pentingnya dengan kesehatan fisik.",
+        "author": "Unknown",
+        "category": "health"
+    },
+    {
+        "quote": "Jangan lupa minum air putih. Tubuh Anda membutuhkannya.",
+        "author": "Unknown",
+        "category": "health"
+    },
+    {
+        "quote": "Setiap langkah yang Anda ambil adalah investasi untuk kesehatan Anda.",
+        "author": "Unknown",
+        "category": "health"
+    },
+    {
+        "quote": "Istirahat bukan kemalasan. Istirahat adalah pemulihan.",
+        "author": "Unknown",
+        "category": "health"
+    },
+    {
+        "quote": "Pikiran yang sehat tinggal di tubuh yang sehat.",
+        "author": "Juvenal",
+        "category": "health"
+    },
+    {
+        "quote": "Fokus pada satu hal sekaligus. Multitasking adalah mitos.",
+        "author": "Gary Keller",
+        "category": "productivity"
+    },
+    {
+        "quote": "Kerjakan yang penting, bukan yang mendesak.",
+        "author": "Stephen Covey",
+        "category": "productivity"
+    },
+    {
+        "quote": "Produktivitas bukan tentang bekerja lebih keras, tapi bekerja lebih cerdas.",
+        "author": "Unknown",
+        "category": "productivity"
+    },
+    {
+        "quote": "Mulailah dengan yang tersulit di pagi hari.",
+        "author": "Brian Tracy",
+        "category": "productivity"
+    },
+    {
+        "quote": "Setiap menit yang dihabiskan untuk merencanakan menghemat sepuluh menit dalam eksekusi.",
+        "author": "Brian Tracy",
+        "category": "productivity"
+    },
+    {
+        "quote": "Katakan tidak pada yang baik agar bisa berkata ya pada yang hebat.",
+        "author": "Warren Buffett",
+        "category": "productivity"
+    },
+    {
+        "quote": "Konsistensi kecil setiap hari membawa hasil besar.",
+        "author": "Unknown",
+        "category": "productivity"
+    },
+    {
+        "quote": "Eliminasi adalah produktivitas tertinggi.",
+        "author": "Tim Ferriss",
+        "category": "productivity"
+    },
+    {
+        "quote": "Deadline adalah teman terbaik produktivitas.",
+        "author": "Unknown",
+        "category": "productivity"
+    },
+    {
+        "quote": "Istirahat sejenak meningkatkan produktivitas jangka panjang.",
+        "author": "Unknown",
+        "category": "productivity"
+    },
+    {
+        "quote": "Bersyukurlah atas apa yang kamu miliki, maka kamu akan memiliki lebih banyak.",
+        "author": "Oprah Winfrey",
+        "category": "spiritual"
+    },
+    {
+        "quote": "Kedamaian batin dimulai saat Anda memilih untuk tidak membiarkan orang lain mengendalikan emosi Anda.",
+        "author": "Unknown",
+        "category": "spiritual"
+    },
+    {
+        "quote": "Kebahagiaan bukan tujuan, tetapi cara hidup.",
+        "author": "Unknown",
+        "category": "spiritual"
+    },
+    {
+        "quote": "Hidup ini singkat. Habiskan untuk kebaikan.",
+        "author": "Unknown",
+        "category": "spiritual"
+    },
+    {
+        "quote": "Lepaskan apa yang tidak bisa Anda kendalikan.",
+        "author": "Unknown",
+        "category": "spiritual"
+    },
+    {
+        "quote": "Setiap hari adalah hadiah. Itu sebabnya disebut present.",
+        "author": "Unknown",
+        "category": "spiritual"
+    },
+    {
+        "quote": "Berbuat baik tanpa mengharapkan balasan adalah kebahagiaan sejati.",
+        "author": "Unknown",
+        "category": "spiritual"
+    },
+    {
+        "quote": "Sabar adalah kunci dari segala kebaikan.",
+        "author": "Unknown",
+        "category": "spiritual"
+    },
+    {
+        "quote": "Maafkan bukan untuk orang lain, tetapi untuk membebaskan diri Anda sendiri.",
+        "author": "Unknown",
+        "category": "spiritual"
+    },
+    {
+        "quote": "Ketenangan adalah kekuatan. Tetap tenang di tengah badai.",
+        "author": "Unknown",
+        "category": "spiritual"
+    }
+]
