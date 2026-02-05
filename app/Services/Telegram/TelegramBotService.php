@@ -60,9 +60,16 @@ class TelegramBotService
             return;
         }
 
-        // Handle /link command for account linking
+        // Handle /link command for account linking (legacy)
         if (str_starts_with($text, '/link')) {
             $this->handleLinkCommand($chatId, $text, $telegramUser);
+
+            return;
+        }
+
+        // Handle connect command for account linking (new format)
+        if (str_starts_with(strtolower($text), 'connect ')) {
+            $this->handleConnectCommand($chatId, $text, $telegramUser);
 
             return;
         }
@@ -97,7 +104,7 @@ class TelegramBotService
         } else {
             $this->sendMessage(
                 $chatId,
-                "Halo {$firstName}! 👋 Selamat datang di ASPRI Bot.\n\nUntuk mulai menggunakan ASPRI, kamu perlu menghubungkan akun Telegram dengan akun ASPRI-mu.\n\n📱 Cara menghubungkan:\n1. Login ke aplikasi ASPRI di web\n2. Buka menu Settings > Telegram\n3. Klik 'Hubungkan Telegram'\n4. Salin kode yang muncul\n5. Kirim perintah: /link KODE_KAMU\n\nContoh: /link ABC123\n\nJika belum punya akun ASPRI, silakan daftar di website kami terlebih dahulu."
+                "Halo {$firstName}! 👋 Selamat datang di ASPRI Bot.\n\nUntuk mulai menggunakan ASPRI, kamu perlu menghubungkan akun Telegram dengan akun ASPRI-mu.\n\n📱 Cara menghubungkan:\n1. Login ke aplikasi ASPRI di web\n2. Buka menu Settings > Telegram\n3. Salin kode yang muncul\n4. Kirim ke bot: connect KODE_KAMU\n\nContoh: connect ABC123\n\nJika belum punya akun ASPRI, silakan daftar di website kami terlebih dahulu."
             );
         }
     }
@@ -114,6 +121,54 @@ class TelegramBotService
             $this->sendMessage(
                 $chatId,
                 "⚠️ Format tidak valid.\n\nGunakan: /link KODE_KAMU\nContoh: /link ABC123"
+            );
+
+            return;
+        }
+
+        // Find user by link code
+        $user = User::where('telegram_link_code', strtoupper($code))
+            ->where('telegram_link_expires_at', '>', now())
+            ->first();
+
+        if (! $user) {
+            $this->sendMessage(
+                $chatId,
+                "❌ Kode tidak valid atau sudah kadaluarsa.\n\nSilakan generate kode baru dari aplikasi ASPRI."
+            );
+
+            return;
+        }
+
+        // Link the account
+        $user->update([
+            'telegram_chat_id' => $chatId,
+            'telegram_username' => $telegramUser->getUsername(),
+            'telegram_link_code' => null,
+            'telegram_link_expires_at' => null,
+        ]);
+
+        $callPreference = $user->profile?->call_preference ?? 'Kak';
+        $aspriName = $user->profile?->aspri_name ?? 'ASPRI';
+
+        $this->sendMessage(
+            $chatId,
+            "✅ Berhasil! Akun Telegram sudah terhubung.\n\nHalo {$callPreference} {$user->name}! Saya {$aspriName}, asisten pribadi kamu.\n\nSekarang kamu bisa:\n• Mencatat pengeluaran dengan mengetik, misal: \"beli kopi 25rb\"\n• Mengatur jadwal dengan mengetik, misal: \"ingatkan meeting jam 3 sore\"\n• Bertanya apa saja!\n\nKetik /help untuk bantuan."
+        );
+    }
+
+    /**
+     * Handle connect command for account linking (new format).
+     */
+    protected function handleConnectCommand(int $chatId, string $text, $telegramUser): void
+    {
+        // Extract code from "connect CODE" format
+        $code = trim(substr($text, 8)); // Remove "connect " prefix
+
+        if (! $code) {
+            $this->sendMessage(
+                $chatId,
+                "⚠️ Format tidak valid.\n\nGunakan: connect KODE_KAMU\nContoh: connect ABC123"
             );
 
             return;

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import { MessageSquare } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -20,7 +20,21 @@ type Props = {
 
 const props = defineProps<Props>();
 
+// Debug logging
+onMounted(() => {
+    console.log('Telegram Page Props:', {
+        botUsername: props.botUsername,
+        linkCode: props.linkCode,
+        isLinked: props.isLinked,
+        telegramUsername: props.telegramUsername,
+    });
+});
+
 const breadcrumbItems: BreadcrumbItem[] = [
+    {
+        title: 'Settings',
+        href: '/settings',
+    },
     {
         title: 'Telegram Integration',
         href: '/settings/telegram',
@@ -38,7 +52,7 @@ const copied = ref(false);
 
 const copyCode = () => {
     if (props.linkCode) {
-        navigator.clipboard.writeText(props.linkCode);
+        navigator.clipboard.writeText(`connect ${props.linkCode}`);
         copied.value = true;
         setTimeout(() => {
             copied.value = false;
@@ -87,6 +101,15 @@ const copyCode = () => {
 
                 <!-- Not Linked - Connection Instructions -->
                 <div v-else class="space-y-4">
+                    <!-- Alert if bot username not configured -->
+                    <Card v-if="!botUsername" class="border-yellow-500/20 bg-yellow-500/5">
+                        <CardContent class="pt-6">
+                            <p class="text-sm text-yellow-800 dark:text-yellow-200">
+                                <strong>Configuration Missing:</strong> Telegram bot username is not configured. Please set <code class="rounded bg-yellow-100 px-1 py-0.5 dark:bg-yellow-900">TELEGRAM_BOT_USERNAME</code> in your .env file.
+                            </p>
+                        </CardContent>
+                    </Card>
+                    
                     <Card>
                         <CardContent class="pt-6">
                             <div class="space-y-4">
@@ -103,21 +126,28 @@ const copyCode = () => {
                                         </div>
 
                                         <div class="space-y-3">
-                                            <div class="rounded-lg border bg-muted/40 p-4">
-                                                <h4 class="mb-2 font-medium">Step 1: Your Link Code</h4>
+                                            <div class="rounded-lg border-2 border-primary/30 bg-primary/5 p-4">
+                                                <h4 class="mb-2 font-semibold text-primary">Step 1: Your Link Code</h4>
                                                 <p class="mb-3 text-sm text-muted-foreground">
-                                                    Copy this unique code:
+                                                    Send this command to the bot:
                                                 </p>
-                                                <div class="flex gap-2">
-                                                    <Input
-                                                        :value="linkCode"
-                                                        readonly
-                                                        class="bg-white font-mono text-black dark:bg-neutral-800 dark:text-white"
-                                                    />
+                                                <div class="flex items-center gap-2">
+                                                    <div v-if="linkCode" class="flex-1 rounded-lg border-2 border-primary bg-white px-4 py-3 dark:bg-neutral-900">
+                                                        <code class="text-lg font-bold tracking-wide text-foreground">
+                                                            connect {{ linkCode }}
+                                                        </code>
+                                                    </div>
+                                                    <div v-else class="flex-1 rounded-lg border-2 border-red-500 bg-red-50 px-4 py-3 dark:bg-red-950">
+                                                        <code class="text-sm font-semibold text-red-600 dark:text-red-400">
+                                                            Error: Code not generated
+                                                        </code>
+                                                    </div>
                                                     <Button
                                                         type="button"
-                                                        variant="outline"
+                                                        variant="default"
                                                         @click="copyCode"
+                                                        class="min-w-20"
+                                                        :disabled="!linkCode"
                                                     >
                                                         {{ copied ? 'Copied!' : 'Copy' }}
                                                     </Button>
@@ -127,12 +157,18 @@ const copyCode = () => {
                                             <div class="rounded-lg border bg-muted/40 p-4">
                                                 <h4 class="mb-2 font-medium">Step 2: Open Telegram Bot</h4>
                                                 <p class="mb-3 text-sm text-muted-foreground">
-                                                    Click the button below or search for <strong>{{ botUsername?.startsWith('@') ? botUsername : '@' + botUsername }}</strong> in Telegram
+                                                    <template v-if="botUsername">
+                                                        Click the button below or search for <strong class="text-foreground">{{ botUsername.startsWith('@') ? botUsername : '@' + botUsername }}</strong> in Telegram
+                                                    </template>
+                                                    <template v-else>
+                                                        <span class="text-red-600 dark:text-red-400">Bot username not configured. Please check your .env file.</span>
+                                                    </template>
                                                 </p>
                                                 <Button
                                                     v-if="telegramBotLink"
                                                     as-child
                                                     class="w-full gap-2"
+                                                    size="lg"
                                                 >
                                                     <a
                                                         :href="telegramBotLink"
@@ -143,12 +179,21 @@ const copyCode = () => {
                                                         Open Telegram Bot
                                                     </a>
                                                 </Button>
+                                                <Button
+                                                    v-else
+                                                    disabled
+                                                    class="w-full gap-2"
+                                                    size="lg"
+                                                >
+                                                    <MessageSquare class="h-4 w-4" />
+                                                    Bot Not Configured
+                                                </Button>
                                             </div>
 
                                             <div class="rounded-lg border bg-muted/40 p-4">
                                                 <h4 class="mb-2 font-medium">Step 3: Send the Code</h4>
                                                 <p class="text-sm text-muted-foreground">
-                                                    Send your link code to the bot, or simply click the button in Step 2 which will automatically include the code.
+                                                    Send the command <code class="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">connect YOURCODE</code> to the bot, or simply click the button in Step 2 which will automatically include the code.
                                                 </p>
                                             </div>
 

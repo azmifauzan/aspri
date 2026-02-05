@@ -1,21 +1,9 @@
 <script setup lang="ts">
-import Breadcrumbs from '@/components/Breadcrumbs.vue';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { SidebarTrigger } from '@/components/ui/sidebar';
-import type { BreadcrumbItem } from '@/types';
 import { usePage } from '@inertiajs/vue3';
 import { Calendar, Crown, MessageSquare } from 'lucide-vue-next';
 import { computed } from 'vue';
-
-withDefaults(
-    defineProps<{
-        breadcrumbs?: BreadcrumbItem[];
-    }>(),
-    {
-        breadcrumbs: () => [],
-    },
-);
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 
 const page = usePage();
 const subscriptionInfo = computed(() => page.props.auth.subscriptionInfo);
@@ -80,40 +68,35 @@ const chatUsageColor = computed(() => {
 </script>
 
 <template>
-    <header
-        class="flex h-16 shrink-0 items-center justify-between gap-4 border-b border-sidebar-border/70 px-6 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 md:px-4"
-    >
-        <div class="flex items-center gap-2">
-            <SidebarTrigger class="-ml-1" />
-            <template v-if="breadcrumbs && breadcrumbs.length > 0">
-                <Breadcrumbs :breadcrumbs="breadcrumbs" />
-            </template>
-        </div>
-        
-        <!-- Membership Status & Chat Usage -->
-        <div class="flex flex-wrap items-center gap-4 text-sm">
+    <div class="border-b border-sidebar-border/70 bg-background px-6 py-3 md:px-4">
+        <div class="flex flex-wrap items-center justify-between gap-4">
             <!-- Membership Status -->
-            <div class="flex items-center gap-2">
-                <Crown class="h-3.5 w-3.5 text-muted-foreground" />
-                <Badge :variant="membershipBadgeVariant" class="text-xs">
-                    {{ membershipLabel }}
-                </Badge>
-                <span v-if="expiryText" class="hidden text-xs text-muted-foreground lg:inline-flex items-center gap-1">
-                    <Separator orientation="vertical" class="mx-1 h-3" />
-                    <Calendar class="h-3 w-3" />
-                    {{ expiryText }}
-                </span>
+            <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2">
+                    <Crown class="h-4 w-4 text-muted-foreground" />
+                    <span class="text-sm font-medium">Status:</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <Badge :variant="membershipBadgeVariant" class="gap-1">
+                        {{ membershipLabel }}
+                    </Badge>
+                    <span v-if="expiryText" class="text-xs text-muted-foreground">
+                        <Separator orientation="vertical" class="mx-2 inline-block h-3" />
+                        <Calendar class="mr-1 inline-block h-3 w-3" />
+                        {{ expiryText }}
+                    </span>
+                </div>
             </div>
 
             <!-- Chat Usage -->
-            <div class="flex items-center gap-1.5">
-                <MessageSquare class="h-3.5 w-3.5 text-muted-foreground" />
-                <span class="hidden text-xs font-medium sm:inline">Chat:</span>
-                <span :class="['text-xs font-semibold', chatUsageColor]">
+            <div class="flex items-center gap-2">
+                <MessageSquare class="h-4 w-4 text-muted-foreground" />
+                <span class="text-sm font-medium">Chat Usage:</span>
+                <span :class="['text-sm font-semibold', chatUsageColor]">
                     {{ chatUsageText }}
                 </span>
-                <span class="hidden text-xs text-muted-foreground md:inline">({{ chatUsagePercentage }}%)</span>
+                <span class="text-xs text-muted-foreground">({{ chatUsagePercentage }}%)</span>
             </div>
         </div>
-    </header>
+    </div>
 </template>

@@ -8,25 +8,36 @@ import { edit as editAppearance } from '@/routes/appearance';
 import { edit as editProfile } from '@/routes/profile';
 import { show } from '@/routes/two-factor';
 import { edit as editPassword } from '@/routes/user-password';
+import { index as telegramIndex } from '@/routes/telegram';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
+import { KeyRound, MessageSquare, Palette, Shield, User } from 'lucide-vue-next';
 
 const sidebarNavItems: NavItem[] = [
     {
         title: 'Profile',
         href: editProfile(),
+        icon: User,
     },
     {
         title: 'Password',
         href: editPassword(),
+        icon: KeyRound,
     },
     {
         title: 'Two-Factor Auth',
         href: show(),
+        icon: Shield,
+    },
+    {
+        title: 'Telegram',
+        href: telegramIndex(),
+        icon: MessageSquare,
     },
     {
         title: 'Appearance',
         href: editAppearance(),
+        icon: Palette,
     },
 ];
 

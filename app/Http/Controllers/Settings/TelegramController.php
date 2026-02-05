@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
+use App\Models\SystemSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -34,7 +35,7 @@ class TelegramController extends Controller
         }
 
         return Inertia::render('settings/Telegram', [
-            'botUsername' => config('services.telegram.bot_username'),
+            'botUsername' => SystemSetting::getValue('telegram_bot_username'),
             'linkCode' => $linkCode,
             'isLinked' => $isLinked,
             'telegramUsername' => $user->telegram_username ?? null,

@@ -9,8 +9,9 @@
 - 👤 **Persona Per User** - Asisten mengikuti preferensi dan gaya komunikasi Anda
 - 📱 **Integrasi Telegram** - Catat pengeluaran, buat note, atau cek jadwal langsung dari Telegram
 - 📊 **Dashboard Interaktif** - Visualisasi data keuangan dan jadwal dalam satu tampilan
+- 🎁 **Plugin System** - Extend asisten dengan plugin untuk kebutuhan spesifik Anda
 
-## 🎯 5 Modul Utama
+## 🎯 Modul Utama
 
 | Modul | Deskripsi |
 |-------|-----------|
@@ -19,6 +20,7 @@
 | **Notes** | Penyimpanan note dengan block-based content |
 | **Schedule** | Manajemen kalender, event, dan reminder |
 | **Finance** | Pencatatan transaksi, budgeting, dan laporan |
+| **Plugins** | 🎁 Sistem plugin untuk memperluas fitur asisten |
 
 ## 🛠️ Tech Stack
 
@@ -144,6 +146,42 @@ Dokumentasi lengkap tersedia di folder `docs/`:
 - [Phases](docs/PHASES.md) - Development phases
 - [AI Integration](docs/AI_INTEGRATION.md) - AI integration guide
 - [Telegram](docs/TELEGRAM.md) - Telegram bot integration
+- [Plugins](docs/PLUGINS.md) - Plugin system overview
+- [Plugin Development Guide](docs/PLUGIN_DEVELOPMENT_GUIDE.md) - Build your own plugins
+- [Plugin API Reference](docs/PLUGIN_API.md) - Complete API documentation
+- [Plugin Usage Examples](docs/PLUGIN_USAGE_EXAMPLES.md) - Real-world plugin examples
+
+## 🎁 Plugin System
+
+ASPRI dilengkapi dengan sistem plugin yang memungkinkan Anda memperluas kemampuan asisten sesuai kebutuhan.
+
+### Available Plugins
+
+| Plugin | Description | Status |
+|--------|-------------|--------|
+| 🎯 **Kata Motivasi** | Kirim quote motivasi harian via Telegram | ✅ Active |
+| 💧 **Pengingat Minum Air** | Reminder minum air secara berkala | ✅ Active |
+| 💰 **Expense Alert** | Notifikasi ketika budget hampir habis | ✅ Active |
+
+### Plugin Features
+
+- ⚙️ **Easy Configuration** - Configure melalui web UI yang intuitif
+- ⏰ **Scheduled Tasks** - Jalankan tugas otomatis sesuai jadwal
+- 📊 **Activity Logs** - Monitor aktivitas dan debugging plugin
+- 🔌 **Plug & Play** - Aktifkan/nonaktifkan kapan saja tanpa pengaruh ke core
+- 🛠️ **Developer Friendly** - API lengkap untuk membuat plugin sendiri
+
+### Create Your Own Plugin
+
+```bash
+# Generate plugin scaffold
+php artisan make:plugin MyAwesomePlugin
+
+# Register plugin
+php artisan db:seed --class=PluginSeeder
+```
+
+Lihat [Plugin Development Guide](docs/PLUGIN_DEVELOPMENT_GUIDE.md) untuk panduan lengkap.
 
 ## 🧪 Testing
 
