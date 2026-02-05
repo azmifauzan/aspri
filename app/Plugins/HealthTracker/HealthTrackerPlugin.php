@@ -1,0 +1,267 @@
+<?php
+
+namespace App\Plugins\HealthTracker;
+
+use App\Services\Plugin\BasePlugin;
+use App\Services\TelegramService;
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
+
+class HealthTrackerPlugin extends BasePlugin
+{
+    public function getName(): string
+    {
+        return 'Health Tracker';
+    }
+
+    public function getSlug(): string
+    {
+        return 'health-tracker';
+    }
+
+    public function getDescription(): string
+    {
+        return 'Lacak kesehatan harian Anda: berat badan, langkah kaki, air minum, dan tidur. Dapatkan pengingat dan insight kesehatan.';
+    }
+
+    public function getVersion(): string
+    {
+        return '1.0.0';
+    }
+
+    public function getAuthor(): string
+    {
+        return 'ASPRI Team';
+    }
+
+    public function getIcon(): string
+    {
+        return 'heart';
+    }
+
+    public function getConfigSchema(): array
+    {
+        return [
+            'track_weight' => [
+                'type' => 'boolean',
+                'label' => 'Lacak Berat Badan',
+                'default' => true,
+            ],
+            'track_steps' => [
+                'type' => 'boolean',
+                'label' => 'Lacak Langkah Kaki',
+                'default' => true,
+            ],
+            'steps_goal' => [
+                'type' => 'number',
+                'label' => 'Target Langkah/Hari',
+                'min' => 1000,
+                'max' => 50000,
+                'step' => 1000,
+                'default' => 10000,
+                'condition' => 'track_steps === true',
+            ],
+            'track_water' => [
+                'type' => 'boolean',
+                'label' => 'Lacak Air Minum',
+                'default' => true,
+            ],
+            'water_goal' => [
+                'type' => 'number',
+                'label' => 'Target Air/Hari (gelas)',
+                'min' => 4,
+                'max' => 16,
+                'step' => 1,
+                'default' => 8,
+                'condition' => 'track_water === true',
+            ],
+            'track_sleep' => [
+                'type' => 'boolean',
+                'label' => 'Lacak Jam Tidur',
+                'default' => true,
+            ],
+            'sleep_goal' => [
+                'type' => 'number',
+                'label' => 'Target Tidur/Hari (jam)',
+                'min' => 4,
+                'max' => 12,
+                'step' => 0.5,
+                'default' => 8,
+                'condition' => 'track_sleep === true',
+            ],
+            'reminder_time' => [
+                'type' => 'time',
+                'label' => 'Waktu Pengingat Harian',
+                'default' => '20:00',
+                'required' => true,
+            ],
+            'weekly_report' => [
+                'type' => 'boolean',
+                'label' => 'Laporan Mingguan',
+                'default' => true,
+            ],
+            'weekly_report_day' => [
+                'type' => 'select',
+                'label' => 'Hari Laporan Mingguan',
+                'options' => [
+                    'monday' => 'Senin',
+                    'tuesday' => 'Selasa',
+                    'wednesday' => 'Rabu',
+                    'thursday' => 'Kamis',
+                    'friday' => 'Jumat',
+                    'saturday' => 'Sabtu',
+                    'sunday' => 'Minggu',
+                ],
+                'default' => 'monday',
+                'condition' => 'weekly_report === true',
+            ],
+        ];
+    }
+
+    public function getDefaultConfig(): array
+    {
+        return [
+            'track_weight' => true,
+            'track_steps' => true,
+            'steps_goal' => 10000,
+            'track_water' => true,
+            'water_goal' => 8,
+            'track_sleep' => true,
+            'sleep_goal' => 8,
+            'reminder_time' => '20:00',
+            'weekly_report' => true,
+            'weekly_report_day' => 'monday',
+        ];
+    }
+
+    public function validateConfig(array $config): bool
+    {
+        if (!isset($config['reminder_time']) || !preg_match('/^\d{2}:\d{2}$/', $config['reminder_time'])) {
+            return false;
+        }
+
+        if (isset($config['steps_goal']) && ($config['steps_goal'] < 1000 || $config['steps_goal'] > 50000)) {
+            return false;
+        }
+
+        if (isset($config['water_goal']) && ($config['water_goal'] < 4 || $config['water_goal'] > 16)) {
+            return false;
+        }
+
+        if (isset($config['sleep_goal']) && ($config['sleep_goal'] < 4 || $config['sleep_goal'] > 12)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public function activate(): void
+    {
+        $user = auth()->user();
+        $config = $this->getConfig($user->id);
+
+        // Daily reminder
+        $this->createSchedule($user->id, [
+            'schedule_type' => 'daily',
+            'schedule_value' => $config['reminder_time'],
+            'metadata' => [
+                'type' => 'daily_reminder',
+            ],
+        ]);
+
+        // Weekly report
+        if ($config['weekly_report']) {
+            $this->createSchedule($user->id, [
+                'schedule_type' => 'weekly',
+                'schedule_value' => $config['weekly_report_day'] . ',09:00',
+                'metadata' => [
+                    'type' => 'weekly_report',
+                ],
+            ]);
+        }
+
+        $this->log($user->id, 'info', 'Health Tracker activated');
+    }
+
+    public function deactivate(): void
+    {
+        $user = auth()->user();
+        $this->deleteSchedules($user->id);
+        $this->log($user->id, 'info', 'Health Tracker deactivated');
+    }
+
+    public function execute(int $userId, array $metadata): void
+    {
+        try {
+            $type = $metadata['type'] ?? 'daily_reminder';
+
+            if ($type === 'daily_reminder') {
+                $this->sendDailyReminder($userId);
+            } elseif ($type === 'weekly_report') {
+                $this->sendWeeklyReport($userId);
+            }
+
+            $this->log($userId, 'info', "Executed: {$type}");
+        } catch (\Exception $e) {
+            $this->log($userId, 'error', 'Execution failed: ' . $e->getMessage());
+        }
+    }
+
+    private function sendDailyReminder(int $userId): void
+    {
+        $config = $this->getConfig($userId);
+        $telegramService = app(TelegramService::class);
+
+        $message = "🏥 *Pengingat Kesehatan Harian*\n\n";
+        $message .= "Jangan lupa catat kesehatan Anda hari ini:\n\n";
+
+        if ($config['track_weight']) {
+            $message .= "⚖️ Berat badan\n";
+        }
+        if ($config['track_steps']) {
+            $message .= "👣 Langkah kaki (Target: " . number_format($config['steps_goal']) . ")\n";
+        }
+        if ($config['track_water']) {
+            $message .= "💧 Air minum (Target: {$config['water_goal']} gelas)\n";
+        }
+        if ($config['track_sleep']) {
+            $message .= "😴 Jam tidur (Target: {$config['sleep_goal']} jam)\n";
+        }
+
+        $message .= "\nKetik data kesehatan Anda ke ASPRI untuk dicatat!";
+
+        $telegramService->sendMessage($userId, $message);
+    }
+
+    private function sendWeeklyReport(int $userId): void
+    {
+        $config = $this->getConfig($userId);
+        $telegramService = app(TelegramService::class);
+        
+        $user = User::find($userId);
+        $startDate = now()->subDays(7);
+        $endDate = now();
+
+        // Get health data from plugin_configurations or custom table
+        $message = "📊 *Laporan Kesehatan Mingguan*\n";
+        $message .= "Periode: " . $startDate->format('d M') . " - " . $endDate->format('d M Y') . "\n\n";
+
+        // This would need a separate health_logs table to track actual data
+        // For now, send encouragement message
+        $message .= "🎯 Tetap jaga kesehatan Anda!\n\n";
+        
+        if ($config['track_steps']) {
+            $message .= "👣 Target langkah: " . number_format($config['steps_goal']) . " langkah/hari\n";
+        }
+        if ($config['track_water']) {
+            $message .= "💧 Target air: {$config['water_goal']} gelas/hari\n";
+        }
+        if ($config['track_sleep']) {
+            $message .= "😴 Target tidur: {$config['sleep_goal']} jam/hari\n";
+        }
+
+        $message .= "\nTerus semangat mencapai target kesehatan Anda! 💪";
+
+        $telegramService->sendMessage($userId, $message);
+    }
+}
