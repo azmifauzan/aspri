@@ -1,0 +1,370 @@
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 5.66kB 0.1s done
+#1 DONE 0.1s
+
+#2 [internal] load metadata for docker.io/library/php:8.4-cli
+#2 ...
+
+#3 [auth] library/composer:pull token for registry-1.docker.io
+#3 DONE 0.0s
+
+#4 [auth] library/php:pull token for registry-1.docker.io
+#4 DONE 0.0s
+
+#5 [internal] load metadata for docker.io/library/composer:2
+#5 DONE 2.2s
+
+#6 [internal] load metadata for docker.io/library/php:8.4-apache
+#6 DONE 2.2s
+
+#2 [internal] load metadata for docker.io/library/php:8.4-cli
+#2 DONE 2.2s
+
+#7 [internal] load .dockerignore
+#7 transferring context: 841B 0.0s done
+#7 DONE 0.0s
+
+#8 FROM docker.io/library/composer:2@sha256:e4ff7e012505df43b4404cf73a4590e06a3f752a7f77d9079a89f770d257eb84
+#8 resolve docker.io/library/composer:2@sha256:e4ff7e012505df43b4404cf73a4590e06a3f752a7f77d9079a89f770d257eb84 0.1s done
+#8 DONE 0.1s
+
+#9 [stage-2  1/17] FROM docker.io/library/php:8.4-apache@sha256:09a65a5d0a1a23a06b39e2271790801da3998329740244a137c31474b03f5465
+#9 resolve docker.io/library/php:8.4-apache@sha256:09a65a5d0a1a23a06b39e2271790801da3998329740244a137c31474b03f5465 0.1s done
+#9 DONE 0.1s
+
+#10 [composer-builder 1/5] FROM docker.io/library/php:8.4-cli@sha256:642ab1689fd3b41abdba5aa5f94d57561adaa3fdb445f0c457a5def17d10b6a7
+#10 resolve docker.io/library/php:8.4-cli@sha256:642ab1689fd3b41abdba5aa5f94d57561adaa3fdb445f0c457a5def17d10b6a7 0.1s done
+#10 DONE 0.1s
+
+#11 [internal] load build context
+#11 ...
+
+#12 [stage-2  3/17] ADD --chmod=0755 https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
+#12 DONE 0.6s
+
+#11 [internal] load build context
+#11 transferring context: 897.08kB 2.3s done
+#11 DONE 2.5s
+
+#13 [composer-builder 4/5] COPY composer*.json composer.lock ./
+#13 CACHED
+
+#14 [composer-builder 2/5] RUN apt-get update && apt-get install -y --no-install-recommends     libpng-dev     libjpeg-dev     libfreetype6-dev     libzip-dev     && docker-php-ext-configure gd --with-freetype --with-jpeg     && docker-php-ext-install gd zip     && apt-get clean     && rm -rf /var/lib/apt/lists/*
+#14 CACHED
+
+#15 [composer-builder 3/5] WORKDIR /app
+#15 CACHED
+
+#16 [stage-2  8/17] WORKDIR /var/www/html
+#16 CACHED
+
+#17 [stage-2 11/17] COPY docker/health-check.sh /usr/local/bin/health-check.sh
+#17 CACHED
+
+#18 [stage-2 10/17] COPY docker/app-entrypoint.sh /usr/local/bin/app-entrypoint.sh
+#18 CACHED
+
+#19 [stage-2  6/17] RUN a2enmod rewrite headers   && sed -ri -e "s!/var/www/html!/var/www/html/public!g" /etc/apache2/sites-available/*.conf   && sed -ri -e "s!/var/www/html!/var/www/html/public!g" /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
+#19 CACHED
+
+#20 [stage-2  7/17] RUN {         echo "upload_max_filesize = 20M";         echo "post_max_size = 20M";         echo "max_execution_time = 300";         echo "max_input_time = 300";         echo "memory_limit = 256M";     } > /usr/local/etc/php/conf.d/uploads.ini
+#20 CACHED
+
+#21 [stage-2  5/17] COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+#21 CACHED
+
+#22 [stage-2  4/17] RUN install-php-extensions pdo_pgsql pgsql mbstring exif pcntl bcmath gd zip redis     && rm -f /usr/local/bin/install-php-extensions
+#22 CACHED
+
+#23 [stage-2  3/17] ADD --chmod=0755 https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
+#23 CACHED
+
+#24 [stage-2  9/17] COPY docker/supervisord.conf /etc/supervisor/supervisord.conf
+#24 CACHED
+
+#25 [stage-2  2/17] RUN apt-get update && apt-get install -y --no-install-recommends     supervisor     cron     netcat-openbsd     tzdata     && apt-get clean     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+#25 CACHED
+
+#26 [composer-builder 5/5] RUN --mount=type=cache,target=/tmp/cache     --mount=from=composer:2,src=/usr/bin/composer,target=/usr/bin/composer     composer install --prefer-dist --no-interaction --optimize-autoloader --no-dev --no-scripts
+#26 CACHED
+
+#27 [stage-2 12/17] RUN chmod +x /usr/local/bin/app-entrypoint.sh /usr/local/bin/health-check.sh
+#27 CACHED
+
+#28 [node-builder  4/17] COPY package*.json ./
+#28 CACHED
+
+#29 [node-builder  6/17] COPY --from=composer-builder /app/vendor ./vendor
+#29 CACHED
+
+#30 [node-builder 10/17] COPY config ./config
+#30 CACHED
+
+#31 [node-builder  7/17] COPY artisan composer.json ./
+#31 CACHED
+
+#32 [node-builder 15/17] COPY vite.config.ts tsconfig.json .env.example ./
+#32 CACHED
+
+#33 [node-builder  2/17] RUN apt-get update && apt-get install -y --no-install-recommends     nodejs     npm     libsqlite3-dev     && docker-php-ext-install pdo_sqlite     && curl -fsSL https://deb.nodesource.com/setup_24.x | bash -     && apt-get install -y nodejs     && apt-get clean     && rm -rf /var/lib/apt/lists/*
+#33 CACHED
+
+#34 [node-builder 14/17] COPY public ./public
+#34 CACHED
+
+#35 [node-builder  8/17] COPY app ./app
+#35 CACHED
+
+#36 [node-builder 12/17] COPY database ./database
+#36 CACHED
+
+#37 [node-builder  5/17] RUN --mount=type=cache,target=/root/.npm     npm ci --prefer-offline --no-audit
+#37 CACHED
+
+#38 [node-builder 13/17] COPY resources ./resources
+#38 CACHED
+
+#39 [node-builder  3/17] WORKDIR /app
+#39 CACHED
+
+#40 [node-builder  9/17] COPY bootstrap ./bootstrap
+#40 CACHED
+
+#41 [node-builder 11/17] COPY routes ./routes
+#41 CACHED
+
+#42 [node-builder 16/17] COPY storage ./storage
+#42 CACHED
+
+#43 [node-builder 17/17] RUN cp .env.example .env     && mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views     && touch database/database.sqlite     && echo "DB_DATABASE=/app/database/database.sqlite" >> .env     && php artisan key:generate     && php artisan migrate --force     && php artisan wayfinder:generate --with-form     && npm run build
+#43 2.952 
+#43 2.952    INFO  Application key set successfully.  
+#43 2.952 
+#43 3.457 
+#43 3.457    INFO  Preparing database.  
+#43 3.457 
+#43 3.473   Creating migration table ...................................... 69.51ms DONE
+#43 3.554 
+#43 3.847    INFO  Running migrations.  
+#43 3.847 
+#43 3.868   0001_01_01_000000_create_users_table ......................... 359.68ms DONE
+#43 4.245   0001_01_01_000001_create_cache_table .......................... 78.06ms DONE
+#43 4.345   0001_01_01_000002_create_jobs_table ........................... 73.77ms DONE
+#43 4.434   2025_08_14_170933_add_two_factor_columns_to_users_table ....... 50.72ms DONE
+#43 4.503   2026_01_25_152154_create_profiles_table ....................... 22.23ms DONE
+#43 4.552   2026_01_26_010000_create_finance_accounts_table ............... 27.44ms DONE
+#43 4.603   2026_01_26_010001_create_finance_categories_table ............. 23.71ms DONE
+#43 4.653   2026_01_26_010002_create_finance_transactions_table ........... 38.18ms DONE
+#43 4.717   2026_01_30_080246_create_schedules_table ...................... 11.98ms DONE
+#43 4.744   2026_01_30_082718_create_notes_table .......................... 22.72ms DONE
+#43 4.788   2026_01_31_161851_create_chat_threads_table ................... 28.43ms DONE
+#43 4.858   2026_01_31_161900_create_chat_messages_table .................. 34.48ms DONE
+#43 4.919   2026_02_03_101401_add_telegram_fields_to_users_table .......... 65.14ms DONE
+#43 5.000   2026_02_03_101407_add_source_to_chat_threads_table ............ 23.17ms DONE
+#43 5.037   2026_02_04_013644_add_role_to_users_table ..................... 74.75ms DONE
+#43 5.172   2026_02_04_013649_create_system_settings_table ................ 58.83ms DONE
+#43 5.246   2026_02_04_013654_create_activity_logs_table .................. 86.94ms DONE
+#43 5.351   2026_02_04_021525_alter_activity_logs_description_to_text .... 116.28ms DONE
+#43 5.481   2026_02_04_075021_create_pending_actions_table ................ 35.18ms DONE
+#43 5.533   2026_02_04_082511_create_subscriptions_table .................. 34.64ms DONE
+#43 5.588   2026_02_04_082517_create_payment_proofs_table ................. 33.97ms DONE
+#43 5.640   2026_02_04_082523_add_subscription_fields_to_users_table ...... 28.61ms DONE
+#43 5.684   2026_02_04_082529_create_chat_usage_logs_table ................ 28.27ms DONE
+#43 5.725   2026_02_04_154234_create_plugins_table ........................ 42.55ms DONE
+#43 5.781   2026_02_04_154235_create_user_plugins_table ................... 42.53ms DONE
+#43 5.838   2026_02_04_154245_create_plugin_configurations_table .......... 31.68ms DONE
+#43 5.880   2026_02_04_154246_create_plugin_schedules_table ............... 29.45ms DONE
+#43 5.922   2026_02_04_154248_create_plugin_logs_table .................... 27.92ms DONE
+#43 5.963   2026_02_05_070349_create_plugin_ratings_table ................. 22.99ms DONE
+#43 6.000 
+#43 7.266 
+#43 7.266 [32m [Wayfinder] Generated actions in /app/resources/js/actions[39m
+#43 7.266 
+#43 8.169 [32m [Wayfinder] Generated routes in /app/resources/js/routes[39m
+#43 8.169 
+#43 9.893 
+#43 9.893 > build
+#43 9.893 > vite build
+#43 9.893 
+#43 ...
+
+#44 [stage-2 13/17] COPY --chown=www-data:www-data . .
+#44 ...
+
+#43 [node-builder 17/17] RUN cp .env.example .env     && mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views     && touch database/database.sqlite     && echo "DB_DATABASE=/app/database/database.sqlite" >> .env     && php artisan key:generate     && php artisan migrate --force     && php artisan wayfinder:generate --with-form     && npm run build
+#43 14.24 vite v7.3.1 building client environment for production...
+#43 17.92 [plugin @laravel/vite-plugin-wayfinder] Types generated for actions, routes, form variants
+#43 18.45 transforming...
+#43 ...
+
+#44 [stage-2 13/17] COPY --chown=www-data:www-data . .
+#44 DONE 25.8s
+
+#43 [node-builder 17/17] RUN cp .env.example .env     && mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views     && touch database/database.sqlite     && echo "DB_DATABASE=/app/database/database.sqlite" >> .env     && php artisan key:generate     && php artisan migrate --force     && php artisan wayfinder:generate --with-form     && npm run build
+#43 49.34 ✓ 3267 modules transformed.
+#43 50.04 rendering chunks...
+#43 50.32 computing gzip size...
+#43 50.42 public/build/manifest.json                                                                 58.77 kB │ gzip:  4.77 kB
+#43 50.42 public/build/assets/Index-BxhVlvFN.css                                                      0.33 kB │ gzip:  0.15 kB
+#43 50.42 public/build/assets/app-IMarVDZX.css                                                      136.91 kB │ gzip: 20.99 kB
+#43 50.42 public/build/assets/check-g9HTqnL8.js                                                       0.12 kB │ gzip:  0.14 kB
+#43 50.42 public/build/assets/chevron-left-oQTfQnLb.js                                                0.13 kB │ gzip:  0.15 kB
+#43 50.42 public/build/assets/moon-SORC2vVb.js                                                        0.14 kB │ gzip:  0.15 kB
+#43 50.42 public/build/assets/loader-circle-Da2qcP87.js                                               0.14 kB │ gzip:  0.15 kB
+#43 50.42 public/build/assets/plus-CWf1zxPk.js                                                        0.15 kB │ gzip:  0.15 kB
+#43 50.42 public/build/assets/arrow-left-BtMeoEl8.js                                                  0.17 kB │ gzip:  0.16 kB
+#43 50.42 public/build/assets/search-WWOtpjan.js                                                      0.17 kB │ gzip:  0.17 kB
+#43 50.42 public/build/assets/clock-COET8iM6.js                                                       0.18 kB │ gzip:  0.17 kB
+#43 50.42 public/build/assets/circle-check-big-pSJztmeW.js                                            0.19 kB │ gzip:  0.18 kB
+#43 50.42 public/build/assets/user-C4duRl-y.js                                                        0.19 kB │ gzip:  0.18 kB
+#43 50.42 public/build/assets/circle-x-nS6exZ3_.js                                                    0.20 kB │ gzip:  0.18 kB
+#43 50.42 public/build/assets/trending-up-DJA-Tlo3.js                                                 0.21 kB │ gzip:  0.18 kB
+#43 50.42 public/build/assets/credit-card-cd29ZJVs.js                                                 0.21 kB │ gzip:  0.19 kB
+#43 50.42 public/build/assets/trending-down-UbsqfCQm.js                                               0.21 kB │ gzip:  0.18 kB
+#43 50.42 public/build/assets/mail-BRVtI5-R.js                                                        0.21 kB │ gzip:  0.20 kB
+#43 50.42 public/build/assets/banknote-CtN1P29k.js                                                    0.24 kB │ gzip:  0.21 kB
+#43 50.42 public/build/assets/circle-alert-NV6wF8ah.js                                                0.25 kB │ gzip:  0.19 kB
+#43 50.42 public/build/assets/eye-BitPezRS.js                                                         0.25 kB │ gzip:  0.20 kB
+#43 50.42 public/build/assets/zap-Bs6bHzV3.js                                                         0.26 kB │ gzip:  0.21 kB
+#43 50.42 public/build/assets/triangle-alert-BAXOMZtZ.js                                              0.27 kB │ gzip:  0.22 kB
+#43 50.42 public/build/assets/pencil-C9NZsNiH.js                                                      0.28 kB │ gzip:  0.23 kB
+#43 50.42 public/build/assets/rotate-ccw-BVhRgGzN.js                                                  0.29 kB │ gzip:  0.24 kB
+#43 50.42 public/build/assets/wallet-DCl66ey-.js                                                      0.29 kB │ gzip:  0.21 kB
+#43 50.42 public/build/assets/InputError.vue_vue_type_script_setup_true_lang-CGQDcfAP.js              0.29 kB │ gzip:  0.24 kB
+#43 50.42 public/build/assets/useNonce-BHGhkcg9.js                                                    0.29 kB │ gzip:  0.24 kB
+#43 50.42 public/build/assets/refresh-cw-Cp7rTaEL.js                                                  0.32 kB │ gzip:  0.23 kB
+#43 50.42 public/build/assets/tag-_vz7rikR.js                                                         0.32 kB │ gzip:  0.25 kB
+#43 50.42 public/build/assets/save-Dd0HauSE.js                                                        0.33 kB │ gzip:  0.23 kB
+#43 50.42 public/build/assets/bot-CUvtvzBa.js                                                         0.33 kB │ gzip:  0.23 kB
+#43 50.42 public/build/assets/CardDescription.vue_vue_type_script_setup_true_lang-BVrVG9hq.js         0.33 kB │ gzip:  0.26 kB
+#43 50.42 public/build/assets/trash-2-B3RALJ_w.js                                                     0.36 kB │ gzip:  0.25 kB
+#43 50.42 public/build/assets/Spinner.vue_vue_type_script_setup_true_lang-CAD4D78z.js                 0.36 kB │ gzip:  0.28 kB
+#43 50.42 public/build/assets/DialogFooter.vue_vue_type_script_setup_true_lang-Cu2yayvp.js            0.37 kB │ gzip:  0.28 kB
+#43 50.42 public/build/assets/index-CWb-K7XI.js                                                       0.37 kB │ gzip:  0.22 kB
+#43 50.42 public/build/assets/index-DRdBuBqf.js                                                       0.37 kB │ gzip:  0.22 kB
+#43 50.42 public/build/assets/sparkles-B1Qblr1n.js                                                    0.51 kB │ gzip:  0.30 kB
+#43 50.42 public/build/assets/TextLink.vue_vue_type_script_setup_true_lang-1PXlBR-1.js                0.52 kB │ gzip:  0.35 kB
+#43 50.42 public/build/assets/file-text-CEmpxG2z.js                                                   0.52 kB │ gzip:  0.31 kB
+#43 50.42 public/build/assets/user-x-D1A0TH02.js                                                      0.52 kB │ gzip:  0.32 kB
+#43 50.42 public/build/assets/CardContent.vue_vue_type_script_setup_true_lang-DIVUeGgW.js             0.55 kB │ gzip:  0.31 kB
+#43 50.42 public/build/assets/puzzle-CxwuZda5.js                                                      0.57 kB │ gzip:  0.27 kB
+#43 50.42 public/build/assets/DialogDescription.vue_vue_type_script_setup_true_lang-Dq92rLae.js       0.62 kB │ gzip:  0.42 kB
+#43 50.42 public/build/assets/CardTitle.vue_vue_type_script_setup_true_lang-DGbYX-Rz.js               0.65 kB │ gzip:  0.38 kB
+#43 50.42 public/build/assets/message-square-Cko1hVgb.js                                              0.70 kB │ gzip:  0.41 kB
+#43 50.42 public/build/assets/useForwardPropsEmits-BXEmE1dq.js                                        0.70 kB │ gzip:  0.43 kB
+#43 50.42 public/build/assets/smile-plus-QaEXJT38.js                                                  0.72 kB │ gzip:  0.41 kB
+#43 50.42 public/build/assets/Textarea.vue_vue_type_script_setup_true_lang-C7ZXX-EX.js                0.81 kB │ gzip:  0.48 kB
+#43 50.42 public/build/assets/Label.vue_vue_type_script_setup_true_lang-Da8PWo50.js                   1.04 kB │ gzip:  0.56 kB
+#43 50.42 public/build/assets/heart-C9oX7iMG.js                                                       1.11 kB │ gzip:  0.59 kB
+#43 50.42 public/build/assets/AuthLayout.vue_vue_type_script_setup_true_lang-DPx4nD7j.js              1.15 kB │ gzip:  0.59 kB
+#43 50.42 public/build/assets/Input.vue_vue_type_script_setup_true_lang-BYDRRHVd.js                   1.16 kB │ gzip:  0.63 kB
+#43 50.42 public/build/assets/DialogTrigger.vue_vue_type_script_setup_true_lang-DmnvLfFR.js           1.19 kB │ gzip:  0.63 kB
+#43 50.42 public/build/assets/VerifyEmail-CqVPzASx.js                                                 1.44 kB │ gzip:  0.78 kB
+#43 50.42 public/build/assets/index-Cw4dSwF7.js                                                       1.50 kB │ gzip:  0.52 kB
+#43 50.42 public/build/assets/StarRating.vue_vue_type_script_setup_true_lang-CMeOLzuV.js              1.72 kB │ gzip:  0.97 kB
+#43 50.42 public/build/assets/ConfirmPassword-DSsz2hsr.js                                             1.72 kB │ gzip:  0.85 kB
+#43 50.42 public/build/assets/RovingFocusItem-CT0W5aXk.js                                             1.74 kB │ gzip:  0.88 kB
+#43 50.42 public/build/assets/ForgotPassword-DleMyuGz.js                                              2.15 kB │ gzip:  1.03 kB
+#43 50.42 public/build/assets/ResetPassword-BizA6Cgt.js                                               2.55 kB │ gzip:  1.03 kB
+#43 50.42 public/build/assets/index-BuwybCZ_.js                                                       2.60 kB │ gzip:  1.32 kB
+#43 50.42 public/build/assets/Appearance-C4WqM45H.js                                                  2.68 kB │ gzip:  1.31 kB
+#43 50.42 public/build/assets/index-CBQWBD0A.js                                                       2.76 kB │ gzip:  0.71 kB
+#43 50.42 public/build/assets/useFormControl-L4WNOcn9.js                                              2.79 kB │ gzip:  1.21 kB
+#43 50.42 public/build/assets/AdminLayout.vue_vue_type_script_setup_true_lang-9_iIn4SI.js             3.00 kB │ gzip:  1.32 kB
+#43 50.42 public/build/assets/DialogTitle.vue_vue_type_script_setup_true_lang-DoRTzVQM.js             3.13 kB │ gzip:  1.31 kB
+#43 50.42 public/build/assets/TwoFactorChallenge-BHtcophC.js                                          3.44 kB │ gzip:  1.34 kB
+#43 50.42 public/build/assets/Login-C72lLnzl.js                                                       3.57 kB │ gzip:  1.51 kB
+#43 50.42 public/build/assets/index-BUfll_aK.js                                                       3.98 kB │ gzip:  1.18 kB
+#43 50.42 public/build/assets/index-Duxrtv9m.js                                                       4.03 kB │ gzip:  1.99 kB
+#43 50.42 public/build/assets/Password-CZ_eWAWf.js                                                    4.11 kB │ gzip:  1.48 kB
+#43 50.42 public/build/assets/TransactionFormModal.vue_vue_type_script_setup_true_lang-D2MAwYNw.js    4.27 kB │ gzip:  1.61 kB
+#43 50.42 public/build/assets/WeeklyChartCard.vue_vue_type_script_setup_true_lang-D-USUiQF.js         4.42 kB │ gzip:  1.65 kB
+#43 50.42 public/build/assets/Index-D0_V4WQ7.js                                                       5.08 kB │ gzip:  2.05 kB
+#43 50.42 public/build/assets/Register-Cib15hAw.js                                                    5.53 kB │ gzip:  1.84 kB
+#43 50.42 public/build/assets/index-CPaYEOzx.js                                                       5.72 kB │ gzip:  1.03 kB
+#43 50.42 public/build/assets/useForwardExpose-D5Tbq877.js                                            5.85 kB │ gzip:  2.63 kB
+#43 50.42 public/build/assets/Accounts-C5UitSuJ.js                                                    6.08 kB │ gzip:  2.27 kB
+#43 50.42 public/build/assets/Checkbox.vue_vue_type_script_setup_true_lang-yO_NIYiS.js                6.56 kB │ gzip:  2.45 kB
+#43 50.42 public/build/assets/Index-BYEownY1.js                                                       6.74 kB │ gzip:  2.49 kB
+#43 50.42 public/build/assets/Telegram-pvyVla4u.js                                                    6.75 kB │ gzip:  2.46 kB
+#43 50.42 public/build/assets/Transactions-CW2ILgFU.js                                                6.87 kB │ gzip:  2.73 kB
+#43 50.42 public/build/assets/Index-BLoa24ay.js                                                       7.50 kB │ gzip:  2.99 kB
+#43 50.42 public/build/assets/Index-C76pnexh.js                                                       7.88 kB │ gzip:  2.84 kB
+#43 50.42 public/build/assets/ExplorePlugins-BOZDe1P_.js                                              8.07 kB │ gzip:  2.98 kB
+#43 50.43 public/build/assets/Show-D5pKDYYr.js                                                        8.18 kB │ gzip:  2.61 kB
+#43 50.43 public/build/assets/Categories-D_H2sv_N.js                                                  8.51 kB │ gzip:  2.71 kB
+#43 50.43 public/build/assets/VisuallyHidden-CE-9Fp8t.js                                              8.59 kB │ gzip:  3.62 kB
+#43 50.43 public/build/assets/Index-CrP8Lt4B.js                                                       9.48 kB │ gzip:  2.96 kB
+#43 50.43 public/build/assets/Layout.vue_vue_type_script_setup_true_lang-wpMlArKR.js                 10.21 kB │ gzip:  2.76 kB
+#43 50.43 public/build/assets/Show-BoMbccb2.js                                                       10.30 kB │ gzip:  3.53 kB
+#43 50.43 public/build/assets/Index-C5Z7VKlm.js                                                      10.63 kB │ gzip:  3.53 kB
+#43 50.43 public/build/assets/Index-CNa-dKUP.js                                                      11.25 kB │ gzip:  4.01 kB
+#43 50.43 public/build/assets/Profile-B8pEHMB0.js                                                    12.06 kB │ gzip:  3.86 kB
+#43 50.43 public/build/assets/InputOTPSlot.vue_vue_type_script_setup_true_lang-C2-dJVQN.js           12.62 kB │ gzip:  4.88 kB
+#43 50.43 public/build/assets/Dashboard-CJEVNDrL.js                                                  13.47 kB │ gzip:  3.79 kB
+#43 50.43 public/build/assets/Index-BHWA__1Q.js                                                      13.72 kB │ gzip:  4.39 kB
+#43 50.43 public/build/assets/Welcome-C6TMYB4B.js                                                    13.82 kB │ gzip:  4.09 kB
+#43 50.43 public/build/assets/Dashboard-VtvdGN2P.js                                                  14.09 kB │ gzip:  5.02 kB
+#43 50.43 public/build/assets/Index-mvn39l4Y.js                                                      14.56 kB │ gzip:  5.19 kB
+#43 50.43 public/build/assets/TwoFactor-BQ2M44yV.js                                                  15.93 kB │ gzip:  5.70 kB
+#43 50.43 public/build/assets/Show-BCd3LSwK.js                                                       16.69 kB │ gzip:  5.02 kB
+#43 50.43 public/build/assets/AppLayout.vue_vue_type_script_setup_true_lang-BCyVidJa.js              19.68 kB │ gzip:  3.66 kB
+#43 50.43 public/build/assets/index-CueH6h6I.js                                                      28.76 kB │ gzip:  9.57 kB
+#43 50.43 public/build/assets/Index-BYu6CK2r.js                                                      28.97 kB │ gzip:  9.01 kB
+#43 50.43 public/build/assets/SelectValue.vue_vue_type_script_setup_true_lang-D4o3D_1w.js            30.34 kB │ gzip:  8.90 kB
+#43 50.43 public/build/assets/Index-DuA9sicV.js                                                      32.19 kB │ gzip:  7.39 kB
+#43 50.43 public/build/assets/sweetalert2.esm.all-CHfsb5jC.js                                        79.71 kB │ gzip: 20.97 kB
+#43 50.43 public/build/assets/AppSidebarHeader.vue_vue_type_script_setup_true_lang-RqD8LZo6.js      132.44 kB │ gzip: 34.28 kB
+#43 50.43 public/build/assets/app-DmSQj4ZC.js                                                       275.80 kB │ gzip: 97.22 kB
+#43 50.43 ✓ built in 36.02s
+#43 50.67 npm notice
+#43 50.67 npm notice New minor version of npm available! 11.6.2 -> 11.9.0
+#43 50.67 npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.9.0
+#43 50.67 npm notice To update run: npm install -g npm@11.9.0
+#43 50.67 npm notice
+#43 DONE 50.9s
+
+#45 [stage-2 14/17] COPY --from=node-builder --chown=www-data:www-data /app/public/build ./public/build
+#45 DONE 0.5s
+
+#46 [stage-2 15/17] COPY --from=composer-builder --chown=www-data:www-data /app/vendor ./vendor
+#46 DONE 7.3s
+
+#47 [stage-2 16/17] RUN mv .env.example .env     && mkdir -p storage/app/public storage/app/public/uploads/user_photos                 storage/framework/cache storage/framework/sessions storage/framework/views                 storage/logs bootstrap/cache public     && chown -R www-data:www-data storage bootstrap/cache public     && php artisan key:generate --force     && php artisan storage:link || true
+#47 2.505 
+#47 2.516 In Connection.php line 838:
+#47 2.516                                                                                
+#47 2.516   Database file at path [/var/www/html/database/database.sqlite] does not exi  
+#47 2.516   st. Ensure this is an absolute path to the database. (Connection: sqlite, D  
+#47 2.517   atabase: /var/www/html/database/database.sqlite, SQL: select exists (select  
+#47 2.518    1 from "main".sqlite_master where name = 'system_settings' and type = 'tab  
+#47 2.518   le') as "exists")                                                            
+#47 2.518                                                                                
+#47 2.518 
+#47 2.523 In SQLiteConnector.php line 60:
+#47 2.523                                                                                
+#47 2.523   Database file at path [/var/www/html/database/database.sqlite] does not exi  
+#47 2.523   st. Ensure this is an absolute path to the database.                         
+#47 2.523                                                                                
+#47 2.523 
+#47 DONE 2.7s
+
+#48 [stage-2 17/17] RUN echo "* * * * * cd /var/www/html && /usr/local/bin/php artisan schedule:run >> /var/log/cron.log 2>&1" > /etc/cron.d/laravel-scheduler     && chmod 0644 /etc/cron.d/laravel-scheduler     && crontab /etc/cron.d/laravel-scheduler     && touch /var/log/cron.log     && chmod 666 /var/log/cron.log
+#48 DONE 0.6s
+
+#49 exporting to image
+#49 exporting layers
+#49 exporting layers 6.5s done
+#49 exporting manifest sha256:cb5b1c1e96fc7c8d0ca4e703e601e2492cb69ff53e59f54c1305a59afa988ea5 0.0s done
+#49 exporting config sha256:8f57cad4e18ca22e880a2db7b7dd0ab61e27378836f937607d6aa8acc9048b89 0.0s done
+#49 exporting attestation manifest sha256:f225867871988a67371f5cdcabdc864d397ec28a804375d15d50169b18820d50
+#49 exporting attestation manifest sha256:f225867871988a67371f5cdcabdc864d397ec28a804375d15d50169b18820d50 0.1s done
+#49 exporting manifest list sha256:9a6be9065e840800a780e147a9c3abeb423b2b91cc718996b55eb2c0d035807d 0.0s done
+#49 naming to docker.io/azmifauzan/aspri:050226-1 0.0s done
+#49 unpacking to docker.io/azmifauzan/aspri:050226-1
+#49 unpacking to docker.io/azmifauzan/aspri:050226-1 9.4s done
+#49 DONE 16.3s
+
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/z7n02rv4t25v4uge2161dpca5

@@ -65,9 +65,10 @@ COPY vite.config.ts tsconfig.json .env.example ./
 COPY storage ./storage
 
 # Create .env for artisan commands and generate Wayfinder types before build
-RUN cp .env.example .env && php artisan key:generate \
+RUN cp .env.example .env \
     && mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views \
     && touch database/database.sqlite \
+    && php artisan key:generate \
     && php artisan wayfinder:generate --with-form \
     && npm run build
 
@@ -131,8 +132,9 @@ COPY --from=composer-builder --chown=www-data:www-data /app/vendor ./vendor
 RUN mv .env.example .env \
     && mkdir -p storage/app/public storage/app/public/uploads/user_photos \
                 storage/framework/cache storage/framework/sessions storage/framework/views \
-                storage/logs bootstrap/cache public \
-    && chown -R www-data:www-data storage bootstrap/cache public \
+                storage/logs bootstrap/cache public database \
+    && touch database/database.sqlite \
+    && chown -R www-data:www-data storage bootstrap/cache public database \
     && php artisan key:generate --force \
     && php artisan storage:link || true
 
