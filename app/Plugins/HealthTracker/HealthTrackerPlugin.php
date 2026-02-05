@@ -2,10 +2,9 @@
 
 namespace App\Plugins\HealthTracker;
 
+use App\Models\User;
 use App\Services\Plugin\BasePlugin;
 use App\Services\TelegramService;
-use App\Models\User;
-use Illuminate\Support\Facades\DB;
 
 class HealthTrackerPlugin extends BasePlugin
 {
@@ -134,34 +133,35 @@ class HealthTrackerPlugin extends BasePlugin
         ];
     }
 
-    public function validateConfig(array $config): bool
+    public function validateConfig(array $config): array
     {
-        if (!isset($config['reminder_time']) || !preg_match('/^\d{2}:\d{2}$/', $config['reminder_time'])) {
-            return false;
+        $errors = [];
+
+        if (! isset($config['reminder_time']) || ! preg_match('/^\d{2}:\d{2}$/', $config['reminder_time'])) {
+            $errors['reminder_time'] = 'Format waktu tidak valid (harus HH:MM)';
         }
 
         if (isset($config['steps_goal']) && ($config['steps_goal'] < 1000 || $config['steps_goal'] > 50000)) {
-            return false;
+            $errors['steps_goal'] = 'Target langkah harus antara 1000 dan 50000';
         }
 
         if (isset($config['water_goal']) && ($config['water_goal'] < 4 || $config['water_goal'] > 16)) {
-            return false;
+            $errors['water_goal'] = 'Target air harus antara 4 dan 16 gelas';
         }
 
         if (isset($config['sleep_goal']) && ($config['sleep_goal'] < 4 || $config['sleep_goal'] > 12)) {
-            return false;
+            $errors['sleep_goal'] = 'Target tidur harus antara 4 dan 12 jam';
         }
 
-        return true;
+        return $errors;
     }
 
-    public function activate(): void
+    public function activate(int $userId): void
     {
-        $user = auth()->user();
-        $config = $this->getConfig($user->id);
+        $config = $this->getConfig($userId);
 
         // Daily reminder
-        $this->createSchedule($user->id, [
+        $this->createSchedule($userId, [
             'schedule_type' => 'daily',
             'schedule_value' => $config['reminder_time'],
             'metadata' => [
@@ -171,29 +171,28 @@ class HealthTrackerPlugin extends BasePlugin
 
         // Weekly report
         if ($config['weekly_report']) {
-            $this->createSchedule($user->id, [
+            $this->createSchedule($userId, [
                 'schedule_type' => 'weekly',
-                'schedule_value' => $config['weekly_report_day'] . ',09:00',
+                'schedule_value' => $config['weekly_report_day'].',09:00',
                 'metadata' => [
                     'type' => 'weekly_report',
                 ],
             ]);
         }
 
-        $this->log($user->id, 'info', 'Health Tracker activated');
+        $this->log($userId, 'info', 'Health Tracker activated');
     }
 
-    public function deactivate(): void
+    public function deactivate(int $userId): void
     {
-        $user = auth()->user();
-        $this->deleteSchedules($user->id);
-        $this->log($user->id, 'info', 'Health Tracker deactivated');
+        $this->deleteSchedules($userId);
+        $this->log($userId, 'info', 'Health Tracker deactivated');
     }
 
-    public function execute(int $userId, array $metadata): void
+    public function execute(int $userId, array $config, array $context = []): void
     {
         try {
-            $type = $metadata['type'] ?? 'daily_reminder';
+            $type = $context['type'] ?? 'daily_reminder';
 
             if ($type === 'daily_reminder') {
                 $this->sendDailyReminder($userId);
@@ -203,7 +202,7 @@ class HealthTrackerPlugin extends BasePlugin
 
             $this->log($userId, 'info', "Executed: {$type}");
         } catch (\Exception $e) {
-            $this->log($userId, 'error', 'Execution failed: ' . $e->getMessage());
+            $this->log($userId, 'error', 'Execution failed: '.$e->getMessage());
         }
     }
 
@@ -219,7 +218,7 @@ class HealthTrackerPlugin extends BasePlugin
             $message .= "⚖️ Berat badan\n";
         }
         if ($config['track_steps']) {
-            $message .= "👣 Langkah kaki (Target: " . number_format($config['steps_goal']) . ")\n";
+            $message .= '👣 Langkah kaki (Target: '.number_format($config['steps_goal']).")\n";
         }
         if ($config['track_water']) {
             $message .= "💧 Air minum (Target: {$config['water_goal']} gelas)\n";
@@ -237,21 +236,21 @@ class HealthTrackerPlugin extends BasePlugin
     {
         $config = $this->getConfig($userId);
         $telegramService = app(TelegramService::class);
-        
+
         $user = User::find($userId);
         $startDate = now()->subDays(7);
         $endDate = now();
 
         // Get health data from plugin_configurations or custom table
         $message = "📊 *Laporan Kesehatan Mingguan*\n";
-        $message .= "Periode: " . $startDate->format('d M') . " - " . $endDate->format('d M Y') . "\n\n";
+        $message .= 'Periode: '.$startDate->format('d M').' - '.$endDate->format('d M Y')."\n\n";
 
         // This would need a separate health_logs table to track actual data
         // For now, send encouragement message
         $message .= "🎯 Tetap jaga kesehatan Anda!\n\n";
-        
+
         if ($config['track_steps']) {
-            $message .= "👣 Target langkah: " . number_format($config['steps_goal']) . " langkah/hari\n";
+            $message .= '👣 Target langkah: '.number_format($config['steps_goal'])." langkah/hari\n";
         }
         if ($config['track_water']) {
             $message .= "💧 Target air: {$config['water_goal']} gelas/hari\n";

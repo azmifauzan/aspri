@@ -28,10 +28,53 @@ class PluginController extends Controller
     {
         $user = $request->user();
 
-        $plugins = $this->pluginManager->getPluginsForUser($user->id);
+        // Get base plugins query
+        $query = Plugin::query()
+            ->withCount('ratings')
+            ->withAvg('ratings', 'rating');
+
+        // Sort by rating (default) or other criteria
+        $sortBy = $request->input('sort_by', 'rating');
+        if ($sortBy === 'rating') {
+            $query->orderByDesc('ratings_avg_rating')
+                ->orderByDesc('ratings_count');
+        } elseif ($sortBy === 'name') {
+            $query->orderBy('name');
+        } elseif ($sortBy === 'newest') {
+            $query->orderByDesc('created_at');
+        }
+
+        $plugins = $query->get()
+            ->when($request->input('min_rating'), function ($collection, $minRating) {
+                return $collection->filter(fn ($plugin) => ($plugin->ratings_avg_rating ?? 0) >= $minRating);
+            })
+            ->map(function ($plugin) use ($user) {
+                $userPlugin = $plugin->userPlugins()->where('user_id', $user->id)->first();
+
+                return [
+                    'id' => $plugin->id,
+                    'slug' => $plugin->slug,
+                    'name' => $plugin->name,
+                    'description' => $plugin->description,
+                    'version' => $plugin->version,
+                    'author' => $plugin->author,
+                    'icon' => $plugin->icon,
+                    'is_system' => $plugin->is_system,
+                    'installed_at' => $plugin->installed_at,
+                    'user_is_active' => $userPlugin?->is_active ?? false,
+                    'average_rating' => round($plugin->ratings_avg_rating ?? 0, 1),
+                    'total_ratings' => $plugin->ratings_count ?? 0,
+                    'user_rating' => $plugin->ratings()->where('user_id', $user->id)->first()?->rating,
+                ];
+            })
+            ->values();
 
         return Inertia::render('plugins/Index', [
             'plugins' => $plugins,
+            'filters' => [
+                'min_rating' => $request->input('min_rating'),
+                'sort_by' => $sortBy,
+            ],
         ]);
     }
 
@@ -59,14 +102,28 @@ class PluginController extends Controller
         // Get execution history
         $executionHistory = $this->schedulerService->getExecutionHistory($user->id, $plugin->slug, 10);
 
+        // Get plugin ratings
+        $ratings = $plugin->ratings()
+            ->with('user:id,name')
+            ->orderByDesc('created_at')
+            ->paginate(10);
+
+        // Get user's rating if exists
+        $userRating = $plugin->ratings()->where('user_id', $user->id)->first();
+
         return Inertia::render('plugins/Show', [
-            'plugin' => $plugin,
+            'plugin' => array_merge($plugin->toArray(), [
+                'average_rating' => round($plugin->ratings()->avg('rating') ?? 0, 1),
+                'total_ratings' => $plugin->ratings()->count(),
+            ]),
             'userPlugin' => $userPlugin,
             'config' => $config,
             'formFields' => $formFields,
             'supportsScheduling' => $supportsScheduling,
             'schedule' => $schedule,
             'executionHistory' => $executionHistory,
+            'ratings' => $ratings,
+            'userRating' => $userRating,
         ]);
     }
 

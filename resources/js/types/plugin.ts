@@ -17,6 +17,10 @@ export interface Plugin {
     user_is_active?: boolean;
     user_plugin_id?: number | null;
     active_users_count?: number;
+    // Rating properties
+    average_rating?: number;
+    total_ratings?: number;
+    user_rating?: number | null;
 }
 
 export interface UserPlugin {
@@ -62,6 +66,20 @@ export interface PluginLog {
     created_at: string;
 }
 
+export interface PluginRating {
+    id: number;
+    user_id: number;
+    plugin_id: number;
+    rating: number;
+    review: string | null;
+    created_at: string;
+    updated_at: string;
+    user: {
+        id: number;
+        name: string;
+    };
+}
+
 export interface ConfigField {
     key: string;
     type: 'text' | 'textarea' | 'number' | 'integer' | 'boolean' | 'select' | 'multiselect' | 'time' | 'email';
@@ -93,14 +111,33 @@ export interface ConfigSchema {
 
 export interface PluginIndexProps {
     plugins: Plugin[];
+    filters?: {
+        sort_by?: string;
+        min_rating?: number | string;
+    };
 }
 
 export interface PluginShowProps {
-    plugin: Plugin;
+    plugin: Plugin & {
+        average_rating: number;
+        total_ratings: number;
+    };
     userPlugin: UserPlugin | null;
     config: Record<string, unknown>;
     formFields: ConfigField[];
     supportsScheduling: boolean;
     schedule: PluginSchedule | null;
     executionHistory: PluginLog[];
+    ratings: {
+        data: PluginRating[];
+        current_page: number;
+        last_page: number;
+        per_page: number;
+        total: number;
+        from: number;
+        to: number;
+        prev_page_url: string | null;
+        next_page_url: string | null;
+    };
+    userRating: PluginRating | null;
 }

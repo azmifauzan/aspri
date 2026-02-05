@@ -54,11 +54,35 @@ class Plugin extends Model
     }
 
     /**
+     * Get all ratings for this plugin.
+     */
+    public function ratings(): HasMany
+    {
+        return $this->hasMany(PluginRating::class);
+    }
+
+    /**
      * Check if plugin is installed.
      */
     public function isInstalled(): bool
     {
         return $this->installed_at !== null;
+    }
+
+    /**
+     * Get the average rating of the plugin.
+     */
+    public function getAverageRatingAttribute(): float
+    {
+        return $this->ratings()->avg('rating') ?? 0;
+    }
+
+    /**
+     * Get the total number of ratings.
+     */
+    public function getTotalRatingsAttribute(): int
+    {
+        return $this->ratings()->count();
     }
 
     /**

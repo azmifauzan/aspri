@@ -4,7 +4,6 @@ namespace App\Plugins\MoodJournal;
 
 use App\Services\Plugin\BasePlugin;
 use App\Services\TelegramService;
-use App\Models\User;
 
 class MoodJournalPlugin extends BasePlugin
 {
@@ -125,27 +124,27 @@ class MoodJournalPlugin extends BasePlugin
         ];
     }
 
-    public function validateConfig(array $config): bool
+    public function validateConfig(array $config): array
     {
+        $errors = [];
         $timeFields = ['checkin_time', 'morning_time', 'afternoon_time', 'evening_time'];
-        
+
         foreach ($timeFields as $field) {
-            if (isset($config[$field]) && !preg_match('/^\d{2}:\d{2}$/', $config[$field])) {
-                return false;
+            if (isset($config[$field]) && ! preg_match('/^\d{2}:\d{2}$/', $config[$field])) {
+                $errors[$field] = 'Format waktu tidak valid (harus HH:MM)';
             }
         }
 
-        return true;
+        return $errors;
     }
 
-    public function activate(): void
+    public function activate(int $userId): void
     {
-        $user = auth()->user();
-        $config = $this->getConfig($user->id);
+        $config = $this->getConfig($userId);
 
         if ($config['multiple_checkin']) {
             // Morning check-in
-            $this->createSchedule($user->id, [
+            $this->createSchedule($userId, [
                 'schedule_type' => 'daily',
                 'schedule_value' => $config['morning_time'],
                 'metadata' => [
@@ -155,7 +154,7 @@ class MoodJournalPlugin extends BasePlugin
             ]);
 
             // Afternoon check-in
-            $this->createSchedule($user->id, [
+            $this->createSchedule($userId, [
                 'schedule_type' => 'daily',
                 'schedule_value' => $config['afternoon_time'],
                 'metadata' => [
@@ -165,7 +164,7 @@ class MoodJournalPlugin extends BasePlugin
             ]);
 
             // Evening check-in
-            $this->createSchedule($user->id, [
+            $this->createSchedule($userId, [
                 'schedule_type' => 'daily',
                 'schedule_value' => $config['evening_time'],
                 'metadata' => [
@@ -175,7 +174,7 @@ class MoodJournalPlugin extends BasePlugin
             ]);
         } elseif ($config['daily_checkin']) {
             // Single daily check-in
-            $this->createSchedule($user->id, [
+            $this->createSchedule($userId, [
                 'schedule_type' => 'daily',
                 'schedule_value' => $config['checkin_time'],
                 'metadata' => [
@@ -187,32 +186,31 @@ class MoodJournalPlugin extends BasePlugin
 
         // Weekly insight
         if ($config['weekly_insight']) {
-            $this->createSchedule($user->id, [
+            $this->createSchedule($userId, [
                 'schedule_type' => 'weekly',
-                'schedule_value' => $config['insight_day'] . ',09:00',
+                'schedule_value' => $config['insight_day'].',09:00',
                 'metadata' => [
                     'type' => 'weekly_insight',
                 ],
             ]);
         }
 
-        $this->log($user->id, 'info', 'Mood Journal activated');
+        $this->log($userId, 'info', 'Mood Journal activated');
     }
 
-    public function deactivate(): void
+    public function deactivate(int $userId): void
     {
-        $user = auth()->user();
-        $this->deleteSchedules($user->id);
-        $this->log($user->id, 'info', 'Mood Journal deactivated');
+        $this->deleteSchedules($userId);
+        $this->log($userId, 'info', 'Mood Journal deactivated');
     }
 
-    public function execute(int $userId, array $metadata): void
+    public function execute(int $userId, array $config, array $context = []): void
     {
         try {
-            $type = $metadata['type'] ?? 'mood_checkin';
+            $type = $context['type'] ?? 'mood_checkin';
 
             if ($type === 'mood_checkin') {
-                $period = $metadata['period'] ?? 'daily';
+                $period = $context['period'] ?? 'daily';
                 $this->sendMoodCheckin($userId, $period);
             } elseif ($type === 'weekly_insight') {
                 $this->sendWeeklyInsight($userId);
@@ -220,7 +218,7 @@ class MoodJournalPlugin extends BasePlugin
 
             $this->log($userId, 'info', "Executed: {$type}");
         } catch (\Exception $e) {
-            $this->log($userId, 'error', 'Execution failed: ' . $e->getMessage());
+            $this->log($userId, 'error', 'Execution failed: '.$e->getMessage());
         }
     }
 
@@ -261,7 +259,7 @@ class MoodJournalPlugin extends BasePlugin
         }
 
         if ($config['gratitude_prompt']) {
-            $message .= "💚 Apa yang Anda syukuri hari ini?";
+            $message .= '💚 Apa yang Anda syukuri hari ini?';
         }
 
         $telegramService->sendMessage($userId, $message);
@@ -273,7 +271,7 @@ class MoodJournalPlugin extends BasePlugin
 
         $message = "📊 *Insight Mood Mingguan*\n\n";
         $message .= "Ringkasan minggu ini:\n\n";
-        
+
         // This would need actual mood tracking data
         $message .= "🎭 Mood Anda minggu ini cukup stabil!\n\n";
         $message .= "💡 *Insight*:\n";
@@ -281,7 +279,7 @@ class MoodJournalPlugin extends BasePlugin
         $message .= "• Perhatikan pola aktivitas yang membuat mood lebih baik\n";
         $message .= "• Jangan lupa self-care dan istirahat cukup\n\n";
         $message .= "📈 Pola mood minggu depan akan lebih baik jika Anda konsisten dengan kebiasaan positif!\n\n";
-        $message .= "Ingat: Perasaan adalah valid, dan tidak apa-apa untuk tidak selalu baik-baik saja. 💚";
+        $message .= 'Ingat: Perasaan adalah valid, dan tidak apa-apa untuk tidak selalu baik-baik saja. 💚';
 
         $telegramService->sendMessage($userId, $message);
     }

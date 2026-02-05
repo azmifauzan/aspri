@@ -3,14 +3,19 @@ import { dashboard, login, register } from '@/routes';
 import { Head, Link } from '@inertiajs/vue3';
 import {
     BellRing,
+    BookOpen,
     Bot,
     Calendar,
     Check,
+    CheckCircle,
     Clock,
     Crown,
     Droplets,
+    Gift,
+    Heart,
     MessageSquare,
     Puzzle,
+    SmilePlus,
     Sparkles,
     TrendingUp,
     Wallet,
@@ -63,6 +68,12 @@ const iconMap: Record<string, Component> = {
     droplets: Droplets,
     'bell-ring': BellRing,
     'puzzle-piece': Puzzle,
+    clock: Clock,
+    gift: Gift,
+    'book-open': BookOpen,
+    'check-circle': CheckCircle,
+    heart: Heart,
+    'emoji-happy': SmilePlus,
 };
 
 const getPluginIcon = (iconName: string): Component => {
@@ -238,7 +249,7 @@ const features = [
         </section>
 
         <!-- Plugin Showcase Section -->
-        <section v-if="featuredPlugins.length > 0" class="container mx-auto px-4 py-16 lg:py-24 bg-muted/20">
+        <section class="container mx-auto px-4 py-16 lg:py-24 bg-muted/20">
             <div class="mx-auto max-w-6xl">
                 <div class="mb-12 text-center">
                     <div
@@ -256,7 +267,7 @@ const features = [
                         Tambahkan kemampuan ASPRI dengan plugin-plugin yang dirancang untuk membantu rutinitas harian Anda
                     </p>
                 </div>
-                <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                <div v-if="featuredPlugins.length > 0" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     <div
                         v-for="plugin in featuredPlugins"
                         :key="plugin.slug"
@@ -280,20 +291,22 @@ const features = [
                             </p>
                         </div>
                     </div>
-                    <!-- More Plugins Card -->
-                    <div
-                        class="group relative flex items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-border/60 bg-muted/30 p-6 transition-all hover:border-primary/50"
+                </div>
+                <div v-else class="text-center py-12">
+                    <Puzzle class="mx-auto mb-4 h-16 w-16 text-muted-foreground/40" />
+                    <p class="text-lg text-muted-foreground mb-6">
+                        Plugin-plugin menarik akan segera tersedia!
+                    </p>
+                </div>
+                <!-- View All Plugins Button -->
+                <div class="mt-8 text-center">
+                    <Link
+                        href="/explore-plugins"
+                        class="inline-flex items-center gap-2 rounded-lg border border-input bg-background px-6 py-3 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
                     >
-                        <div class="text-center">
-                            <Puzzle class="mx-auto mb-3 h-10 w-10 text-muted-foreground/60" />
-                            <p class="font-medium text-muted-foreground">
-                                Dan masih banyak lagi...
-                            </p>
-                            <p class="mt-1 text-sm text-muted-foreground/80">
-                                Daftar untuk eksplorasi semua plugin
-                            </p>
-                        </div>
-                    </div>
+                        <Puzzle class="h-4 w-4" />
+                        Lihat Semua Plugin
+                    </Link>
                 </div>
             </div>
         </section>

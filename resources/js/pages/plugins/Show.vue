@@ -8,13 +8,26 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
+import StarRating from '@/components/StarRating.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
-import type { ConfigField, PluginShowProps } from '@/types';
+import type { BreadcrumbItem, ConfigField, PluginShowProps } from '@/types';
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { ArrowLeft, Calendar, CheckCircle, Clock, Play, RotateCcw, Save, XCircle } from 'lucide-vue-next';
-import { computed } from 'vue';
+import { index as pluginsIndex } from '@/routes/plugins';
+import { ArrowLeft, Calendar, CheckCircle, Clock, Play, RotateCcw, Save, Star, Trash2, XCircle } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
 
 const props = defineProps<PluginShowProps>();
+
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
+    {
+        title: 'Plugins',
+        href: pluginsIndex().url,
+    },
+    {
+        title: props.plugin.name,
+        href: '#',
+    },
+]);
 
 // Configuration form
 const configForm = useForm<{ config: Record<string, unknown> }>({
@@ -27,6 +40,15 @@ const scheduleForm = useForm({
     schedule_value: props.schedule?.schedule_value || '07:00',
     metadata: props.schedule?.metadata || null,
 });
+
+// Rating form
+const ratingForm = useForm({
+    rating: props.userRating?.rating || 0,
+    review: props.userRating?.review || '',
+});
+
+const isEditingRating = ref(false);
+const showRatingForm = computed(() => !props.userRating || isEditingRating.value);
 
 const isActive = computed(() => props.userPlugin?.is_active ?? false);
 
@@ -99,6 +121,44 @@ const formatDate = (date: string | null) => {
     return new Date(date).toLocaleString('id-ID');
 };
 
+const submitRating = () => {
+    if (ratingForm.rating === 0) {
+        alert('Silakan pilih rating bintang terlebih dahulu');
+        return;
+    }
+
+    if (props.userRating) {
+        // Update existing rating
+        ratingForm.put(route('plugins.ratings.update', [props.plugin.id, props.userRating.id]), {
+            preserveScroll: true,
+            onSuccess: () => {
+                isEditingRating.value = false;
+            },
+        });
+    } else {
+        // Create new rating
+        ratingForm.post(route('plugins.ratings.store', props.plugin.id), {
+            preserveScroll: true,
+        });
+    }
+};
+
+const deleteRating = () => {
+    if (!props.userRating) return;
+    
+    if (confirm('Apakah Anda yakin ingin menghapus rating Anda?')) {
+        router.delete(route('plugins.ratings.destroy', [props.plugin.id, props.userRating.id]), {
+            preserveScroll: true,
+        });
+    }
+};
+
+const cancelEdit = () => {
+    ratingForm.rating = props.userRating?.rating || 0;
+    ratingForm.review = props.userRating?.review || '';
+    isEditingRating.value = false;
+};
+
 const getLogLevelColor = (level: string) => {
     switch (level) {
         case 'error':
@@ -111,13 +171,30 @@ const getLogLevelColor = (level: string) => {
             return 'outline';
     }
 };
+
+// Safe access to ratings with default empty values
+const ratings = computed(() => props.ratings ?? {
+    data: [],
+    current_page: 1,
+    last_page: 1,
+    per_page: 10,
+    total: 0,
+    from: 0,
+    to: 0,
+    prev_page_url: null,
+    next_page_url: null,
+});
+
+// Expose props for template use
+const { plugin, userPlugin, config, formFields, supportsScheduling, schedule, executionHistory, userRating } = props;
 </script>
 
 <template>
     <Head :title="`Plugin: ${plugin.name}`" />
 
-    <AppLayout>
-        <template #header>
+    <AppLayout :breadcrumbs="breadcrumbs">
+        <div class="flex h-full flex-1 flex-col gap-4 p-4">
+            <!-- Header -->
             <div class="flex items-center gap-4">
                 <Button variant="ghost" size="icon" as-child>
                     <a :href="route('plugins.index')">
@@ -126,24 +203,23 @@ const getLogLevelColor = (level: string) => {
                 </Button>
                 <div class="flex-1">
                     <div class="flex items-center gap-3">
-                        <h2 class="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">
+                        <h1 class="text-2xl font-bold">
                             {{ plugin.name }}
-                        </h2>
+                        </h1>
                         <Badge :variant="isActive ? 'default' : 'secondary'">
                             <component :is="isActive ? CheckCircle : XCircle" class="mr-1 h-3 w-3" />
                             {{ isActive ? 'Aktif' : 'Tidak Aktif' }}
                         </Badge>
                     </div>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">v{{ plugin.version }} • {{ plugin.author }}</p>
+                    <p class="text-sm text-muted-foreground">v{{ plugin.version }} • {{ plugin.author }}</p>
                 </div>
                 <Button :variant="isActive ? 'outline' : 'default'" @click="togglePlugin">
                     {{ isActive ? 'Nonaktifkan' : 'Aktifkan' }}
                 </Button>
             </div>
-        </template>
 
-        <div class="py-6">
-            <div class="mx-auto max-w-4xl space-y-6 sm:px-6 lg:px-8">
+            <!-- Main Content -->
+            <div class="mx-auto max-w-4xl space-y-6">
                 <!-- Description -->
                 <Card>
                     <CardHeader>
@@ -151,6 +227,142 @@ const getLogLevelColor = (level: string) => {
                     </CardHeader>
                     <CardContent>
                         <p class="text-muted-foreground">{{ plugin.description || 'Tidak ada deskripsi.' }}</p>
+                        
+                        <!-- Rating Summary -->
+                        <div class="mt-4 flex items-center gap-4 border-t pt-4">
+                            <div>
+                                <StarRating :rating="plugin.average_rating" :size="20" show-value />
+                            </div>
+                            <span class="text-sm text-muted-foreground">
+                                {{ plugin.total_ratings }} {{ plugin.total_ratings === 1 ? 'rating' : 'ratings' }}
+                            </span>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <!-- User Rating Section -->
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Rating Anda</CardTitle>
+                        <CardDescription>Bagikan pengalaman Anda menggunakan plugin ini</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <!-- Existing Rating Display -->
+                        <div v-if="userRating && !isEditingRating" class="space-y-4">
+                            <div class="flex items-start justify-between">
+                                <div class="space-y-2">
+                                    <StarRating :rating="userRating.rating" :size="24" />
+                                    <p v-if="userRating.review" class="text-sm text-muted-foreground">
+                                        {{ userRating.review }}
+                                    </p>
+                                </div>
+                                <div class="flex gap-2">
+                                    <Button variant="outline" size="sm" @click="isEditingRating = true">
+                                        Edit
+                                    </Button>
+                                    <Button variant="outline" size="sm" @click="deleteRating">
+                                        <Trash2 class="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Rating Form -->
+                        <form v-else class="space-y-4" @submit.prevent="submitRating">
+                            <div class="space-y-2">
+                                <Label>Rating <span class="text-destructive">*</span></Label>
+                                <StarRating
+                                    v-model:rating="ratingForm.rating"
+                                    :size="32"
+                                    :interactive="true"
+                                />
+                            </div>
+
+                            <div class="space-y-2">
+                                <Label for="review">Review (Opsional)</Label>
+                                <Textarea
+                                    id="review"
+                                    v-model="ratingForm.review"
+                                    placeholder="Tulis review Anda tentang plugin ini..."
+                                    :maxlength="500"
+                                    rows="3"
+                                />
+                                <p class="text-xs text-muted-foreground">
+                                    {{ ratingForm.review?.length || 0 }}/500 karakter
+                                </p>
+                            </div>
+
+                            <div class="flex justify-end gap-2">
+                                <Button
+                                    v-if="isEditingRating"
+                                    type="button"
+                                    variant="outline"
+                                    @click="cancelEdit"
+                                >
+                                    Batal
+                                </Button>
+                                <Button type="submit" :disabled="ratingForm.processing || ratingForm.rating === 0">
+                                    <Star class="mr-2 h-4 w-4" />
+                                    {{ userRating ? 'Update Rating' : 'Kirim Rating' }}
+                                </Button>
+                            </div>
+                        </form>
+                    </CardContent>
+                </Card>
+
+                <!-- All Ratings -->
+                <Card v-if="ratings.data.length > 0">
+                    <CardHeader>
+                        <CardTitle>Semua Rating ({{ ratings.total }})</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div class="space-y-4">
+                            <div
+                                v-for="rating in ratings.data"
+                                :key="rating.id"
+                                class="border-b pb-4 last:border-b-0"
+                            >
+                                <div class="flex items-start justify-between">
+                                    <div class="space-y-1">
+                                        <div class="flex items-center gap-2">
+                                            <span class="font-medium">{{ rating.user.name }}</span>
+                                            <StarRating :rating="rating.rating" :size="16" />
+                                        </div>
+                                        <p v-if="rating.review" class="text-sm text-muted-foreground">
+                                            {{ rating.review }}
+                                        </p>
+                                        <p class="text-xs text-muted-foreground">
+                                            {{ formatDate(rating.created_at) }}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Pagination -->
+                        <div v-if="ratings.last_page > 1" class="mt-4 flex items-center justify-between border-t pt-4">
+                            <div class="text-sm text-muted-foreground">
+                                Showing {{ ratings.from }} to {{ ratings.to }} of {{ ratings.total }} ratings
+                            </div>
+                            <div class="flex gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    :disabled="!ratings.prev_page_url"
+                                    @click="router.get(ratings.prev_page_url)"
+                                >
+                                    Previous
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    :disabled="!ratings.next_page_url"
+                                    @click="router.get(ratings.next_page_url)"
+                                >
+                                    Next
+                                </Button>
+                            </div>
+                        </div>
                     </CardContent>
                 </Card>
 

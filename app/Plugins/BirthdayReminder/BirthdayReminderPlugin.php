@@ -4,8 +4,6 @@ namespace App\Plugins\BirthdayReminder;
 
 use App\Services\Plugin\BasePlugin;
 use App\Services\TelegramService;
-use App\Models\User;
-use Illuminate\Support\Facades\DB;
 
 class BirthdayReminderPlugin extends BasePlugin
 {
@@ -115,27 +113,28 @@ class BirthdayReminderPlugin extends BasePlugin
         ];
     }
 
-    public function validateConfig(array $config): bool
+    public function validateConfig(array $config): array
     {
-        if (!isset($config['advance_notice_days']) || empty($config['advance_notice_days'])) {
-            return false;
+        $errors = [];
+
+        if (! isset($config['advance_notice_days']) || empty($config['advance_notice_days'])) {
+            $errors['advance_notice_days'] = 'Advance notice days is required';
         }
 
-        if (isset($config['check_time']) && !preg_match('/^\d{2}:\d{2}$/', $config['check_time'])) {
-            return false;
+        if (isset($config['check_time']) && ! preg_match('/^\d{2}:\d{2}$/', $config['check_time'])) {
+            $errors['check_time'] = 'Check time must be in HH:MM format';
         }
 
-        return true;
+        return $errors;
     }
 
-    public function activate(): void
+    public function activate(int $userId): void
     {
-        $user = auth()->user();
-        $config = $this->getConfig($user->id);
+        $config = $this->getConfig($userId);
 
         // Daily check for birthdays
         if ($config['morning_check']) {
-            $this->createSchedule($user->id, [
+            $this->createSchedule($userId, [
                 'schedule_type' => 'daily',
                 'schedule_value' => $config['check_time'],
                 'metadata' => [
@@ -146,7 +145,7 @@ class BirthdayReminderPlugin extends BasePlugin
 
         // Monthly overview (first day of month)
         if ($config['monthly_overview']) {
-            $this->createSchedule($user->id, [
+            $this->createSchedule($userId, [
                 'schedule_type' => 'cron',
                 'schedule_value' => '0 9 1 * *', // 1st of month at 9 AM
                 'metadata' => [
@@ -155,20 +154,19 @@ class BirthdayReminderPlugin extends BasePlugin
             ]);
         }
 
-        $this->log($user->id, 'info', 'Birthday Reminder activated');
+        $this->log($userId, 'info', 'Birthday Reminder activated');
     }
 
-    public function deactivate(): void
+    public function deactivate(int $userId): void
     {
-        $user = auth()->user();
-        $this->deleteSchedules($user->id);
-        $this->log($user->id, 'info', 'Birthday Reminder deactivated');
+        $this->deleteSchedules($userId);
+        $this->log($userId, 'info', 'Birthday Reminder deactivated');
     }
 
-    public function execute(int $userId, array $metadata): void
+    public function execute(int $userId, array $config, array $context = []): void
     {
         try {
-            $type = $metadata['type'] ?? 'birthday_check';
+            $type = $context['type'] ?? 'birthday_check';
 
             if ($type === 'birthday_check') {
                 $this->checkUpcomingBirthdays($userId);
@@ -178,7 +176,7 @@ class BirthdayReminderPlugin extends BasePlugin
 
             $this->log($userId, 'info', "Executed: {$type}");
         } catch (\Exception $e) {
-            $this->log($userId, 'error', 'Execution failed: ' . $e->getMessage());
+            $this->log($userId, 'error', 'Execution failed: '.$e->getMessage());
         }
     }
 
@@ -188,15 +186,15 @@ class BirthdayReminderPlugin extends BasePlugin
         $telegramService = app(TelegramService::class);
 
         $advanceNoticeDays = $config['advance_notice_days'];
-        
+
         // This would need a birthdays table or use contacts
         // For now, send a reminder to add birthdays if none exist
-        
+
         $message = "🎂 *Birthday Reminder Check*\n\n";
         $message .= "Hari ini tidak ada ulang tahun yang perlu diingatkan.\n\n";
         $message .= "💡 Tip: Tambahkan tanggal lahir kontak Anda dengan ketik:\n";
         $message .= "\"Tambah ulang tahun [Nama] [DD/MM/YYYY]\"\n\n";
-        $message .= "Contoh: \"Tambah ulang tahun Budi 15/08/1990\"";
+        $message .= 'Contoh: "Tambah ulang tahun Budi 15/08/1990"';
 
         // Don't send if no birthdays - reduce noise
         // $telegramService->sendMessage($userId, $message);
@@ -210,7 +208,7 @@ class BirthdayReminderPlugin extends BasePlugin
         $currentMonth = now()->format('F Y');
 
         $message = "🎉 *Ulang Tahun Bulan {$currentMonth}*\n\n";
-        
+
         // This would query actual birthday data
         $message .= "Belum ada ulang tahun tercatat untuk bulan ini.\n\n";
         $message .= "📝 *Cara menambahkan ulang tahun:*\n";
@@ -220,7 +218,7 @@ class BirthdayReminderPlugin extends BasePlugin
         $message .= "• teman\n";
         $message .= "• rekan kerja\n";
         $message .= "• klien\n\n";
-        $message .= "Contoh: \"Tambah ulang tahun Sarah 25/03/1995 teman\"";
+        $message .= 'Contoh: "Tambah ulang tahun Sarah 25/03/1995 teman"';
 
         $telegramService->sendMessage($userId, $message);
     }

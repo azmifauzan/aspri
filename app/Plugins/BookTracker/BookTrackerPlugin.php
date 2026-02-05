@@ -4,7 +4,6 @@ namespace App\Plugins\BookTracker;
 
 use App\Services\Plugin\BasePlugin;
 use App\Services\TelegramService;
-use App\Models\User;
 
 class BookTrackerPlugin extends BasePlugin
 {
@@ -113,27 +112,28 @@ class BookTrackerPlugin extends BasePlugin
         ];
     }
 
-    public function validateConfig(array $config): bool
+    public function validateConfig(array $config): array
     {
-        if (!isset($config['yearly_goal']) || $config['yearly_goal'] < 1 || $config['yearly_goal'] > 365) {
-            return false;
+        $errors = [];
+
+        if (! isset($config['yearly_goal']) || $config['yearly_goal'] < 1 || $config['yearly_goal'] > 365) {
+            $errors['yearly_goal'] = 'Target buku per tahun harus antara 1 dan 365';
         }
 
-        if (isset($config['reminder_time']) && !preg_match('/^\d{2}:\d{2}$/', $config['reminder_time'])) {
-            return false;
+        if (isset($config['reminder_time']) && ! preg_match('/^\d{2}:\d{2}$/', $config['reminder_time'])) {
+            $errors['reminder_time'] = 'Format waktu tidak valid (harus HH:MM)';
         }
 
-        return true;
+        return $errors;
     }
 
-    public function activate(): void
+    public function activate(int $userId): void
     {
-        $user = auth()->user();
-        $config = $this->getConfig($user->id);
+        $config = $this->getConfig($userId);
 
         // Daily reading reminder
         if ($config['reading_reminder']) {
-            $this->createSchedule($user->id, [
+            $this->createSchedule($userId, [
                 'schedule_type' => 'daily',
                 'schedule_value' => $config['reminder_time'],
                 'metadata' => [
@@ -145,7 +145,7 @@ class BookTrackerPlugin extends BasePlugin
 
         // Monthly summary (first day of month)
         if ($config['monthly_summary']) {
-            $this->createSchedule($user->id, [
+            $this->createSchedule($userId, [
                 'schedule_type' => 'cron',
                 'schedule_value' => '0 9 1 * *', // 1st day of month at 9 AM
                 'metadata' => [
@@ -154,26 +154,25 @@ class BookTrackerPlugin extends BasePlugin
             ]);
         }
 
-        $this->log($user->id, 'info', 'Book Tracker activated with yearly goal: ' . $config['yearly_goal']);
+        $this->log($userId, 'info', 'Book Tracker activated with yearly goal: '.$config['yearly_goal']);
     }
 
-    public function deactivate(): void
+    public function deactivate(int $userId): void
     {
-        $user = auth()->user();
-        $this->deleteSchedules($user->id);
-        $this->log($user->id, 'info', 'Book Tracker deactivated');
+        $this->deleteSchedules($userId);
+        $this->log($userId, 'info', 'Book Tracker deactivated');
     }
 
-    public function execute(int $userId, array $metadata): void
+    public function execute(int $userId, array $config, array $context = []): void
     {
         try {
-            $type = $metadata['type'] ?? 'daily_reminder';
+            $type = $context['type'] ?? 'daily_reminder';
 
             if ($type === 'daily_reminder') {
                 // Check if today is in reminder_days
-                $days = $metadata['days'] ?? [];
+                $days = $context['days'] ?? [];
                 $today = strtolower(now()->format('l'));
-                
+
                 if (in_array($today, $days)) {
                     $this->sendDailyReminder($userId);
                 }
@@ -183,7 +182,7 @@ class BookTrackerPlugin extends BasePlugin
 
             $this->log($userId, 'info', "Executed: {$type}");
         } catch (\Exception $e) {
-            $this->log($userId, 'error', 'Execution failed: ' . $e->getMessage());
+            $this->log($userId, 'error', 'Execution failed: '.$e->getMessage());
         }
     }
 
@@ -193,20 +192,20 @@ class BookTrackerPlugin extends BasePlugin
         $telegramService = app(TelegramService::class);
 
         $motivationalQuotes = [
-            "📚 \"Membaca adalah jendela dunia.\"",
-            "📖 \"Sebuah rumah tanpa buku seperti ruangan tanpa jendela.\" - Heinrich Mann",
-            "📚 \"Buku adalah teman terbaik yang tidak pernah mengecewakan.\"",
-            "📖 \"Membaca adalah untuk pikiran seperti olahraga untuk tubuh.\" - Joseph Addison",
-            "📚 \"Hari ini pembaca, besok pemimpin.\" - Margaret Fuller",
+            '📚 "Membaca adalah jendela dunia."',
+            '📖 "Sebuah rumah tanpa buku seperti ruangan tanpa jendela." - Heinrich Mann',
+            '📚 "Buku adalah teman terbaik yang tidak pernah mengecewakan."',
+            '📖 "Membaca adalah untuk pikiran seperti olahraga untuk tubuh." - Joseph Addison',
+            '📚 "Hari ini pembaca, besok pemimpin." - Margaret Fuller',
         ];
 
         $quote = $motivationalQuotes[array_rand($motivationalQuotes)];
 
         $message = "📚 *Pengingat Membaca Harian*\n\n";
-        $message .= $quote . "\n\n";
+        $message .= $quote."\n\n";
         $message .= "Target tahun ini: *{$config['yearly_goal']} buku*\n\n";
         $message .= "Luangkan waktu 20-30 menit untuk membaca hari ini! 📖\n\n";
-        $message .= "Sedang baca apa sekarang?";
+        $message .= 'Sedang baca apa sekarang?';
 
         $telegramService->sendMessage($userId, $message);
     }
@@ -223,11 +222,11 @@ class BookTrackerPlugin extends BasePlugin
         $message = "📊 *Ringkasan Membaca Bulan {$currentMonth}*\n\n";
         $message .= "🎯 Target tahunan: {$yearlyGoal} buku\n";
         $message .= "📅 Target bulanan: ~{$monthlyTarget} buku\n\n";
-        
+
         // This would need actual tracking data
         $message .= "📚 Terus lanjutkan kebiasaan membaca Anda!\n\n";
         $message .= "💡 Tips: Bawa buku kemana pun Anda pergi, manfaatkan waktu tunggu untuk membaca beberapa halaman.\n\n";
-        $message .= "Buku apa yang akan Anda baca bulan ini?";
+        $message .= 'Buku apa yang akan Anda baca bulan ini?';
 
         $telegramService->sendMessage($userId, $message);
     }

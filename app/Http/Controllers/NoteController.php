@@ -13,7 +13,7 @@ class NoteController extends Controller
      */
     public function index()
     {
-        return Inertia::render('Notes/Index', [
+        return Inertia::render('notes/Index', [
             'notes' => Note::where('user_id', auth()->id())
                 ->orderBy('is_pinned', 'desc')
                 ->orderBy('updated_at', 'desc')

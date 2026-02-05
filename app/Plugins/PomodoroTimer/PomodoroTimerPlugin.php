@@ -4,7 +4,6 @@ namespace App\Plugins\PomodoroTimer;
 
 use App\Services\Plugin\BasePlugin;
 use App\Services\TelegramService;
-use App\Models\User;
 
 class PomodoroTimerPlugin extends BasePlugin
 {
@@ -143,35 +142,36 @@ class PomodoroTimerPlugin extends BasePlugin
         ];
     }
 
-    public function validateConfig(array $config): bool
+    public function validateConfig(array $config): array
     {
-        if (!isset($config['work_duration']) || $config['work_duration'] < 15 || $config['work_duration'] > 60) {
-            return false;
+        $errors = [];
+
+        if (! isset($config['work_duration']) || $config['work_duration'] < 15 || $config['work_duration'] > 60) {
+            $errors['work_duration'] = 'Durasi kerja harus antara 15 dan 60 menit';
         }
 
-        if (!isset($config['short_break']) || $config['short_break'] < 3 || $config['short_break'] > 15) {
-            return false;
+        if (! isset($config['short_break']) || $config['short_break'] < 3 || $config['short_break'] > 15) {
+            $errors['short_break'] = 'Istirahat pendek harus antara 3 dan 15 menit';
         }
 
-        if (!isset($config['long_break']) || $config['long_break'] < 10 || $config['long_break'] > 60) {
-            return false;
+        if (! isset($config['long_break']) || $config['long_break'] < 10 || $config['long_break'] > 60) {
+            $errors['long_break'] = 'Istirahat panjang harus antara 10 dan 60 menit';
         }
 
-        if (isset($config['summary_time']) && !preg_match('/^\d{2}:\d{2}$/', $config['summary_time'])) {
-            return false;
+        if (isset($config['summary_time']) && ! preg_match('/^\d{2}:\d{2}$/', $config['summary_time'])) {
+            $errors['summary_time'] = 'Format waktu tidak valid (harus HH:MM)';
         }
 
-        return true;
+        return $errors;
     }
 
-    public function activate(): void
+    public function activate(int $userId): void
     {
-        $user = auth()->user();
-        $config = $this->getConfig($user->id);
+        $config = $this->getConfig($userId);
 
         // Daily summary
         if ($config['daily_summary']) {
-            $this->createSchedule($user->id, [
+            $this->createSchedule($userId, [
                 'schedule_type' => 'daily',
                 'schedule_value' => $config['summary_time'],
                 'metadata' => [
@@ -180,20 +180,19 @@ class PomodoroTimerPlugin extends BasePlugin
             ]);
         }
 
-        $this->log($user->id, 'info', 'Pomodoro Timer activated with daily goal: ' . $config['daily_goal']);
+        $this->log($userId, 'info', 'Pomodoro Timer activated with daily goal: '.$config['daily_goal']);
     }
 
-    public function deactivate(): void
+    public function deactivate(int $userId): void
     {
-        $user = auth()->user();
-        $this->deleteSchedules($user->id);
-        $this->log($user->id, 'info', 'Pomodoro Timer deactivated');
+        $this->deleteSchedules($userId);
+        $this->log($userId, 'info', 'Pomodoro Timer deactivated');
     }
 
-    public function execute(int $userId, array $metadata): void
+    public function execute(int $userId, array $config, array $context = []): void
     {
         try {
-            $type = $metadata['type'] ?? 'daily_summary';
+            $type = $context['type'] ?? 'daily_summary';
 
             if ($type === 'daily_summary') {
                 $this->sendDailySummary($userId);
@@ -201,7 +200,7 @@ class PomodoroTimerPlugin extends BasePlugin
 
             $this->log($userId, 'info', "Executed: {$type}");
         } catch (\Exception $e) {
-            $this->log($userId, 'error', 'Execution failed: ' . $e->getMessage());
+            $this->log($userId, 'error', 'Execution failed: '.$e->getMessage());
         }
     }
 
@@ -217,19 +216,19 @@ class PomodoroTimerPlugin extends BasePlugin
         $totalMinutes = $totalWorkMinutes % 60;
 
         $motivationalQuotes = [
-            "🎯 \"Focus is the gateway to productivity.\"",
+            '🎯 "Focus is the gateway to productivity."',
             "⏱️ \"Work expands to fill the time available.\" - Parkinson's Law",
-            "🚀 \"The secret of getting ahead is getting started.\" - Mark Twain",
-            "💪 \"Discipline is choosing between what you want now and what you want most.\"",
-            "🎨 \"Quality is not an act, it is a habit.\" - Aristotle",
+            '🚀 "The secret of getting ahead is getting started." - Mark Twain',
+            '💪 "Discipline is choosing between what you want now and what you want most."',
+            '🎨 "Quality is not an act, it is a habit." - Aristotle',
         ];
 
         $message = "⏱️ *Ringkasan Pomodoro Hari Ini*\n\n";
-        
+
         // This would need actual tracking data
         $message .= "🎯 Target: {$dailyGoal} pomodoro\n";
         $message .= "⏳ Total waktu fokus target: {$totalHours}j {$totalMinutes}m\n\n";
-        
+
         $message .= "📊 *Konfigurasi Anda*:\n";
         $message .= "• Kerja: {$config['work_duration']} menit\n";
         $message .= "• Istirahat pendek: {$config['short_break']} menit\n";
@@ -238,7 +237,7 @@ class PomodoroTimerPlugin extends BasePlugin
 
         if ($config['motivational_quotes']) {
             $quote = $motivationalQuotes[array_rand($motivationalQuotes)];
-            $message .= $quote . "\n\n";
+            $message .= $quote."\n\n";
         }
 
         $message .= "💡 Siap untuk produktif besok? Mulai sesi Pomodoro dengan ketik 'start pomodoro'!";

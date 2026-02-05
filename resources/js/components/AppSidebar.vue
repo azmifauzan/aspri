@@ -60,9 +60,10 @@ const mainNavItems: NavItem[] = [
         icon: StickyNote,
     },
     {
-        title: 'Plugins',
+        title: 'Plugin',
         href: pluginsRoutes.index(),
         icon: Puzzle,
+        label: 'Beta',
     },
 ];
 </script>

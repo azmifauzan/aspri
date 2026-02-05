@@ -17,10 +17,10 @@ use Inertia\Inertia;
 use Laravel\Fortify\Features;
 
 Route::get('/', function (SettingsService $settingsService) {
-    // Get featured plugins for landing page
+    // Get 6 random plugins for landing page
     $featuredPlugins = Plugin::where('is_system', true)
-        ->orderBy('name')
-        ->take(4)
+        ->inRandomOrder()
+        ->take(6)
         ->get(['slug', 'name', 'description', 'icon']);
 
     return Inertia::render('Welcome', [
@@ -29,6 +29,59 @@ Route::get('/', function (SettingsService $settingsService) {
         'featuredPlugins' => $featuredPlugins,
     ]);
 })->name('home');
+
+// Public plugin explorer (no auth required)
+Route::get('/explore-plugins', function (Request $request) {
+    $query = Plugin::where('is_system', true)
+        ->withCount('ratings')
+        ->withAvg('ratings', 'rating');
+
+    // Search filter
+    if ($search = $request->input('search')) {
+        $query->where(function ($q) use ($search) {
+            $q->where('name', 'ilike', "%{$search}%")
+                ->orWhere('description', 'ilike', "%{$search}%");
+        });
+    }
+
+    // Sorting - default by rating
+    $sortBy = $request->input('sort_by', 'rating');
+    if ($sortBy === 'rating') {
+        $query->orderByDesc('ratings_avg_rating')
+            ->orderByDesc('ratings_count');
+    } elseif ($sortBy === 'name') {
+        $query->orderBy('name');
+    }
+
+    $plugins = $query->get()
+        ->when($request->input('min_rating'), function ($collection, $minRating) {
+            return $collection->filter(fn ($plugin) => ($plugin->ratings_avg_rating ?? 0) >= $minRating);
+        })
+        ->map(fn ($plugin) => [
+            'slug' => $plugin->slug,
+            'name' => $plugin->name,
+            'description' => $plugin->description,
+            'icon' => $plugin->icon,
+            'average_rating' => round($plugin->ratings_avg_rating ?? 0, 1),
+            'total_ratings' => $plugin->ratings_count ?? 0,
+        ]);
+
+    // Manual pagination since we filtered after query
+    $page = $request->input('page', 1);
+    $perPage = 12;
+    $paginatedPlugins = new \Illuminate\Pagination\LengthAwarePaginator(
+        $plugins->forPage($page, $perPage),
+        $plugins->count(),
+        $perPage,
+        $page,
+        ['path' => $request->url(), 'query' => $request->query()]
+    );
+
+    return Inertia::render('ExplorePlugins', [
+        'plugins' => $paginatedPlugins,
+        'filters' => $request->only(['search', 'min_rating', 'sort_by']),
+    ]);
+})->name('explore-plugins');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -73,6 +126,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('plugins/{plugin}/schedule', [\App\Http\Controllers\PluginController::class, 'updateSchedule'])->name('plugins.schedule.update');
     Route::delete('plugins/{plugin}/schedule/{scheduleId}', [\App\Http\Controllers\PluginController::class, 'deleteSchedule'])->name('plugins.schedule.delete');
     Route::post('plugins/{plugin}/test', [\App\Http\Controllers\PluginController::class, 'testExecute'])->name('plugins.test');
+
+    // Plugin Rating routes
+    Route::post('plugins/{plugin}/ratings', [\App\Http\Controllers\PluginRatingController::class, 'store'])->name('plugins.ratings.store');
+    Route::put('plugins/{plugin}/ratings/{rating}', [\App\Http\Controllers\PluginRatingController::class, 'update'])->name('plugins.ratings.update');
+    Route::delete('plugins/{plugin}/ratings/{rating}', [\App\Http\Controllers\PluginRatingController::class, 'destroy'])->name('plugins.ratings.destroy');
 });
 
 // Admin Routes

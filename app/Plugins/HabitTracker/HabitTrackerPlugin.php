@@ -4,8 +4,6 @@ namespace App\Plugins\HabitTracker;
 
 use App\Services\Plugin\BasePlugin;
 use App\Services\TelegramService;
-use App\Models\User;
-use Illuminate\Support\Facades\DB;
 
 class HabitTrackerPlugin extends BasePlugin
 {
@@ -111,27 +109,28 @@ class HabitTrackerPlugin extends BasePlugin
         ];
     }
 
-    public function validateConfig(array $config): bool
+    public function validateConfig(array $config): array
     {
-        if (!isset($config['habits']) || empty(trim($config['habits']))) {
-            return false;
+        $errors = [];
+
+        if (! isset($config['habits']) || empty(trim($config['habits']))) {
+            $errors['habits'] = 'Daftar kebiasaan tidak boleh kosong';
         }
 
-        if (isset($config['reminder_time']) && !preg_match('/^\d{2}:\d{2}$/', $config['reminder_time'])) {
-            return false;
+        if (isset($config['reminder_time']) && ! preg_match('/^\d{2}:\d{2}$/', $config['reminder_time'])) {
+            $errors['reminder_time'] = 'Format waktu tidak valid (harus HH:MM)';
         }
 
-        return true;
+        return $errors;
     }
 
-    public function activate(): void
+    public function activate(int $userId): void
     {
-        $user = auth()->user();
-        $config = $this->getConfig($user->id);
+        $config = $this->getConfig($userId);
 
         // Daily reminder
         if ($config['reminder_enabled']) {
-            $this->createSchedule($user->id, [
+            $this->createSchedule($userId, [
                 'schedule_type' => 'daily',
                 'schedule_value' => $config['reminder_time'],
                 'metadata' => [
@@ -142,29 +141,28 @@ class HabitTrackerPlugin extends BasePlugin
 
         // Weekly review
         if ($config['weekly_review']) {
-            $this->createSchedule($user->id, [
+            $this->createSchedule($userId, [
                 'schedule_type' => 'weekly',
-                'schedule_value' => $config['weekly_review_day'] . ',09:00',
+                'schedule_value' => $config['weekly_review_day'].',09:00',
                 'metadata' => [
                     'type' => 'weekly_review',
                 ],
             ]);
         }
 
-        $this->log($user->id, 'info', 'Habit Tracker activated with ' . count(explode("\n", trim($config['habits']))) . ' habits');
+        $this->log($userId, 'info', 'Habit Tracker activated with '.count(explode("\n", trim($config['habits']))).' habits');
     }
 
-    public function deactivate(): void
+    public function deactivate(int $userId): void
     {
-        $user = auth()->user();
-        $this->deleteSchedules($user->id);
-        $this->log($user->id, 'info', 'Habit Tracker deactivated');
+        $this->deleteSchedules($userId);
+        $this->log($userId, 'info', 'Habit Tracker deactivated');
     }
 
-    public function execute(int $userId, array $metadata): void
+    public function execute(int $userId, array $config, array $context = []): void
     {
         try {
-            $type = $metadata['type'] ?? 'daily_reminder';
+            $type = $context['type'] ?? 'daily_reminder';
 
             if ($type === 'daily_reminder') {
                 $this->sendDailyReminder($userId);
@@ -174,7 +172,7 @@ class HabitTrackerPlugin extends BasePlugin
 
             $this->log($userId, 'info', "Executed: {$type}");
         } catch (\Exception $e) {
-            $this->log($userId, 'error', 'Execution failed: ' . $e->getMessage());
+            $this->log($userId, 'error', 'Execution failed: '.$e->getMessage());
         }
     }
 
@@ -186,11 +184,11 @@ class HabitTrackerPlugin extends BasePlugin
         $habits = array_filter(array_map('trim', explode("\n", $config['habits'])));
 
         $message = "✅ *Check-in Kebiasaan Harian*\n\n";
-        $message .= $config['reminder_message'] . "\n\n";
+        $message .= $config['reminder_message']."\n\n";
         $message .= "📋 Kebiasaan hari ini:\n\n";
 
         foreach ($habits as $index => $habit) {
-            $message .= ($index + 1) . ". " . $habit . "\n";
+            $message .= ($index + 1).'. '.$habit."\n";
         }
 
         $message .= "\nKetik kebiasaan yang sudah Anda lakukan ke ASPRI!";
@@ -206,15 +204,15 @@ class HabitTrackerPlugin extends BasePlugin
         $habits = array_filter(array_map('trim', explode("\n", $config['habits'])));
 
         $message = "📊 *Review Kebiasaan Mingguan*\n\n";
-        $message .= "Minggu ini Anda melacak " . count($habits) . " kebiasaan:\n\n";
+        $message .= 'Minggu ini Anda melacak '.count($habits)." kebiasaan:\n\n";
 
         foreach ($habits as $index => $habit) {
-            $message .= ($index + 1) . ". " . $habit . "\n";
+            $message .= ($index + 1).'. '.$habit."\n";
         }
 
         $message .= "\n💪 Terus pertahankan konsistensi Anda!\n";
         $message .= "🔥 Setiap hari yang Anda check-in adalah kemenangan!\n\n";
-        $message .= "Tip: Kebiasaan terbentuk dari konsistensi kecil setiap hari.";
+        $message .= 'Tip: Kebiasaan terbentuk dari konsistensi kecil setiap hari.';
 
         $telegramService->sendMessage($userId, $message);
     }
