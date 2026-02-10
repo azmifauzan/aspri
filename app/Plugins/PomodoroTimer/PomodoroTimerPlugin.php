@@ -167,7 +167,7 @@ class PomodoroTimerPlugin extends BasePlugin
 
     public function activate(int $userId): void
     {
-        $config = $this->getConfig($userId);
+        $config = $this->getUserConfig($userId);
 
         // Daily summary
         if ($config['daily_summary']) {
@@ -206,7 +206,7 @@ class PomodoroTimerPlugin extends BasePlugin
 
     private function sendDailySummary(int $userId): void
     {
-        $config = $this->getConfig($userId);
+        $config = $this->getUserConfig($userId);
         $telegramService = app(TelegramService::class);
 
         $dailyGoal = $config['daily_goal'];

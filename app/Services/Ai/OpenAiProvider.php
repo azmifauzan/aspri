@@ -25,13 +25,22 @@ class OpenAiProvider implements AiProviderInterface
     /**
      * Send a chat completion request.
      */
-    public function chat(array $messages, array $options = []): string
+    public function chat(array $messages, array $options = []): string|array
     {
         $payload = [
             'model' => $options['model'] ?? $this->model,
             'messages' => $messages,
             'max_completion_tokens' => $options['max_tokens'] ?? 2048,
         ];
+
+        // Add function/tool definitions if provided
+        if (isset($options['functions'])) {
+            $payload['tools'] = array_map(fn ($func) => [
+                'type' => 'function',
+                'function' => $func,
+            ], $options['functions']);
+            $payload['tool_choice'] = $options['tool_choice'] ?? 'auto';
+        }
 
         // Only add temperature if not using a model that doesn't support it
         if (! $this->isReasoningModel()) {
@@ -51,6 +60,18 @@ class OpenAiProvider implements AiProviderInterface
         }
 
         $data = $response->json();
+
+        // Handle function/tool calls
+        if (isset($data['choices'][0]['message']['tool_calls'][0])) {
+            $toolCall = $data['choices'][0]['message']['tool_calls'][0];
+            $functionName = $toolCall['function']['name'];
+            $arguments = json_decode($toolCall['function']['arguments'], true) ?? [];
+
+            return [
+                'function_name' => $functionName,
+                'arguments' => $arguments,
+            ];
+        }
 
         // Handle different response formats (some models use 'content', others may use 'refusal' for safety, etc.)
         $content = $data['choices'][0]['message']['content'] ?? '';

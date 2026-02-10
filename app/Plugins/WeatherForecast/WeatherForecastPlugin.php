@@ -141,7 +141,7 @@ class WeatherForecastPlugin extends BasePlugin
 
     public function activate(int $userId): void
     {
-        $config = $this->getConfig($userId);
+        $config = $this->getUserConfig($userId);
 
         // Schedule morning forecast
         if ($config['morning_forecast']) {
@@ -182,7 +182,7 @@ class WeatherForecastPlugin extends BasePlugin
 
     public function checkWeather(int $userId, array $context = []): array
     {
-        $config = $this->getConfig($userId);
+        $config = $this->getUserConfig($userId);
 
         $latitude = $context['latitude'] ?? $config['latitude'];
         $longitude = $context['longitude'] ?? $config['longitude'];

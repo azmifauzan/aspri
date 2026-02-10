@@ -129,7 +129,7 @@ class BookTrackerPlugin extends BasePlugin
 
     public function activate(int $userId): void
     {
-        $config = $this->getConfig($userId);
+        $config = $this->getUserConfig($userId);
 
         // Daily reading reminder
         if ($config['reading_reminder']) {
@@ -188,7 +188,7 @@ class BookTrackerPlugin extends BasePlugin
 
     private function sendDailyReminder(int $userId): void
     {
-        $config = $this->getConfig($userId);
+        $config = $this->getUserConfig($userId);
         $telegramService = app(TelegramService::class);
 
         $motivationalQuotes = [
@@ -212,7 +212,7 @@ class BookTrackerPlugin extends BasePlugin
 
     private function sendMonthlySummary(int $userId): void
     {
-        $config = $this->getConfig($userId);
+        $config = $this->getUserConfig($userId);
         $telegramService = app(TelegramService::class);
 
         $currentMonth = now()->subMonth()->format('F Y');

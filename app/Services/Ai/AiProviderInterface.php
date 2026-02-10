@@ -9,8 +9,9 @@ interface AiProviderInterface
      *
      * @param  array<int, array{role: string, content: string}>  $messages
      * @param  array<string, mixed>  $options
+     * @return string|array<string, mixed> Returns string for regular chat, array for function calling
      */
-    public function chat(array $messages, array $options = []): string;
+    public function chat(array $messages, array $options = []): string|array;
 
     /**
      * Send a chat completion request with streaming response.

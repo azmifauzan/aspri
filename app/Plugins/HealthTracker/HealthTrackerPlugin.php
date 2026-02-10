@@ -158,7 +158,7 @@ class HealthTrackerPlugin extends BasePlugin
 
     public function activate(int $userId): void
     {
-        $config = $this->getConfig($userId);
+        $config = $this->getUserConfig($userId);
 
         // Daily reminder
         $this->createSchedule($userId, [
@@ -208,7 +208,7 @@ class HealthTrackerPlugin extends BasePlugin
 
     private function sendDailyReminder(int $userId): void
     {
-        $config = $this->getConfig($userId);
+        $config = $this->getUserConfig($userId);
         $telegramService = app(TelegramService::class);
 
         $message = "🏥 *Pengingat Kesehatan Harian*\n\n";
@@ -234,7 +234,7 @@ class HealthTrackerPlugin extends BasePlugin
 
     private function sendWeeklyReport(int $userId): void
     {
-        $config = $this->getConfig($userId);
+        $config = $this->getUserConfig($userId);
         $telegramService = app(TelegramService::class);
 
         $user = User::find($userId);

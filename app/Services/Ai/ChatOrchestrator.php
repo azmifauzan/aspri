@@ -5,6 +5,7 @@ namespace App\Services\Ai;
 use App\Models\ChatThread;
 use App\Models\PendingAction;
 use App\Models\User;
+use App\Services\Plugin\PluginManager;
 use Illuminate\Support\Facades\Log;
 
 class ChatOrchestrator
@@ -13,7 +14,8 @@ class ChatOrchestrator
         protected ChatService $chatService,
         protected IntentParserService $intentParser,
         protected ActionExecutorService $actionExecutor,
-        protected AiProviderInterface $aiProvider
+        protected AiProviderInterface $aiProvider,
+        protected PluginManager $pluginManager
     ) {}
 
     /**
@@ -53,6 +55,7 @@ class ChatOrchestrator
             'finance' => $this->handleFinanceIntent($user, $thread, $intent, $conversationHistory),
             'schedule' => $this->handleScheduleIntent($user, $thread, $intent, $conversationHistory),
             'notes' => $this->handleNotesIntent($user, $thread, $intent, $conversationHistory),
+            'plugin' => $this->handlePluginIntent($user, $thread, $intent, $conversationHistory),
             default => $this->handleGeneralIntent($user, $intent, $conversationHistory),
         };
     }
@@ -247,6 +250,75 @@ class ChatOrchestrator
         }
 
         return $this->generateAiResponse($user, 'Maaf, saya tidak mengerti permintaan catatan tersebut.', $history);
+    }
+
+    /**
+     * Handle plugin-related intents.
+     */
+    protected function handlePluginIntent(User $user, ChatThread $thread, array $intent, array $history): array
+    {
+        $action = $intent['action'];
+        $entities = $intent['entities'];
+
+        // Get plugin slug from entities
+        $pluginSlug = $entities['plugin_slug'] ?? null;
+
+        if (! $pluginSlug) {
+            return $this->generateAiResponse($user, 'Maaf, plugin tidak ditemukan.', $history);
+        }
+
+        // Get plugin instance
+        $pluginInstance = $this->pluginManager->getPlugin($pluginSlug);
+
+        if (! $pluginInstance) {
+            return $this->generateAiResponse($user, 'Maaf, plugin tidak tersedia.', $history);
+        }
+
+        // Check if user has plugin activated
+        $userPlugin = $this->pluginManager->getActivePluginsForUser($user->id)
+            ->firstWhere('plugin.slug', $pluginSlug);
+
+        if (! $userPlugin) {
+            $pluginName = $pluginInstance->getName();
+
+            return [
+                'response' => "Plugin {$pluginName} belum diaktifkan. Silakan aktifkan terlebih dahulu di halaman Plugin.",
+                'action_taken' => false,
+                'pending_action' => null,
+            ];
+        }
+
+        // Execute plugin chat intent
+        try {
+            $result = $pluginInstance->handleChatIntent($user->id, $action, $entities);
+
+            if ($result['success']) {
+                return [
+                    'response' => $result['message'],
+                    'action_taken' => true,
+                    'pending_action' => null,
+                    'data' => $result['data'] ?? null,
+                ];
+            }
+
+            return [
+                'response' => $result['message'] ?? 'Maaf, terjadi kesalahan saat menjalankan plugin.',
+                'action_taken' => false,
+                'pending_action' => null,
+            ];
+        } catch (\Exception $e) {
+            Log::error('Plugin execution error', [
+                'plugin' => $pluginSlug,
+                'action' => $action,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'response' => 'Maaf, terjadi kesalahan saat menjalankan plugin. Silakan coba lagi.',
+                'action_taken' => false,
+                'pending_action' => null,
+            ];
+        }
     }
 
     /**

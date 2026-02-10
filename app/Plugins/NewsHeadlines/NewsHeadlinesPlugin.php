@@ -144,7 +144,7 @@ class NewsHeadlinesPlugin extends BasePlugin
 
     public function activate(int $userId): void
     {
-        $config = $this->getConfig($userId);
+        $config = $this->getUserConfig($userId);
 
         // Schedule morning brief
         if ($config['morning_brief']) {
@@ -196,7 +196,7 @@ class NewsHeadlinesPlugin extends BasePlugin
 
     public function getTopHeadlines(int $userId, ?string $category = null): array
     {
-        $config = $this->getConfig($userId);
+        $config = $this->getUserConfig($userId);
 
         if (empty($config['api_key'])) {
             return [
@@ -248,7 +248,7 @@ class NewsHeadlinesPlugin extends BasePlugin
 
     private function sendNewsBrief(int $userId, string $type): void
     {
-        $config = $this->getConfig($userId);
+        $config = $this->getUserConfig($userId);
         $categories = $config['categories'];
 
         $allArticles = [];
@@ -297,7 +297,7 @@ class NewsHeadlinesPlugin extends BasePlugin
 
     public function searchNews(int $userId, array $context): array
     {
-        $config = $this->getConfig($userId);
+        $config = $this->getUserConfig($userId);
 
         if (empty($config['api_key'])) {
             return [

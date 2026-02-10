@@ -201,6 +201,38 @@ abstract class BasePlugin implements PluginInterface
     }
 
     /**
+     * Check if the plugin supports chat integration.
+     */
+    public function supportsChatIntegration(): bool
+    {
+        return false;
+    }
+
+    /**
+     * Get chat intents supported by this plugin.
+     *
+     * @return array<int, array{action: string, description: string, entities: array<string, string>, examples: array<string>}>
+     */
+    public function getChatIntents(): array
+    {
+        return [];
+    }
+
+    /**
+     * Handle chat intent execution.
+     *
+     * @param  array<string, mixed>  $entities
+     * @return array{success: bool, message: string, data?: mixed}
+     */
+    public function handleChatIntent(int $userId, string $action, array $entities): array
+    {
+        return [
+            'success' => false,
+            'message' => 'Chat integration not implemented for this plugin.',
+        ];
+    }
+
+    /**
      * Get user plugin model.
      */
     protected function getUserPlugin(int $userId): ?UserPlugin
@@ -288,5 +320,65 @@ abstract class BasePlugin implements PluginInterface
         if ($model) {
             PluginLog::debug($model->id, $message, $userId, $context);
         }
+    }
+
+    /**
+     * Unified logging method.
+     *
+     * @param  array<string, mixed>  $context
+     */
+    protected function log(int $userId, string $level, string $message, array $context = []): void
+    {
+        match ($level) {
+            'info' => $this->logInfo($message, $userId, $context),
+            'warning' => $this->logWarning($message, $userId, $context),
+            'error' => $this->logError($message, $userId, $context),
+            'debug' => $this->logDebug($message, $userId, $context),
+            default => $this->logInfo($message, $userId, $context),
+        };
+    }
+
+    /**
+     * Create a schedule for this plugin.
+     *
+     * @param  array<string, mixed>  $scheduleData
+     */
+    protected function createSchedule(int $userId, array $scheduleData): void
+    {
+        $userPlugin = $this->getUserPlugin($userId);
+        if (! $userPlugin) {
+            return;
+        }
+
+        // Deactivate existing schedules of the same type if specified
+        if (isset($scheduleData['metadata']['type'])) {
+            $userPlugin->schedules()
+                ->whereJsonContains('metadata->type', $scheduleData['metadata']['type'])
+                ->update(['is_active' => false]);
+        }
+
+        // Create new schedule
+        $schedule = $userPlugin->schedules()->create([
+            'schedule_type' => $scheduleData['schedule_type'],
+            'schedule_value' => $scheduleData['schedule_value'],
+            'is_active' => true,
+            'metadata' => $scheduleData['metadata'] ?? null,
+        ]);
+
+        // Calculate next run time
+        $schedule->calculateNextRun();
+    }
+
+    /**
+     * Delete all schedules for this plugin and user.
+     */
+    protected function deleteSchedules(int $userId): void
+    {
+        $userPlugin = $this->getUserPlugin($userId);
+        if (! $userPlugin) {
+            return;
+        }
+
+        $userPlugin->schedules()->delete();
     }
 }

@@ -126,7 +126,7 @@ class HabitTrackerPlugin extends BasePlugin
 
     public function activate(int $userId): void
     {
-        $config = $this->getConfig($userId);
+        $config = $this->getUserConfig($userId);
 
         // Daily reminder
         if ($config['reminder_enabled']) {
@@ -178,7 +178,7 @@ class HabitTrackerPlugin extends BasePlugin
 
     private function sendDailyReminder(int $userId): void
     {
-        $config = $this->getConfig($userId);
+        $config = $this->getUserConfig($userId);
         $telegramService = app(TelegramService::class);
 
         $habits = array_filter(array_map('trim', explode("\n", $config['habits'])));
@@ -198,7 +198,7 @@ class HabitTrackerPlugin extends BasePlugin
 
     private function sendWeeklyReview(int $userId): void
     {
-        $config = $this->getConfig($userId);
+        $config = $this->getUserConfig($userId);
         $telegramService = app(TelegramService::class);
 
         $habits = array_filter(array_map('trim', explode("\n", $config['habits'])));

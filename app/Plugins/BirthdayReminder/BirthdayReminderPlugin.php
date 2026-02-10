@@ -130,7 +130,7 @@ class BirthdayReminderPlugin extends BasePlugin
 
     public function activate(int $userId): void
     {
-        $config = $this->getConfig($userId);
+        $config = $this->getUserConfig($userId);
 
         // Daily check for birthdays
         if ($config['morning_check']) {
@@ -182,7 +182,7 @@ class BirthdayReminderPlugin extends BasePlugin
 
     private function checkUpcomingBirthdays(int $userId): void
     {
-        $config = $this->getConfig($userId);
+        $config = $this->getUserConfig($userId);
         $telegramService = app(TelegramService::class);
 
         $advanceNoticeDays = $config['advance_notice_days'];
@@ -202,7 +202,7 @@ class BirthdayReminderPlugin extends BasePlugin
 
     private function sendMonthlyOverview(int $userId): void
     {
-        $config = $this->getConfig($userId);
+        $config = $this->getUserConfig($userId);
         $telegramService = app(TelegramService::class);
 
         $currentMonth = now()->format('F Y');

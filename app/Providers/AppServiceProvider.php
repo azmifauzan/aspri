@@ -48,8 +48,19 @@ class AppServiceProvider extends ServiceProvider
             );
         });
 
+        // Plugin system - must be registered before services that depend on it
+        $this->app->singleton(PluginManager::class, function ($app) {
+            $manager = new PluginManager;
+            $manager->discoverPlugins();
+
+            return $manager;
+        });
+
         $this->app->singleton(IntentParserService::class, function ($app) {
-            return new IntentParserService($app->make(AiProviderInterface::class));
+            return new IntentParserService(
+                $app->make(AiProviderInterface::class),
+                $app->make(PluginManager::class)
+            );
         });
 
         $this->app->singleton(ActionExecutorService::class, function ($app) {
@@ -61,16 +72,9 @@ class AppServiceProvider extends ServiceProvider
                 $app->make(ChatService::class),
                 $app->make(IntentParserService::class),
                 $app->make(ActionExecutorService::class),
-                $app->make(AiProviderInterface::class)
+                $app->make(AiProviderInterface::class),
+                $app->make(PluginManager::class)
             );
-        });
-
-        // Plugin system
-        $this->app->singleton(PluginManager::class, function ($app) {
-            $manager = new PluginManager;
-            $manager->discoverPlugins();
-
-            return $manager;
         });
 
         $this->app->singleton(PluginConfigurationService::class, function ($app) {

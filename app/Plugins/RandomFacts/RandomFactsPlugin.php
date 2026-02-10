@@ -115,7 +115,7 @@ class RandomFactsPlugin extends BasePlugin
 
     public function activate(int $userId): void
     {
-        $config = $this->getConfig($userId);
+        $config = $this->getUserConfig($userId);
 
         // Schedule daily facts
         if ($config['daily_fact']) {
@@ -156,7 +156,7 @@ class RandomFactsPlugin extends BasePlugin
 
     public function getRandomFact(int $userId, int $limit = 1): array
     {
-        $config = $this->getConfig($userId);
+        $config = $this->getUserConfig($userId);
 
         if (empty($config['api_key'])) {
             return [
@@ -199,7 +199,7 @@ class RandomFactsPlugin extends BasePlugin
 
     private function sendDailyFacts(int $userId): void
     {
-        $config = $this->getConfig($userId);
+        $config = $this->getUserConfig($userId);
         $count = $config['fact_count'];
 
         $result = $this->getRandomFact($userId, $count);
@@ -285,7 +285,7 @@ class RandomFactsPlugin extends BasePlugin
 
     public function getAnimalFact(int $userId): array
     {
-        $config = $this->getConfig($userId);
+        $config = $this->getUserConfig($userId);
 
         if (empty($config['api_key'])) {
             return [

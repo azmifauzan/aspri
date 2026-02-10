@@ -4,9 +4,20 @@ import type { MonthlySummary } from '@/types';
 import { TrendingDown, TrendingUp, Wallet } from 'lucide-vue-next';
 import { computed } from 'vue';
 
-const props = defineProps<{
-    summary: MonthlySummary;
-}>();
+const props = withDefaults(
+    defineProps<{
+        summary?: MonthlySummary;
+    }>(),
+    {
+        summary: () => ({
+            income: 0,
+            expense: 0,
+            balance: 0,
+            incomeChange: 0,
+            expenseChange: 0,
+        }),
+    },
+);
 
 const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {

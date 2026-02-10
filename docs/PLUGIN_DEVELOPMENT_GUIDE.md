@@ -12,10 +12,11 @@ This guide will walk you through creating a custom plugin for ASPRI. Plugins ext
 4. [Creating Your First Plugin](#creating-your-first-plugin)
 5. [Configuration Schema](#configuration-schema)
 6. [Scheduling Tasks](#scheduling-tasks)
-7. [Logging & Debugging](#logging--debugging)
-8. [Best Practices](#best-practices)
-9. [Testing](#testing)
-10. [Publishing](#publishing)
+7. [Chat Integration](#chat-integration)
+8. [Logging & Debugging](#logging--debugging)
+9. [Best Practices](#best-practices)
+10. [Testing](#testing)
+11. [Publishing](#publishing)
 
 ## Quick Start
 
@@ -544,6 +545,58 @@ public function execute(int $userId, array $metadata): void
     }
 }
 ```
+
+## Chat Integration
+
+Plugins can integrate with ASPRI's chat system, allowing users to interact with plugin features through natural language.
+
+**📖 See complete guide: [PLUGIN_CHAT_INTEGRATION.md](PLUGIN_CHAT_INTEGRATION.md)**
+
+### Quick Example
+
+```php
+public function supportsChatIntegration(): bool
+{
+    return true;
+}
+
+public function getChatIntents(): array
+{
+    return [
+        [
+            'action' => 'plugin_myapp_action',
+            'description' => 'What this action does',
+            'entities' => [
+                'param1' => 'string|null',
+                'param2' => 'number|null',
+            ],
+            'examples' => [
+                'user message example 1',
+                'user message example 2',
+            ],
+        ],
+    ];
+}
+
+public function handleChatIntent(int $userId, string $action, array $entities): array
+{
+    // Process the intent and return response
+    return [
+        'success' => true,
+        'message' => 'Response to user',
+        'data' => $result,
+    ];
+}
+```
+
+**Key Features:**
+- ✅ Fully scalable - no core file modifications needed
+- ✅ AI automatically discovers active plugins
+- ✅ Define intents in your plugin class
+- ✅ Support multiple languages
+- ✅ Full control over response formatting
+
+For detailed examples and best practices, see [PLUGIN_CHAT_INTEGRATION.md](PLUGIN_CHAT_INTEGRATION.md).
 
 ## Logging & Debugging
 

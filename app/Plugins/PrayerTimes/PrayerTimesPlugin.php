@@ -166,7 +166,7 @@ class PrayerTimesPlugin extends BasePlugin
 
     public function activate(int $userId): void
     {
-        $config = $this->getConfig($userId);
+        $config = $this->getUserConfig($userId);
 
         // Schedule daily prayer times
         if ($config['daily_schedule']) {
@@ -207,7 +207,7 @@ class PrayerTimesPlugin extends BasePlugin
 
     public function checkPrayerTimes(int $userId, ?string $date = null): array
     {
-        $config = $this->getConfig($userId);
+        $config = $this->getUserConfig($userId);
 
         $latitude = $config['latitude'];
         $longitude = $config['longitude'];

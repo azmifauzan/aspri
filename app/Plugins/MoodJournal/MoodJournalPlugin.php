@@ -140,7 +140,7 @@ class MoodJournalPlugin extends BasePlugin
 
     public function activate(int $userId): void
     {
-        $config = $this->getConfig($userId);
+        $config = $this->getUserConfig($userId);
 
         if ($config['multiple_checkin']) {
             // Morning check-in
@@ -224,7 +224,7 @@ class MoodJournalPlugin extends BasePlugin
 
     private function sendMoodCheckin(int $userId, string $period): void
     {
-        $config = $this->getConfig($userId);
+        $config = $this->getUserConfig($userId);
         $telegramService = app(TelegramService::class);
 
         $periodLabels = [

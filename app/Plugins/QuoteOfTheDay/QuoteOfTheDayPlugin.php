@@ -120,7 +120,7 @@ class QuoteOfTheDayPlugin extends BasePlugin
 
     public function activate(int $userId): void
     {
-        $config = $this->getConfig($userId);
+        $config = $this->getUserConfig($userId);
 
         // Schedule daily quote
         if ($config['daily_quote']) {
@@ -161,7 +161,7 @@ class QuoteOfTheDayPlugin extends BasePlugin
 
     public function getRandomQuote(int $userId, array $context = []): array
     {
-        $config = $this->getConfig($userId);
+        $config = $this->getUserConfig($userId);
 
         $tags = $context['tags'] ?? $config['tags'];
         $length = $context['length'] ?? $config['quote_length'];
@@ -216,7 +216,7 @@ class QuoteOfTheDayPlugin extends BasePlugin
 
     private function sendDailyQuote(int $userId): void
     {
-        $config = $this->getConfig($userId);
+        $config = $this->getUserConfig($userId);
         $result = $this->getRandomQuote($userId);
 
         if ($result['success']) {

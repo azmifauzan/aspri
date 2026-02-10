@@ -38,6 +38,8 @@ class TelegramWebhookController extends Controller
 
             Log::info('Telegram webhook received', [
                 'update_id' => $updateData['update_id'] ?? null,
+                'has_message' => isset($updateData['message']),
+                'message_text' => $updateData['message']['text'] ?? null,
             ]);
 
             // Create Update object
@@ -46,10 +48,16 @@ class TelegramWebhookController extends Controller
             // Process the update
             $this->telegramService->processUpdate($update);
 
+            Log::info('Telegram webhook processed successfully', [
+                'update_id' => $updateData['update_id'] ?? null,
+            ]);
+
             return response()->json(['ok' => true]);
         } catch (\Exception $e) {
             Log::error('Error processing Telegram webhook', [
                 'error' => $e->getMessage(),
+                'exception_class' => get_class($e),
+                'update_id' => $updateData['update_id'] ?? null,
                 'trace' => $e->getTraceAsString(),
             ]);
 

@@ -37,9 +37,26 @@ class SystemSetting extends Model
                 return $default;
             }
 
-            $value = $setting->is_encrypted
-                ? decrypt($setting->value)
-                : $setting->value;
+            // Handle encrypted values with error handling
+            if ($setting->is_encrypted) {
+                try {
+                    $value = decrypt($setting->value);
+                } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
+                    // Log the decryption error
+                    \Log::warning("Failed to decrypt setting: {$key}. The APP_KEY may have changed.", [
+                        'key' => $key,
+                        'error' => $e->getMessage(),
+                    ]);
+
+                    // Clear the cached value
+                    Cache::forget($cacheKey);
+
+                    // Return default value instead of crashing
+                    return $default;
+                }
+            } else {
+                $value = $setting->value;
+            }
 
             return match ($setting->type) {
                 'boolean' => filter_var($value, FILTER_VALIDATE_BOOLEAN),

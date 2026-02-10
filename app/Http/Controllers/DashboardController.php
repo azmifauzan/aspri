@@ -26,7 +26,7 @@ class DashboardController extends Controller
 
         $monthlyFinance = [
             'income' => $income,
-            'expenses' => $expense,
+            'expense' => $expense,
             'balance' => $income - $expense,
             'incomeChange' => $lastIncome > 0 ? round((($income - $lastIncome) / $lastIncome) * 100, 1) : 0,
             'expenseChange' => $lastExpense > 0 ? round((($expense - $lastExpense) / $lastExpense) * 100, 1) : 0,
@@ -99,8 +99,8 @@ class DashboardController extends Controller
         ]);
 
         return Inertia::render('Dashboard', [
-            'monthlyFinance' => $monthlyFinance,
-            'todaySchedule' => $todaySchedule,
+            'monthlySummary' => $monthlyFinance,
+            'todayEvents' => $todaySchedule,
             'weeklyExpenses' => $weeklyExpenses,
             'recentActivities' => $recentActivities,
             'subscriptionInfo' => $subscriptionInfo,

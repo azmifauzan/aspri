@@ -136,7 +136,7 @@ class CurrencyConverterPlugin extends BasePlugin
 
     public function activate(int $userId): void
     {
-        $config = $this->getConfig($userId);
+        $config = $this->getUserConfig($userId);
 
         // Schedule daily updates
         if ($config['auto_update']) {
@@ -175,16 +175,106 @@ class CurrencyConverterPlugin extends BasePlugin
         }
     }
 
+    public function supportsScheduling(): bool
+    {
+        return true;
+    }
+
+    public function getDefaultSchedule(): ?array
+    {
+        return [
+            'type' => 'daily',
+            'value' => '09:00',
+        ];
+    }
+
+    public function supportsChatIntegration(): bool
+    {
+        return true;
+    }
+
+    public function getChatIntents(): array
+    {
+        return [
+            [
+                'action' => 'plugin_currency_convert',
+                'description' => 'Konversi mata uang / cek nilai tukar',
+                'entities' => [
+                    'amount' => 'number|null',
+                    'from_currency' => 'string|null',
+                    'to_currency' => 'string|null',
+                ],
+                'examples' => [
+                    'berapa kurs IDR ke USD sekarang',
+                    'convert 100 dollar to rupiah',
+                    '1000 rupiah ke dolar',
+                    'berapa nilai 50 euro dalam yen',
+                    'kurs SGD hari ini',
+                ],
+            ],
+        ];
+    }
+
+    public function handleChatIntent(int $userId, string $action, array $entities): array
+    {
+        if ($action !== 'plugin_currency_convert') {
+            return [
+                'success' => false,
+                'message' => 'Action not supported',
+            ];
+        }
+
+        $config = $this->getUserConfig($userId);
+
+        $amount = $entities['amount'] ?? 1;
+        $from = strtoupper($entities['from_currency'] ?? $entities['from'] ?? $config['base_currency'] ?? 'IDR');
+        $to = strtoupper($entities['to_currency'] ?? $entities['to'] ?? 'USD');
+
+        $result = $this->convertCurrency($userId, [
+            'amount' => $amount,
+            'from' => $from,
+            'to' => $to,
+        ]);
+
+        if ($result['success']) {
+            $message = sprintf(
+                "💱 **Konversi Mata Uang**\n\n%s %s = **%s %s**\n\nNilai tukar: 1 %s = %s %s\n\n_Data realtime dari ExchangeRate-API_",
+                number_format($result['amount'], 2, ',', '.'),
+                $result['from'],
+                number_format($result['result'], 2, ',', '.'),
+                $result['to'],
+                $result['from'],
+                number_format($result['rate'], 4),
+                $result['to']
+            );
+
+            return [
+                'success' => true,
+                'message' => $message,
+                'data' => $result,
+            ];
+        }
+
+        return [
+            'success' => false,
+            'message' => '❌ Maaf, gagal mengambil data kurs. Silakan coba lagi nanti.',
+        ];
+    }
+
     public function convertCurrency(int $userId, array $context): array
     {
-        $config = $this->getConfig($userId);
+        $config = $this->getUserConfig($userId);
 
         $amount = $context['amount'] ?? 1;
         $from = $context['from'] ?? $config['base_currency'];
         $to = $context['to'] ?? 'USD';
 
         try {
-            $response = Http::timeout(10)->get(self::API_URL.$from);
+            $response = Http::timeout(10)
+                ->withOptions([
+                    'verify' => config('app.env') === 'production',
+                ])
+                ->get(self::API_URL.$from);
 
             if ($response->successful()) {
                 $data = $response->json();
@@ -209,7 +299,12 @@ class CurrencyConverterPlugin extends BasePlugin
 
             throw new \Exception('Failed to fetch exchange rates');
         } catch (\Exception $e) {
-            $this->log($userId, 'error', 'Conversion failed: '.$e->getMessage());
+            $this->log($userId, 'error', 'Conversion failed: '.$e->getMessage(), [
+                'from' => $from,
+                'to' => $to,
+                'amount' => $amount,
+                'trace' => $e->getTraceAsString(),
+            ]);
 
             return [
                 'success' => false,
@@ -220,12 +315,16 @@ class CurrencyConverterPlugin extends BasePlugin
 
     private function sendDailyRates(int $userId): void
     {
-        $config = $this->getConfig($userId);
+        $config = $this->getUserConfig($userId);
         $baseCurrency = $config['base_currency'];
         $favorites = $config['favorite_currencies'];
 
         try {
-            $response = Http::timeout(10)->get(self::API_URL.$baseCurrency);
+            $response = Http::timeout(10)
+                ->withOptions([
+                    'verify' => config('app.env') === 'production',
+                ])
+                ->get(self::API_URL.$baseCurrency);
 
             if ($response->successful()) {
                 $data = $response->json();

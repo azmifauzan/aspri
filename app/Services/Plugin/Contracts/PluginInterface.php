@@ -112,4 +112,32 @@ interface PluginInterface
      * @return array{type: string, value: string}|null
      */
     public function getDefaultSchedule(): ?array;
+
+    /**
+     * Check if the plugin supports chat integration.
+     */
+    public function supportsChatIntegration(): bool;
+
+    /**
+     * Get chat intents supported by this plugin.
+     * Returns an array of intent definitions for the AI parser.
+     *
+     * @return array<int, array{
+     *     action: string,
+     *     description: string,
+     *     entities: array<string, string>,
+     *     examples: array<string>
+     * }>
+     */
+    public function getChatIntents(): array;
+
+    /**
+     * Handle chat intent execution.
+     *
+     * @param  int  $userId  The user executing the intent
+     * @param  string  $action  The action to execute
+     * @param  array<string, mixed>  $entities  Extracted entities from user message
+     * @return array{success: bool, message: string, data?: mixed}
+     */
+    public function handleChatIntent(int $userId, string $action, array $entities): array;
 }
