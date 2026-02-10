@@ -6,13 +6,6 @@ import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
@@ -20,7 +13,6 @@ import { edit } from '@/routes/profile';
 import { send } from '@/routes/verification';
 import { type BreadcrumbItem } from '@/types';
 import { Form, Head, Link, usePage } from '@inertiajs/vue3';
-import { ref, watch } from 'vue';
 
 type Profile = {
     call_preference: string | null;
@@ -45,15 +37,6 @@ const breadcrumbItems: BreadcrumbItem[] = [
 
 const page = usePage();
 const user = page.props.auth.user;
-
-const personaOptions = [
-    { value: 'asisten yang ramah dan membantu', label: 'Ramah & Membantu' },
-    { value: 'asisten profesional yang efisien', label: 'Profesional & Efisien' },
-    { value: 'teman yang santai dan asyik', label: 'Santai & Asyik' },
-    { value: 'mentor yang bijaksana', label: 'Bijaksana & Mendidik' },
-];
-
-const selectedPersona = ref(props.profile?.aspri_persona ?? 'asisten yang ramah dan membantu');
 </script>
 
 <template>
@@ -165,24 +148,17 @@ const selectedPersona = ref(props.profile?.aspri_persona ?? 'asisten yang ramah 
                     </div>
 
                     <div class="grid gap-2">
-                        <Label for="aspri_persona">Kepribadian Asisten</Label>
-                        <input type="hidden" name="aspri_persona" :value="selectedPersona" />
-                        <Select v-model="selectedPersona">
-                            <SelectTrigger>
-                                <SelectValue placeholder="Pilih kepribadian" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem
-                                    v-for="option in personaOptions"
-                                    :key="option.value"
-                                    :value="option.value"
-                                >
-                                    {{ option.label }}
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <Label for="aspri_persona">Persona Asisten</Label>
+                        <Input
+                            id="aspri_persona"
+                            class="mt-1 block w-full"
+                            name="aspri_persona"
+                            :default-value="profile?.aspri_persona ?? 'pria'"
+                            required
+                            placeholder="Contoh: pria, wanita, profesional, santai"
+                        />
                         <p class="text-xs text-muted-foreground">
-                            Pilih gaya komunikasi yang kamu sukai
+                            Kepribadian asisten (pria, wanita, kucing, anjing, atau custom)
                         </p>
                         <InputError class="mt-2" :message="errors.aspri_persona" />
                     </div>

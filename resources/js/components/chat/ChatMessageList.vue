@@ -4,7 +4,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { ChatMessage } from '@/types';
 import { Bot, User } from 'lucide-vue-next';
-import { nextTick, ref, watch, type ComponentPublicInstance } from 'vue';
+import { nextTick, onMounted, ref, watch, type ComponentPublicInstance } from 'vue';
 
 type Props = {
     messages: ChatMessage[];
@@ -18,30 +18,27 @@ const scrollContainer = ref<ComponentPublicInstance | null>(null);
 const newMessageIds = ref<Set<string>>(new Set());
 
 const scrollToBottom = (smooth = true) => {
-    // Try multiple times to ensure scroll happens
-    const attemptScroll = (attempt = 0) => {
-        if (attempt > 3) return;
-        
-        nextTick(() => {
-            if (scrollContainer.value?.$el) {
-                const scrollArea = scrollContainer.value.$el.querySelector('[data-radix-scroll-area-viewport]');
-                if (scrollArea) {
-                    scrollArea.scrollTo({
-                        top: scrollArea.scrollHeight,
-                        behavior: smooth ? 'smooth' : 'auto'
-                    });
-                    
-                    // Retry after a short delay to ensure content is rendered
-                    if (attempt < 3) {
-                        setTimeout(() => attemptScroll(attempt + 1), 50);
-                    }
-                }
+    nextTick(() => {
+        if (scrollContainer.value?.$el) {
+            const scrollArea = scrollContainer.value.$el.querySelector('[data-radix-scroll-area-viewport]');
+            if (scrollArea) {
+                scrollArea.scrollTop = scrollArea.scrollHeight;
             }
-        });
-    };
-    
-    attemptScroll();
+        }
+    });
 };
+
+// Expose method to parent component
+defineExpose({
+    scrollToBottom
+});
+
+// Scroll to bottom when component is mounted (for loading existing thread)
+onMounted(() => {
+    if (props.messages.length > 0) {
+        setTimeout(() => scrollToBottom(false), 100);
+    }
+});
 
 watch(
     () => props.messages.length,

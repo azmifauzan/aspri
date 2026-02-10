@@ -194,6 +194,170 @@ class ChatController extends Controller
     }
 
     /**
+     * Send a message and stream AI response using Server-Sent Events.
+     */
+    public function sendMessageStream(SendMessageRequest $request)
+    {
+        $user = $request->user();
+        $threadId = $request->input('thread_id');
+        $messageContent = $request->input('message');
+
+        // Check chat limit
+        if ($user->hasReachedChatLimit()) {
+            return response()->json([
+                'error' => 'Anda telah mencapai batas chat harian. Upgrade ke Full Member untuk mendapatkan lebih banyak chat.',
+                'limit_reached' => true,
+                'remaining' => 0,
+            ], 429);
+        }
+
+        // Get or create thread
+        if ($threadId) {
+            $thread = ChatThread::where('id', $threadId)
+                ->where('user_id', $user->id)
+                ->firstOrFail();
+        } else {
+            $thread = ChatThread::create([
+                'user_id' => $user->id,
+                'title' => $this->generateThreadTitle($messageContent),
+                'last_message_at' => now(),
+            ]);
+        }
+
+        // Save user message
+        $userMessage = ChatMessage::create([
+            'thread_id' => $thread->id,
+            'user_id' => $user->id,
+            'role' => 'user',
+            'content' => $messageContent,
+        ]);
+
+        // Get conversation history
+        $history = $thread->messages()
+            ->where('id', '!=', $userMessage->id)
+            ->orderBy('created_at')
+            ->get()
+            ->map(fn ($m) => ['role' => $m->role, 'content' => $m->content])
+            ->toArray();
+
+        return response()->stream(function () use ($user, $messageContent, $thread, $history, $userMessage) {
+            // Set headers for SSE
+            header('Content-Type: text/event-stream');
+            header('Cache-Control: no-cache');
+            header('Connection: keep-alive');
+            header('X-Accel-Buffering: no'); // Disable nginx buffering
+
+            // Send thread info first
+            echo "event: thread\n";
+            echo 'data: '.json_encode([
+                'id' => $thread->id,
+                'title' => $thread->title,
+            ])."\n\n";
+            ob_flush();
+            flush();
+
+            // Send user message
+            echo "event: user_message\n";
+            echo 'data: '.json_encode([
+                'id' => $userMessage->id,
+                'role' => 'user',
+                'content' => $userMessage->content,
+                'createdAt' => $userMessage->created_at->format('H:i'),
+            ])."\n\n";
+            ob_flush();
+            flush();
+
+            // Process message through ChatOrchestrator with streaming
+            $fullResponse = '';
+
+            try {
+                // Parse intent first
+                $intent = $this->chatOrchestrator->intentParser->parse($user, $messageContent, $history);
+
+                // Check for pending actions
+                $pendingAction = PendingAction::where('thread_id', $thread->id)
+                    ->pending()
+                    ->latest()
+                    ->first();
+
+                $streamableGeneralActions = ['query'];
+                $shouldStream = $intent['module'] === 'general'
+                    && in_array($intent['action'], $streamableGeneralActions, true);
+
+                // For simple general chat, use streaming
+                if ($shouldStream) {
+                    // Build messages using ChatService
+                    $messages = $this->chatOrchestrator->chatService->formatMessages($user, $messageContent, $history);
+
+                    // Stream response
+                    $fullResponse = $this->chatOrchestrator->aiProvider->chatStream($messages, function ($chunk) {
+                        echo "event: message_chunk\n";
+                        echo 'data: '.json_encode(['content' => $chunk])."\n\n";
+                        ob_flush();
+                        flush();
+                    }, [
+                        'temperature' => 0.8,
+                        'max_tokens' => 1500,
+                    ]);
+                } else {
+                    // For actions, use regular processing
+                    $result = $this->chatOrchestrator->processMessage($user, $messageContent, $thread, $history);
+                    $fullResponse = $result['response'];
+
+                    // Send full response at once
+                    echo "event: message_chunk\n";
+                    echo 'data: '.json_encode(['content' => $fullResponse])."\n\n";
+                    ob_flush();
+                    flush();
+                }
+            } catch (\Exception $e) {
+                Log::error('Chat streaming error', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+
+                $fullResponse = 'Maaf, terjadi kesalahan saat memproses pesan. Silakan coba lagi.';
+
+                echo "event: error\n";
+                echo 'data: '.json_encode(['message' => $fullResponse])."\n\n";
+                ob_flush();
+                flush();
+            }
+
+            // Save assistant message
+            $assistantMessage = ChatMessage::create([
+                'thread_id' => $thread->id,
+                'user_id' => $user->id,
+                'role' => 'assistant',
+                'content' => $fullResponse,
+            ]);
+
+            // Increment chat usage
+            ChatUsageLog::incrementForUser($user->id);
+
+            // Update thread
+            $thread->update(['last_message_at' => now()]);
+
+            // Send completion event with metadata
+            echo "event: complete\n";
+            echo 'data: '.json_encode([
+                'message_id' => $assistantMessage->id,
+                'createdAt' => $assistantMessage->created_at->format('H:i'),
+                'chatLimit' => [
+                    'daily_limit' => $user->getDailyChatLimit(),
+                    'used_today' => ChatUsageLog::getTodayCount($user->id),
+                    'remaining' => $user->getRemainingChats(),
+                    'is_limited' => $user->hasReachedChatLimit(),
+                ],
+            ])."\n\n";
+            ob_flush();
+            flush();
+        }, 200, [
+            'Content-Type' => 'text/event-stream',
+            'Cache-Control' => 'no-cache',
+            'Connection' => 'keep-alive',
+            'X-Accel-Buffering' => 'no',
+        ]);
+    }
+
+    /**
      * Delete a chat thread.
      */
     public function destroy(ChatThread $thread): JsonResponse

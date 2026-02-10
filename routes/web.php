@@ -96,6 +96,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('chat', [ChatController::class, 'index'])->name('chat.index');
     Route::get('chat/{thread}', [ChatController::class, 'show'])->name('chat.show');
     Route::post('chat/message', [ChatController::class, 'sendMessage'])->name('chat.send');
+    Route::post('chat/message/stream', [ChatController::class, 'sendMessageStream'])->name('chat.send.stream');
     Route::delete('chat/{thread}', [ChatController::class, 'destroy'])->name('chat.destroy');
 
     // Finance routes

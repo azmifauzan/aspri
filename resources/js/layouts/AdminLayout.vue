@@ -15,10 +15,11 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
+import { dashboard } from '@/routes';
 import admin from '@/routes/admin';
 import { type BreadcrumbItem, type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
-import { Activity, CreditCard, Database, FileText, LayoutDashboard, Settings, Users } from 'lucide-vue-next';
+import { Activity, ArrowLeft, CreditCard, Database, FileText, LayoutDashboard, Settings, Users } from 'lucide-vue-next';
 
 type Props = {
     breadcrumbs?: BreadcrumbItem[];
@@ -94,6 +95,20 @@ const adminNavItems: NavItem[] = [
                                 <Link :href="item.href">
                                     <component :is="item.icon" />
                                     <span>{{ item.title }}</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </SidebarMenu>
+                </SidebarGroup>
+
+                <SidebarGroup class="px-2 py-0">
+                    <SidebarGroupLabel>User Panel</SidebarGroupLabel>
+                    <SidebarMenu>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton as-child :is-active="isCurrentUrl(dashboard())" :tooltip="'User Dashboard'">
+                                <Link :href="dashboard()">
+                                    <ArrowLeft class="size-4" />
+                                    <span>Kembali ke Panel</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>

@@ -56,7 +56,7 @@ class ChatOrchestrator
             'schedule' => $this->handleScheduleIntent($user, $thread, $intent, $conversationHistory),
             'notes' => $this->handleNotesIntent($user, $thread, $intent, $conversationHistory),
             'plugin' => $this->handlePluginIntent($user, $thread, $intent, $conversationHistory),
-            default => $this->handleGeneralIntent($user, $intent, $conversationHistory),
+            default => $this->handleGeneralIntent($user, $intent, $conversationHistory, $message),
         };
     }
 
@@ -88,7 +88,12 @@ class ChatOrchestrator
         $pendingAction->cancel();
 
         return [
-            'response' => 'Baik, aksi dibatalkan. Ada yang bisa saya bantu lainnya?',
+            'response' => $this->personalizeResponse(
+                $pendingAction->user,
+                'success',
+                [],
+                'Aksi dibatalkan. Tanyakan apakah ada yang bisa dibantu lainnya.'
+            ),
             'action_taken' => false,
             'pending_action' => null,
         ];
@@ -282,7 +287,12 @@ class ChatOrchestrator
             $pluginName = $pluginInstance->getName();
 
             return [
-                'response' => "Plugin {$pluginName} belum diaktifkan. Silakan aktifkan terlebih dahulu di halaman Plugin.",
+                'response' => $this->personalizeResponse(
+                    $user,
+                    'error',
+                    [],
+                    "Plugin {$pluginName} belum diaktifkan. Infokan user untuk mengaktifkannya di halaman Plugin."
+                ),
                 'action_taken' => false,
                 'pending_action' => null,
             ];
@@ -294,7 +304,12 @@ class ChatOrchestrator
 
             if ($result['success']) {
                 return [
-                    'response' => $result['message'],
+                    'response' => $this->personalizeResponse(
+                        $user,
+                        'success',
+                        [],
+                        $result['message']
+                    ),
                     'action_taken' => true,
                     'pending_action' => null,
                     'data' => $result['data'] ?? null,
@@ -302,7 +317,12 @@ class ChatOrchestrator
             }
 
             return [
-                'response' => $result['message'] ?? 'Maaf, terjadi kesalahan saat menjalankan plugin.',
+                'response' => $this->personalizeResponse(
+                    $user,
+                    'error',
+                    [],
+                    $result['message'] ?? 'Terjadi kesalahan saat menjalankan plugin.'
+                ),
                 'action_taken' => false,
                 'pending_action' => null,
             ];
@@ -314,7 +334,12 @@ class ChatOrchestrator
             ]);
 
             return [
-                'response' => 'Maaf, terjadi kesalahan saat menjalankan plugin. Silakan coba lagi.',
+                'response' => $this->personalizeResponse(
+                    $user,
+                    'error',
+                    [],
+                    'Terjadi kesalahan saat menjalankan plugin. Minta user coba lagi.'
+                ),
                 'action_taken' => false,
                 'pending_action' => null,
             ];
@@ -324,21 +349,11 @@ class ChatOrchestrator
     /**
      * Handle general intents (greeting, help, unknown).
      */
-    protected function handleGeneralIntent(User $user, array $intent, array $history): array
+    protected function handleGeneralIntent(User $user, array $intent, array $history, string $currentMessage): array
     {
         if ($intent['action'] === 'greeting') {
-            $profile = $user->profile;
-            $callPref = $profile?->call_preference ?? 'Kak';
-            $aspriName = $profile?->aspri_name ?? 'ASPRI';
-
             return [
-                'response' => "Halo {$callPref} {$user->name}! Saya {$aspriName}, asisten pribadi kamu. Ada yang bisa saya bantu hari ini?\n\n"
-                    ."Kamu bisa minta saya untuk:\n"
-                    ."1. 💰 Mencatat transaksi keuangan\n"
-                    ."2. 📅 Membuat jadwal atau pengingat\n"
-                    ."3. 📝 Membuat catatan\n"
-                    ."4. 📊 Melihat ringkasan keuangan\n\n"
-                    .'Cukup ketik permintaan kamu dengan bahasa sehari-hari!',
+                'response' => $this->personalizeResponse($user, 'greeting', ['user_name' => $user->name]),
                 'action_taken' => false,
                 'pending_action' => null,
             ];
@@ -352,8 +367,100 @@ class ChatOrchestrator
             ];
         }
 
-        // For unknown intents, use AI to generate a helpful response
+        // Handle out of scope questions - forward to LLM with persona
+        if ($intent['action'] === 'out_of_scope') {
+            return $this->handleOutOfScopeQuestion($user, $intent, $history, $currentMessage);
+        }
+
+        // Handle unknown intents
+        if ($intent['action'] === 'unknown') {
+            return [
+                'response' => $this->personalizeResponse($user, 'unknown', [
+                    'unclear_reason' => $intent['entities']['unclear_reason'] ?? null,
+                ]),
+                'action_taken' => false,
+                'pending_action' => null,
+            ];
+        }
+
+        // For any other unknown intents, use AI to generate a helpful response
         return $this->generateAiResponse($user, '', $history);
+    }
+
+    /**
+     * Handle out of scope questions by forwarding to LLM with persona.
+     */
+    protected function handleOutOfScopeQuestion(User $user, array $intent, array $history, string $currentMessage): array
+    {
+        $topic = $intent['entities']['topic'] ?? 'pertanyaan tersebut';
+        $questionType = $intent['entities']['question_type'] ?? null;
+
+        // Build context for the LLM to answer with persona
+        $profile = $user->profile;
+        $callPref = $profile?->call_preference ?? 'Kak';
+        $userName = $user->name;
+        $aspriName = $profile?->aspri_name ?? 'ASPRI';
+        $aspriPersona = $profile?->aspri_persona ?? 'asisten yang ramah dan membantu';
+
+        $systemPrompt = <<<PROMPT
+Kamu adalah {$aspriName}, {$aspriPersona}.
+Kamu adalah asisten pribadi yang membantu user mengelola keuangan, jadwal, dan catatan.
+Kamu harus memanggil user dengan "{$callPref} {$userName}".
+
+PERINGATAN PENTING:
+- Jika user bertanya tentang data pribadi mereka (saldo, transaksi, jadwal, catatan), kamu HARUS mengatakan bahwa kamu tidak memiliki akses ke data tersebut saat ini.
+- Untuk data DALAM aplikasi (finance, schedule, notes), arahkan user untuk menggunakan perintah yang tepat.
+- Untuk pertanyaan umum/pengetahuan (cuaca, berita, resep, dll) yang TIDAK terkait data pribadi, jawab dengan pengetahuanmu.
+
+Contoh:
+- "berapa saldo saya?" → "Maaf {$callPref}, saya tidak bisa mengakses data saldomu saat ini. Coba tanya 'lihat saldo bulan ini'."
+- "bagaimana cuaca hari ini?" → Jawab dengan pengetahuanmu tentang cuaca
+- "siapa presiden indonesia?" → Jawab dengan pengetahuanmu
+- "berapa kurs dollar?" → Jawab dengan informasimu (tapi sebutkan mungkin sudah tidak update)
+
+Jawab dengan gaya komunikasimu yang khas. Tetap ramah dan membantu.
+PROMPT;
+
+        // Get the last user message from history to get the actual question
+        $lastUserMessage = trim($currentMessage);
+        if ($lastUserMessage === '') {
+            foreach (array_reverse($history) as $msg) {
+                if ($msg['role'] === 'user') {
+                    $lastUserMessage = $msg['content'];
+                    break;
+                }
+            }
+        }
+
+        $messages = [
+            ['role' => 'system', 'content' => $systemPrompt],
+        ];
+
+        // Add recent conversation history for context (last 3 exchanges)
+        foreach (array_slice($history, -6) as $msg) {
+            $messages[] = $msg;
+        }
+
+        // Add current question if not already in history
+        if ($lastUserMessage) {
+            if (empty($history) || end($history)['content'] !== $lastUserMessage) {
+                $messages[] = ['role' => 'user', 'content' => $lastUserMessage];
+            }
+        } else {
+            // Fallback: use topic from intent
+            $messages[] = ['role' => 'user', 'content' => "Pertanyaan tentang: {$topic}"];
+        }
+
+        $response = $this->aiProvider->chat($messages, [
+            'temperature' => 0.8, // Slightly higher for more natural responses
+            'max_tokens' => 1500, // Increased to allow longer responses
+        ]);
+
+        return [
+            'response' => $response,
+            'action_taken' => false,
+            'pending_action' => null,
+        ];
     }
 
     /**
@@ -377,11 +484,8 @@ class ChatOrchestrator
      */
     protected function askForMissingInfo(User $user, string $question, array $history): array
     {
-        $profile = $user->profile;
-        $callPref = $profile?->call_preference ?? 'Kak';
-
         return [
-            'response' => "{$callPref}, {$question}",
+            'response' => $this->personalizeResponse($user, 'success', [], "Tanyakan ke user: {$question}"),
             'action_taken' => false,
             'pending_action' => null,
         ];
@@ -402,14 +506,262 @@ class ChatOrchestrator
     }
 
     /**
+     * Personalize any response through LLM with user's ASPRI persona.
+     * This ensures all responses are consistent with the user's registered persona settings.
+     */
+    protected function personalizeResponse(User $user, string $responseType, array $data, ?string $rawContent = null): string
+    {
+        $profile = $user->profile;
+        $callPref = $profile?->call_preference ?? 'Kak';
+        $userName = $user->name;
+        $aspriName = $profile?->aspri_name ?? 'ASPRI';
+        $aspriPersona = $profile?->aspri_persona ?? 'asisten yang ramah dan membantu';
+
+        // Build context based on response type
+        $context = $this->buildResponseContext($responseType, $data, $rawContent);
+
+        $prompt = <<<PROMPT
+Kamu adalah {$aspriName}, {$aspriPersona}.
+Kamu harus memanggil user dengan "{$callPref} {$userName}".
+
+Tugas: Sampaikan informasi berikut dengan gaya komunikasi yang sesuai dengan kepribadianmu.
+Jangan mengubah data/angka, hanya sampaikan dengan caramu sendiri.
+
+Tipe Respons: {$responseType}
+
+Informasi yang harus disampaikan:
+{$context}
+
+Sampaikan dengan natural, sesuai kepribadianmu, dan tetap informatif.
+PROMPT;
+
+        $messages = [
+            ['role' => 'system', 'content' => $this->chatService->buildSystemPrompt($user)],
+            ['role' => 'user', 'content' => $prompt],
+        ];
+
+        return $this->aiProvider->chat($messages, ['temperature' => 0.7]);
+    }
+
+    /**
+     * Build response context for personalization.
+     */
+    protected function buildResponseContext(string $responseType, array $data, ?string $rawContent): string
+    {
+        if ($rawContent) {
+            return $rawContent;
+        }
+
+        return match ($responseType) {
+            'finance_summary' => $this->buildFinanceSummaryContext($data),
+            'transactions_list' => $this->buildTransactionsContext($data),
+            'schedules_list' => $this->buildSchedulesContext($data),
+            'notes_list' => $this->buildNotesContext($data),
+            'transaction_confirmation' => $this->buildTransactionConfirmationContext($data),
+            'schedule_confirmation' => $this->buildScheduleConfirmationContext($data),
+            'note_confirmation' => $this->buildNoteConfirmationContext($data),
+            'delete_confirmation' => $this->buildDeleteConfirmationContext($data),
+            'success' => "Aksi berhasil: {$data['message']}",
+            'error' => "Terjadi kesalahan: {$data['message']}",
+            'greeting' => 'Sapa user dan tawarkan bantuan. User bisa mencatat transaksi keuangan, membuat jadwal, membuat catatan, atau melihat ringkasan.',
+            'help' => $this->buildHelpContext($data),
+            'out_of_scope' => $this->buildOutOfScopeContext($data),
+            'unknown' => $this->buildUnknownContext($data),
+            default => $rawContent ?? 'Berikan respons yang membantu',
+        };
+    }
+
+    protected function buildFinanceSummaryContext(array $data): string
+    {
+        $period = match ($data['period'] ?? 'this_month') {
+            'today' => 'hari ini',
+            'this_week' => 'minggu ini',
+            'this_month' => 'bulan ini',
+            default => 'bulan ini',
+        };
+
+        return "Tampilkan ringkasan keuangan {$period}:\n"
+            .'- Pemasukan: Rp '.number_format($data['income'], 0, ',', '.')."\n"
+            .'- Pengeluaran: Rp '.number_format($data['expense'], 0, ',', '.')."\n"
+            .'- Selisih: Rp '.number_format($data['net'], 0, ',', '.')."\n"
+            .'- Saldo Total: Rp '.number_format($data['total_balance'], 0, ',', '.');
+    }
+
+    protected function buildTransactionsContext(array $data): string
+    {
+        if (empty($data['transactions'])) {
+            return 'Belum ada transaksi yang tercatat.';
+        }
+
+        $context = "Tampilkan daftar transaksi berikut:\n";
+        foreach ($data['transactions'] as $t) {
+            $sign = $t['type'] === 'income' ? '+' : '-';
+            $context .= "- {$sign}Rp".number_format($t['amount'], 0, ',', '.').
+                       " untuk {$t['category']}".
+                       ($t['note'] ? " ({$t['note']})" : '').
+                       " pada {$t['date']}\n";
+        }
+
+        return $context;
+    }
+
+    protected function buildSchedulesContext(array $data): string
+    {
+        if (empty($data['schedules'])) {
+            $period = match ($data['period'] ?? null) {
+                'today' => 'hari ini',
+                'tomorrow' => 'besok',
+                'this_week' => 'minggu ini',
+                default => '',
+            };
+
+            return $period ? "Tidak ada jadwal {$period}." : 'Tidak ada jadwal.';
+        }
+
+        $context = "Tampilkan jadwal berikut:\n";
+        foreach ($data['schedules'] as $s) {
+            $time = $s['end_time'] ? "{$s['start_time']} - {$s['end_time']}" : $s['start_time'];
+            $location = $s['location'] ? " di {$s['location']}" : '';
+            $context .= "- {$s['title']} pada {$time}{$location}\n";
+        }
+
+        return $context;
+    }
+
+    protected function buildNotesContext(array $data): string
+    {
+        if (empty($data['notes'])) {
+            return 'Belum ada catatan yang tersimpan.';
+        }
+
+        $context = "Tampilkan catatan berikut:\n";
+        foreach ($data['notes'] as $n) {
+            $tags = ! empty($n['tags']) ? ' dengan tags: '.implode(', ', $n['tags']) : '';
+            $context .= "- Judul: {$n['title']}{$tags}\n  Preview: {$n['content_preview']}\n";
+        }
+
+        return $context;
+    }
+
+    protected function buildTransactionConfirmationContext(array $data): string
+    {
+        $txType = ($data['tx_type'] ?? 'expense') === 'income' ? 'Pemasukan' : 'Pengeluaran';
+        $amount = 'Rp'.number_format($data['amount'] ?? 0, 0, ',', '.');
+        $category = $data['category'] ?? 'Belum ditentukan';
+        $note = $data['note'] ?? '-';
+        $date = $data['occurred_at'] ?? 'Hari ini';
+
+        return "Minta konfirmasi untuk menyimpan transaksi:\n"
+            ."- Jenis: {$txType}\n"
+            ."- Jumlah: {$amount}\n"
+            ."- Kategori: {$category}\n"
+            ."- Keterangan: {$note}\n"
+            ."- Tanggal: {$date}\n\n"
+            .'User harus balas "ya" untuk menyimpan atau "batal" untuk membatalkan.';
+    }
+
+    protected function buildScheduleConfirmationContext(array $data): string
+    {
+        $title = $data['title'] ?? 'Tidak ada judul';
+        $startTime = $data['start_time'] ?? 'Belum ditentukan';
+        $location = $data['location'] ?? '-';
+
+        return "Minta konfirmasi untuk membuat jadwal:\n"
+            ."- Judul: {$title}\n"
+            ."- Waktu: {$startTime}\n"
+            ."- Lokasi: {$location}\n\n"
+            .'User harus balas "ya" untuk menyimpan atau "batal" untuk membatalkan.';
+    }
+
+    protected function buildNoteConfirmationContext(array $data): string
+    {
+        $title = $data['title'] ?? 'Catatan Baru';
+        $content = mb_substr($data['content'] ?? '', 0, 100);
+        if (mb_strlen($data['content'] ?? '') > 100) {
+            $content .= '...';
+        }
+        $tags = ! empty($data['tags']) ? implode(', ', $data['tags']) : '-';
+
+        return "Minta konfirmasi untuk membuat catatan:\n"
+            ."- Judul: {$title}\n"
+            ."- Isi: {$content}\n"
+            ."- Tags: {$tags}\n\n"
+            .'User harus balas "ya" untuk menyimpan atau "batal" untuk membatalkan.';
+    }
+
+    protected function buildDeleteConfirmationContext(array $data): string
+    {
+        $itemType = $data['item_type'] ?? 'item';
+        $identifier = $data['identifier'] ?? 'item tersebut';
+
+        return "Minta konfirmasi untuk MENGHAPUS {$itemType}: \"{$identifier}\".\n"
+            .'User harus balas "ya" untuk menghapus atau "batal" untuk membatalkan.';
+    }
+
+    protected function buildHelpContext(array $data): string
+    {
+        $topic = $data['topic'] ?? null;
+
+        if ($topic === 'finance' || $topic === 'keuangan') {
+            return 'Berikan bantuan tentang fitur keuangan. Contoh perintah: catat pengeluaran, catat pemasukan, lihat ringkasan keuangan, lihat transaksi, cek saldo.';
+        }
+
+        if ($topic === 'schedule' || $topic === 'jadwal') {
+            return 'Berikan bantuan tentang fitur jadwal. Contoh perintah: buat jadwal meeting, buat pengingat, lihat jadwal, cek agenda.';
+        }
+
+        if ($topic === 'notes' || $topic === 'catatan') {
+            return 'Berikan bantuan tentang fitur catatan. Contoh perintah: buat catatan, simpan catatan, lihat catatan, cari catatan.';
+        }
+
+        return 'Berikan bantuan umum tentang fitur yang tersedia: keuangan (catat transaksi, lihat ringkasan), jadwal (buat jadwal, pengingat), dan catatan (simpan catatan).';
+    }
+
+    protected function buildOutOfScopeContext(array $data): string
+    {
+        // This method is no longer used for out_of_scope, but kept for backward compatibility
+        // Out of scope questions are now handled by handleOutOfScopeQuestion()
+        $topic = $data['topic'] ?? 'topik tersebut';
+        $questionType = $data['question_type'] ?? null;
+
+        $context = "User bertanya tentang \"{$topic}\"";
+        if ($questionType) {
+            $context .= " (tipe: {$questionType})";
+        }
+        $context .= ".\n\n";
+
+        $context .= 'INSTRUKSI: Coba jawab pertanyaan user dengan pengetahuanmu jika bisa. ';
+        $context .= 'Jika tidak bisa, sampaikan dengan sopan. ';
+        $context .= 'Sampaikan dengan gaya komunikasi yang sesuai kepribadianmu.';
+
+        return $context;
+    }
+
+    protected function buildUnknownContext(array $data): string
+    {
+        $unclearReason = $data['unclear_reason'] ?? null;
+
+        $context = 'Pesan user tidak jelas atau tidak bisa dipahami';
+        if ($unclearReason) {
+            $context .= " karena: {$unclearReason}";
+        }
+        $context .= ".\n\n";
+
+        $context .= 'INSTRUKSI: Sampaikan dengan sopan bahwa kamu tidak memahami maksud pesannya. ';
+        $context .= 'Minta user untuk menjelaskan lebih jelas atau memberikan detail lebih lanjut. ';
+        $context .= 'Tawarkan bantuan dan berikan contoh perintah yang bisa dimengerti seperti: ';
+        $context .= '"catat pengeluaran 50rb untuk makan", "lihat jadwal hari ini", "buat catatan meeting". ';
+        $context .= 'Sampaikan dengan ramah sesuai kepribadianmu.';
+
+        return $context;
+    }
+
+    /**
      * Format success response.
      */
     protected function formatSuccessResponse(User $user, array $result): string
     {
-        $profile = $user->profile;
-        $callPref = $profile?->call_preference ?? 'Kak';
-
-        return "✅ {$result['message']}\n\nAda lagi yang bisa saya bantu, {$callPref}?";
+        return $this->personalizeResponse($user, 'success', $result);
     }
 
     /**
@@ -417,7 +769,7 @@ class ChatOrchestrator
      */
     protected function formatErrorResponse(User $user, array $result): string
     {
-        return "❌ {$result['message']}\n\nSilakan coba lagi atau hubungi bantuan jika masalah berlanjut.";
+        return $this->personalizeResponse($user, 'error', $result);
     }
 
     /**
@@ -425,21 +777,7 @@ class ChatOrchestrator
      */
     protected function formatFinanceSummary(User $user, array $summary): string
     {
-        $profile = $user->profile;
-        $callPref = $profile?->call_preference ?? 'Kak';
-
-        $periodLabel = match ($summary['period']) {
-            'today' => 'hari ini',
-            'this_week' => 'minggu ini',
-            'this_month' => 'bulan ini',
-            default => 'bulan ini',
-        };
-
-        return "📊 **Ringkasan Keuangan {$callPref} {$user->name}** ({$periodLabel})\n\n"
-            .'💵 Pemasukan: Rp'.number_format($summary['income'], 0, ',', '.')."\n"
-            .'💸 Pengeluaran: Rp'.number_format($summary['expense'], 0, ',', '.')."\n"
-            .'📈 Selisih: Rp'.number_format($summary['net'], 0, ',', '.')."\n\n"
-            .'💰 Saldo Total: Rp'.number_format($summary['total_balance'], 0, ',', '.');
+        return $this->personalizeResponse($user, 'finance_summary', $summary);
     }
 
     /**
@@ -467,26 +805,10 @@ class ChatOrchestrator
      */
     protected function formatSchedulesList(User $user, array $schedules, ?string $period): string
     {
-        if (empty($schedules)) {
-            $periodLabel = match ($period) {
-                'today' => 'hari ini',
-                'tomorrow' => 'besok',
-                'this_week' => 'minggu ini',
-                default => 'bulan ini',
-            };
-
-            return "Tidak ada jadwal {$periodLabel}.";
-        }
-
-        $lines = ["📅 **Jadwal:**\n"];
-
-        foreach ($schedules as $s) {
-            $time = $s['end_time'] ? "{$s['start_time']} - {$s['end_time']}" : $s['start_time'];
-            $location = $s['location'] ? " 📍 {$s['location']}" : '';
-            $lines[] = "• {$s['title']} - {$time}{$location}";
-        }
-
-        return implode("\n", $lines);
+        return $this->personalizeResponse($user, 'schedules_list', [
+            'schedules' => $schedules,
+            'period' => $period,
+        ]);
     }
 
     /**
@@ -494,18 +816,7 @@ class ChatOrchestrator
      */
     protected function formatNotesList(User $user, array $notes): string
     {
-        if (empty($notes)) {
-            return 'Belum ada catatan yang tersimpan.';
-        }
-
-        $lines = ["📝 **Catatan Terbaru:**\n"];
-
-        foreach ($notes as $n) {
-            $tags = ! empty($n['tags']) ? ' ['.implode(', ', $n['tags']).']' : '';
-            $lines[] = "• **{$n['title']}**{$tags}\n  {$n['content_preview']}";
-        }
-
-        return implode("\n", $lines);
+        return $this->personalizeResponse($user, 'notes_list', ['notes' => $notes]);
     }
 
     /**
@@ -513,22 +824,7 @@ class ChatOrchestrator
      */
     protected function formatTransactionConfirmation(User $user, array $entities): string
     {
-        $profile = $user->profile;
-        $callPref = $profile?->call_preference ?? 'Kak';
-
-        $txType = ($entities['tx_type'] ?? 'expense') === 'income' ? 'Pemasukan' : 'Pengeluaran';
-        $amount = 'Rp'.number_format($entities['amount'] ?? 0, 0, ',', '.');
-        $category = $entities['category'] ?? 'Belum ditentukan';
-        $note = $entities['note'] ?? '-';
-        $date = isset($entities['occurred_at']) ? $entities['occurred_at'] : 'Hari ini';
-
-        return "📝 **Konfirmasi Transaksi**\n\n"
-            ."Jenis: {$txType}\n"
-            ."Jumlah: {$amount}\n"
-            ."Kategori: {$category}\n"
-            ."Keterangan: {$note}\n"
-            ."Tanggal: {$date}\n\n"
-            ."{$callPref}, apakah data di atas sudah benar? Balas **\"ya\"** untuk menyimpan atau **\"batal\"** untuk membatalkan.";
+        return $this->personalizeResponse($user, 'transaction_confirmation', $entities);
     }
 
     /**
@@ -536,18 +832,7 @@ class ChatOrchestrator
      */
     protected function formatScheduleConfirmation(User $user, array $entities): string
     {
-        $profile = $user->profile;
-        $callPref = $profile?->call_preference ?? 'Kak';
-
-        $title = $entities['title'] ?? 'Tidak ada judul';
-        $startTime = $entities['start_time'] ?? 'Belum ditentukan';
-        $location = $entities['location'] ?? '-';
-
-        return "📅 **Konfirmasi Jadwal Baru**\n\n"
-            ."Judul: {$title}\n"
-            ."Waktu: {$startTime}\n"
-            ."Lokasi: {$location}\n\n"
-            ."{$callPref}, apakah data di atas sudah benar? Balas **\"ya\"** untuk menyimpan atau **\"batal\"** untuk membatalkan.";
+        return $this->personalizeResponse($user, 'schedule_confirmation', $entities);
     }
 
     /**
@@ -555,21 +840,7 @@ class ChatOrchestrator
      */
     protected function formatNoteConfirmation(User $user, array $entities): string
     {
-        $profile = $user->profile;
-        $callPref = $profile?->call_preference ?? 'Kak';
-
-        $title = $entities['title'] ?? 'Catatan Baru';
-        $content = mb_substr($entities['content'] ?? '', 0, 100);
-        if (mb_strlen($entities['content'] ?? '') > 100) {
-            $content .= '...';
-        }
-        $tags = ! empty($entities['tags']) ? implode(', ', $entities['tags']) : '-';
-
-        return "📝 **Konfirmasi Catatan Baru**\n\n"
-            ."Judul: {$title}\n"
-            ."Isi: {$content}\n"
-            ."Tags: {$tags}\n\n"
-            ."{$callPref}, apakah data di atas sudah benar? Balas **\"ya\"** untuk menyimpan atau **\"batal\"** untuk membatalkan.";
+        return $this->personalizeResponse($user, 'note_confirmation', $entities);
     }
 
     /**
@@ -577,14 +848,12 @@ class ChatOrchestrator
      */
     protected function formatDeleteConfirmation(User $user, string $itemType, array $entities): string
     {
-        $profile = $user->profile;
-        $callPref = $profile?->call_preference ?? 'Kak';
-
         $identifier = $entities['title'] ?? $entities['description'] ?? $entities['note_id'] ?? $entities['schedule_id'] ?? $entities['transaction_id'] ?? 'item tersebut';
 
-        return "⚠️ **Konfirmasi Hapus**\n\n"
-            ."{$callPref}, apakah kamu yakin ingin menghapus {$itemType} \"{$identifier}\"?\n\n"
-            .'Balas **"ya"** untuk menghapus atau **"batal"** untuk membatalkan.';
+        return $this->personalizeResponse($user, 'delete_confirmation', [
+            'item_type' => $itemType,
+            'identifier' => $identifier,
+        ]);
     }
 
     /**
@@ -592,46 +861,6 @@ class ChatOrchestrator
      */
     protected function getHelpMessage(User $user, ?string $topic): string
     {
-        $profile = $user->profile;
-        $callPref = $profile?->call_preference ?? 'Kak';
-        $aspriName = $profile?->aspri_name ?? 'ASPRI';
-
-        if ($topic === 'finance' || $topic === 'keuangan') {
-            return "💰 **Bantuan Keuangan**\n\n"
-                ."Contoh perintah yang bisa {$callPref} gunakan:\n"
-                ."• \"Catat pengeluaran 50rb untuk makan siang\"\n"
-                ."• \"Catat pemasukan 5jt dari gaji\"\n"
-                ."• \"Lihat ringkasan keuangan bulan ini\"\n"
-                ."• \"Tampilkan transaksi hari ini\"\n"
-                .'• "Berapa saldo saya?"';
-        }
-
-        if ($topic === 'schedule' || $topic === 'jadwal') {
-            return "📅 **Bantuan Jadwal**\n\n"
-                ."Contoh perintah yang bisa {$callPref} gunakan:\n"
-                ."• \"Buat jadwal meeting besok jam 10 pagi\"\n"
-                ."• \"Ingatkan saya bayar tagihan tanggal 15\"\n"
-                ."• \"Lihat jadwal minggu ini\"\n"
-                .'• "Apa agenda hari ini?"';
-        }
-
-        if ($topic === 'notes' || $topic === 'catatan') {
-            return "📝 **Bantuan Catatan**\n\n"
-                ."Contoh perintah yang bisa {$callPref} gunakan:\n"
-                ."• \"Buat catatan: ide project baru untuk...\"\n"
-                ."• \"Catat resep masakan favorit...\"\n"
-                ."• \"Lihat catatan saya\"\n"
-                .'• "Cari catatan tentang meeting"';
-        }
-
-        return "👋 **Halo {$callPref}! Saya {$aspriName}**\n\n"
-            ."Saya bisa membantu {$callPref} untuk:\n\n"
-            ."💰 **Keuangan**\n"
-            ."   Catat pemasukan/pengeluaran, lihat saldo & ringkasan\n\n"
-            ."📅 **Jadwal**\n"
-            ."   Buat jadwal, lihat agenda, atur pengingat\n\n"
-            ."📝 **Catatan**\n"
-            ."   Simpan catatan, cari catatan lama\n\n"
-            .'Ketik "bantuan keuangan", "bantuan jadwal", atau "bantuan catatan" untuk panduan lebih detail!';
+        return $this->personalizeResponse($user, 'help', ['topic' => $topic]);
     }
 }

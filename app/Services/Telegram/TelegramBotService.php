@@ -6,7 +6,7 @@ use App\Models\ChatMessage;
 use App\Models\ChatThread;
 use App\Models\User;
 use App\Services\Admin\SettingsService;
-use App\Services\Ai\ChatService;
+use App\Services\Ai\ChatOrchestrator;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Telegram\Bot\Api;
@@ -18,7 +18,7 @@ class TelegramBotService
     protected Api $telegram;
 
     public function __construct(
-        protected ChatService $chatService,
+        protected ChatOrchestrator $chatOrchestrator,
         protected SettingsService $settingsService,
     ) {
         // Get bot token from database first, then fallback to config/env
@@ -276,25 +276,25 @@ class TelegramBotService
                 ->toArray();
 
             // Save user message
-            $thread->messages()->create([
+            $userMessage = $thread->messages()->create([
                 'role' => 'user',
                 'content' => $text,
             ]);
 
-            // Get AI response
-            $response = $this->chatService->sendMessage($user, $text, $conversationHistory);
+            // Process message through ChatOrchestrator (with intent parsing and persona)
+            $result = $this->chatOrchestrator->processMessage($user, $text, $thread, $conversationHistory);
 
             // Save assistant response
             $thread->messages()->create([
                 'role' => 'assistant',
-                'content' => $response,
+                'content' => $result['response'],
             ]);
 
             // Update thread timestamp
             $thread->update(['last_message_at' => now()]);
 
             // Send response to user
-            $this->sendMessage($chatId, $response);
+            $this->sendMessage($chatId, $result['response']);
         } catch (\Exception $e) {
             Log::error('Error processing Telegram message with AI', [
                 'error' => $e->getMessage(),

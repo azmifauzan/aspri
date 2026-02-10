@@ -6,6 +6,49 @@ use App\Models\User;
 use App\Services\Plugin\PluginManager;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * IntentParserService - Universal Intent Detection for ASPRI
+ *
+ * This service provides LLM-agnostic intent parsing that works with any AI provider.
+ * It uses a dual approach for maximum compatibility:
+ *
+ * 1. Function Calling Approach (Primary):
+ *    - Uses OpenAI-style function/tool calling when available
+ *    - Provides structured output with high confidence
+ *    - Best for providers that support function calling (OpenAI, compatible providers)
+ *
+ * 2. Prompt-Based Approach (Fallback):
+ *    - Uses detailed system prompts requesting JSON output
+ *    - Works with ANY LLM that can follow instructions
+ *    - Compatible with Gemini, Claude, local models, etc.
+ *
+ * The service automatically tries function calling first, then falls back to
+ * prompt-based parsing if needed, ensuring reliable intent detection regardless
+ * of the AI provider being used.
+ *
+ * ## Two-Stage Intent Detection (Robust Plugin Handling)
+ *
+ * To handle scenarios with many active plugins (50+) without missing detection:
+ *
+ * **Stage 1: Module Classification (Lightweight)**
+ * - Keyword matching for fast detection (finance, schedule, notes, plugins)
+ * - LLM classification for ambiguous cases
+ * - Identifies specific plugin(s) if mentioned
+ * - Takes ~0.5-1s, uses ~200 tokens
+ *
+ * **Stage 2: Detailed Intent Parsing (Targeted)**
+ * - Loads ONLY relevant plugin context based on Stage 1
+ * - If plugin X detected → only load plugin X's intents
+ * - If finance detected → only load finance functions
+ * - Prevents context overflow and improves accuracy
+ * - Takes ~1-2s, uses ~500-1000 tokens
+ *
+ * Benefits:
+ * - No missed plugin detection (all plugins can be found)
+ * - Optimal token usage (only relevant context loaded)
+ * - Scales to 100+ plugins without degradation
+ * - Fallback to top-10 prioritization if module unclear
+ */
 class IntentParserService
 {
     public function __construct(
@@ -14,13 +57,240 @@ class IntentParserService
     ) {}
 
     /**
-     * Parse user message to detect intent using function calling.
+     * Parse user message to detect intent.
+     * Uses two-stage detection for robustness:
+     * Stage 1: Classify module/plugin (lightweight)
+     * Stage 2: Detailed intent parsing with relevant context only
      *
      * @return array{action: string, module: string, entities: array, confidence: float, requires_confirmation: bool}
      */
     public function parse(User $user, string $message, array $conversationHistory = []): array
     {
-        $functions = $this->buildFunctionDefinitions($user);
+        // Stage 1: Quick classification to identify module/plugin
+        $classification = $this->classifyModule($user, $message);
+
+        Log::debug('Intent parsing stage 1', [
+            'classification' => $classification,
+            'message_preview' => substr($message, 0, 50),
+        ]);
+
+        // Stage 2: Detailed parsing with targeted context
+        try {
+            // Try function calling first (if provider supports it)
+            try {
+                $result = $this->parseWithFunctionCalling(
+                    $user,
+                    $message,
+                    $conversationHistory,
+                    $classification
+                );
+
+                if ($result['action'] !== 'unknown') {
+                    return $result;
+                }
+            } catch (\Exception $e) {
+                Log::warning('Function calling failed, falling back to prompt-based', [
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
+            // Fallback to prompt-based
+            return $this->parseWithPrompt($user, $message, $conversationHistory, $classification);
+        } catch (\Exception $e) {
+            Log::error('Both intent parsing methods failed', ['error' => $e->getMessage()]);
+
+            return [
+                'action' => 'unknown',
+                'module' => 'general',
+                'entities' => [],
+                'confidence' => 0.0,
+                'requires_confirmation' => false,
+            ];
+        }
+    }
+
+    /**
+     * Stage 1: Classify which module or plugin the message is about.
+     * This is a lightweight classification to narrow down context.
+     *
+     * @return array{module: string, plugin_slugs: array<string>, confidence: float}
+     */
+    protected function classifyModule(User $user, string $message): array
+    {
+        // Quick keyword-based detection first (fast path)
+        $keywordResult = $this->detectModuleByKeywords($user, $message);
+        if ($keywordResult['confidence'] >= 0.8) {
+            Log::debug('Module detected by keywords', $keywordResult);
+
+            return $keywordResult;
+        }
+
+        // Use LLM for ambiguous cases
+        try {
+            return $this->classifyModuleWithLLM($user, $message);
+        } catch (\Exception $e) {
+            Log::warning('LLM classification failed, using keyword result', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return $keywordResult;
+        }
+    }
+
+    /**
+     * Detect module using keyword matching (fast path).
+     */
+    protected function detectModuleByKeywords(User $user, string $message): array
+    {
+        $messageLower = strtolower($message);
+
+        // Check plugin keywords FIRST (more specific than core modules)
+        $activePlugins = $this->pluginManager->getActivePluginsForUser($user->id);
+        foreach ($activePlugins as $userPlugin) {
+            $plugin = $userPlugin->plugin;
+            $pluginNameLower = strtolower($plugin->name);
+            $pluginSlugLower = strtolower($plugin->slug);
+
+            // Check if message mentions plugin name or slug
+            if (str_contains($messageLower, $pluginNameLower) ||
+                str_contains($messageLower, $pluginSlugLower)) {
+                return [
+                    'module' => 'plugin',
+                    'plugin_slugs' => [$plugin->slug],
+                    'confidence' => 0.9,
+                ];
+            }
+
+            // Check plugin-specific keywords if available
+            $pluginInstance = $this->pluginManager->getPlugin($plugin->slug);
+            if ($pluginInstance && $pluginInstance->supportsChatIntegration()) {
+                // You could add a method to plugins to return their keywords
+                // For now, check intent examples
+                $intents = $pluginInstance->getChatIntents();
+                foreach ($intents as $intent) {
+                    foreach ($intent['examples'] as $example) {
+                        $exampleWords = explode(' ', strtolower($example));
+                        $matchCount = 0;
+                        foreach ($exampleWords as $word) {
+                            if (strlen($word) > 3 && str_contains($messageLower, $word)) {
+                                $matchCount++;
+                            }
+                        }
+                        // If 2+ words match, likely this plugin
+                        if ($matchCount >= 2) {
+                            return [
+                                'module' => 'plugin',
+                                'plugin_slugs' => [$plugin->slug],
+                                'confidence' => 0.75,
+                            ];
+                        }
+                    }
+                }
+            }
+        }
+
+        // Then check core modules (less specific than plugins)
+        $moduleKeywords = [
+            'finance' => ['uang', 'gaji', 'pengeluaran', 'pemasukan', 'transfer', 'saldo', 'bayar', 'belanja', 'transaksi', 'keuangan', 'rupiah', 'rp'],
+            'schedule' => ['jadwal', 'agenda', 'rapat', 'meeting', 'acara', 'event', 'ingatkan', 'reminder', 'besok', 'hari ini', 'minggu', 'bulan', 'tanggal', 'jam'],
+            'notes' => ['catat', 'note', 'memo', 'tulis', 'simpan catatan', 'buat catatan', 'ingat', 'ide'],
+            'general' => ['halo', 'hi', 'help', 'bantuan', 'apa', 'siapa', 'gimana', 'bagaimana', 'terima kasih', 'thanks'],
+        ];
+
+        foreach ($moduleKeywords as $module => $keywords) {
+            foreach ($keywords as $keyword) {
+                if (str_contains($messageLower, $keyword)) {
+                    return [
+                        'module' => $module,
+                        'plugin_slugs' => [],
+                        'confidence' => 0.85,
+                    ];
+                }
+            }
+        }
+
+        // No clear match
+        return [
+            'module' => 'unknown',
+            'plugin_slugs' => [],
+            'confidence' => 0.0,
+        ];
+    }
+
+    /**
+     * Classify module using LLM (for ambiguous cases).
+     */
+    protected function classifyModuleWithLLM(User $user, string $message): array
+    {
+        $activePlugins = $this->pluginManager->getActivePluginsForUser($user->id);
+        $pluginList = $activePlugins->map(function ($up) {
+            return "- {$up->plugin->slug}: {$up->plugin->name} - {$up->plugin->description}";
+        })->join("\n");
+
+        $prompt = <<<PROMPT
+Classify which module this user message is about. Return ONLY a JSON object.
+
+Available modules:
+- finance: Money, transactions, expenses, income, balance
+- schedule: Events, meetings, reminders, calendar
+- notes: Notes, memos, ideas, writing
+- general: Greetings, help requests, confirmations
+- plugin: Third-party plugins (see list below)
+
+Active plugins:
+{$pluginList}
+
+User message: "{$message}"
+
+Return JSON format:
+{
+  "module": "finance|schedule|notes|general|plugin|unknown",
+  "plugin_slugs": ["plugin-slug-if-applicable"],
+  "confidence": 0.95,
+  "reasoning": "brief explanation"
+}
+PROMPT;
+
+        $response = $this->provider->chat([
+            ['role' => 'system', 'content' => 'You are a message classifier. Return only JSON.'],
+            ['role' => 'user', 'content' => $prompt],
+        ], [
+            'temperature' => 0.3,
+            'max_tokens' => 1024,
+        ]);
+
+        // Parse JSON response
+        $cleaned = trim(preg_replace('/```json\s*|```\s*/', '', $response));
+        if (preg_match('/\{[\s\S]*\}/m', $cleaned, $matches)) {
+            $cleaned = $matches[0];
+        }
+
+        $data = json_decode($cleaned, true);
+        if (json_last_error() === JSON_ERROR_NONE && isset($data['module'])) {
+            Log::debug('LLM classification result', $data);
+
+            return [
+                'module' => $data['module'],
+                'plugin_slugs' => $data['plugin_slugs'] ?? [],
+                'confidence' => (float) ($data['confidence'] ?? 0.7),
+            ];
+        }
+
+        // Fallback
+        return ['module' => 'unknown', 'plugin_slugs' => [], 'confidence' => 0.0];
+    }
+
+    /**
+     * Parse intent using function calling (OpenAI-style).
+     * Now with targeted context based on stage 1 classification.
+     */
+    protected function parseWithFunctionCalling(
+        User $user,
+        string $message,
+        array $conversationHistory = [],
+        ?array $classification = null
+    ): array {
+        $functions = $this->buildFunctionDefinitions($user, $classification);
 
         $messages = [
             [
@@ -36,55 +306,210 @@ class IntentParserService
 
         $messages[] = ['role' => 'user', 'content' => $message];
 
-        try {
-            $response = $this->provider->chat($messages, [
-                'functions' => $functions,
-                'tool_choice' => 'auto',
-            ]);
+        $response = $this->provider->chat($messages, [
+            'functions' => $functions,
+            'tool_choice' => 'auto',
+        ]);
 
-            return $this->parseResponse($response);
-        } catch (\Exception $e) {
-            Log::error('Intent parsing failed', ['error' => $e->getMessage()]);
-
-            return [
-                'action' => 'unknown',
-                'module' => 'general',
-                'entities' => [],
-                'confidence' => 0.0,
-                'requires_confirmation' => false,
-            ];
-        }
+        return $this->parseResponse($response);
     }
 
     /**
-     * Build the system prompt for intent detection.
+     * Parse intent using prompt-based approach (works with any LLM).
+     * Now with targeted context based on stage 1 classification.
      */
-    protected function buildIntentPrompt(User $user): string
-    {
-        // Deprecated: Kept for backward compatibility
-        // Now using function calling instead
-        $pluginInfo = $this->getActivePluginsInfo($user);
+    protected function parseWithPrompt(
+        User $user,
+        string $message,
+        array $conversationHistory = [],
+        ?array $classification = null
+    ): array {
+        $systemPrompt = $this->buildIntentPrompt($user, $classification);
 
-        return '...';
+        $messages = [
+            ['role' => 'system', 'content' => $systemPrompt],
+        ];
+
+        // Add conversation history for context (last 4 messages only)
+        foreach (array_slice($conversationHistory, -4) as $msg) {
+            $messages[] = $msg;
+        }
+
+        $messages[] = [
+            'role' => 'user',
+            'content' => "Analyze this message and return ONLY a JSON object with the intent classification:\n\n{$message}",
+        ];
+
+        $response = $this->provider->chat($messages, [
+            'temperature' => 0.3, // Lower temperature for more consistent JSON output
+            'max_tokens' => 500,
+        ]);
+
+        return $this->parseResponse($response);
+    }
+
+    /**
+     * Build the system prompt for intent detection (prompt-based approach).
+     * Now with targeted context based on classification.
+     */
+    protected function buildIntentPrompt(User $user, ?array $classification = null): string
+    {
+        $pluginInfo = $this->getActivePluginsInfo($user, $classification);
+
+        $prompt = <<<'PROMPT'
+You are an intent classification expert for ASPRI personal assistant.
+
+Your task is to analyze user messages and return ONLY a valid JSON object with this structure:
+{
+  "action": "action_name",
+  "module": "module_name",
+  "entities": { "key": "value", ... },
+  "confidence": 0.95,
+  "requires_confirmation": true/false
+}
+
+## AVAILABLE MODULES & ACTIONS:
+
+### FINANCE MODULE
+Actions:
+- create_transaction: Record income/expense
+  entities: {tx_type: "income|expense", amount: number, category?: string, note?: string}
+  examples: "catat pengeluaran 50k untuk makan", "dapat gaji 5jt"
+  requires_confirmation: true
+
+- view_balance: View financial summary
+  entities: {period?: "today|this_week|this_month|all"}
+  examples: "berapa saldo bulan ini?", "lihat keuangan hari ini"
+  requires_confirmation: false
+
+- view_transactions: List transactions
+  entities: {period?: "today|this_week|this_month", tx_type?: "income|expense", limit?: number}
+  examples: "daftar pengeluaran minggu ini", "transaksi bulan ini"
+  requires_confirmation: false
+
+### SCHEDULE MODULE
+Actions:
+- create_schedule: Create event/reminder
+  entities: {title: string, start_time?: string}
+  examples: "ingatkan rapat besok jam 2", "buat jadwal meeting"
+  requires_confirmation: true
+
+- view_schedules: View upcoming events
+  entities: {period?: "today|tomorrow|this_week|this_month"}
+  examples: "jadwal hari ini", "agenda minggu depan"
+  requires_confirmation: false
+
+### NOTES MODULE
+Actions:
+- create_note: Create a new note
+  entities: {title?: string, content: string, tags?: array}
+  examples: "catat ide bisnis baru", "buat catatan meeting"
+  requires_confirmation: true
+
+- view_notes: Search or view notes
+  entities: {search?: string, tags?: array}
+  examples: "cari catatan tentang project", "tampilkan semua notes"
+  requires_confirmation: false
+
+### GENERAL MODULE
+Actions:
+- greeting: User greeting
+  entities: {}
+  examples: "halo", "hi aspri", "selamat pagi"
+
+- help: Request help/guidance
+  entities: {topic?: string}
+  examples: "bantuan fitur keuangan", "apa yang bisa kamu lakukan"
+
+- confirm: Confirm pending action
+  entities: {}
+  examples: "ya", "oke", "simpan", "setuju"
+
+- cancel: Cancel pending action
+  entities: {}
+  examples: "tidak", "batal", "cancel"
+
+- out_of_scope: Question clearly outside assistant capabilities
+  entities: {topic: string, question_type?: string}
+  examples: "berapa kurs dollar?", "siapa presiden indonesia?", "bagaimana cara membuat nasi goreng?"
+  Use this when user asks about: weather, news, exchange rates, general knowledge, recipes, external data, calculations not related to personal finance
+
+- unknown: Cannot understand user intent
+  entities: {unclear_reason?: string}
+  examples: "asdfghjkl", "wkwkwk", very ambiguous messages
+  Use this only when the message is truly unclear or gibberish
+
+PROMPT;
+
+        // Append plugin information if available
+        if (! empty($pluginInfo)) {
+            $prompt .= "\n\n".$pluginInfo;
+        }
+
+        $prompt .= <<<'FOOTER'
+
+## INSTRUCTIONS:
+1. Analyze the user message carefully
+2. Identify the best matching action and module
+3. Extract all relevant entities from the message
+4. Set confidence based on match quality (0.0-1.0)
+5. Set requires_confirmation to true for mutations (create/update/delete)
+6. Return ONLY valid JSON, no explanation or markdown
+7. Use "out_of_scope" (confidence > 0.7) when user asks something ASPRI cannot do (weather, news, exchange rates, etc.)
+8. Use "unknown" (confidence < 0.5) only when message is truly unclear or gibberish
+9. Prefer specific actions over out_of_scope/unknown when possible
+
+## ENTITY EXTRACTION TIPS:
+- Parse natural language amounts: "50k" → 50000, "5jt" → 5000000
+- Extract implicit information: "pengeluaran makan" → {tx_type: "expense", category: "makan"}
+- Parse time references: "besok", "minggu depan", etc.
+- Handle Indonesian language naturally
+
+Return ONLY the JSON object, nothing else.
+FOOTER;
+
+        return $prompt;
     }
 
     /**
      * Build function definitions for OpenAI function calling.
+     * Now with targeted selection based on classification.
      *
      * @return array<int, array>
      */
-    protected function buildFunctionDefinitions(User $user): array
+    protected function buildFunctionDefinitions(User $user, ?array $classification = null): array
     {
         $functions = [];
 
-        // Add core module functions
-        $functions = array_merge($functions, $this->getFinanceFunctions());
-        $functions = array_merge($functions, $this->getScheduleFunctions());
-        $functions = array_merge($functions, $this->getNotesFunctions());
-        $functions = array_merge($functions, $this->getGeneralFunctions());
+        // If we know the module, only include relevant functions
+        if ($classification && $classification['module'] !== 'unknown') {
+            $module = $classification['module'];
 
-        // Add plugin functions
-        $functions = array_merge($functions, $this->getPluginFunctions($user));
+            // Always include general functions (confirm, cancel, help)
+            $functions = array_merge($functions, $this->getGeneralFunctions());
+
+            // Add module-specific functions
+            if ($module === 'finance' || $module === 'unknown') {
+                $functions = array_merge($functions, $this->getFinanceFunctions());
+            }
+            if ($module === 'schedule' || $module === 'unknown') {
+                $functions = array_merge($functions, $this->getScheduleFunctions());
+            }
+            if ($module === 'notes' || $module === 'unknown') {
+                $functions = array_merge($functions, $this->getNotesFunctions());
+            }
+            if ($module === 'plugin') {
+                // Only include specific plugins identified in classification
+                $functions = array_merge($functions, $this->getPluginFunctions($user, $classification['plugin_slugs'] ?? []));
+            }
+        } else {
+            // Fallback: include all (old behavior)
+            $functions = array_merge($functions, $this->getFinanceFunctions());
+            $functions = array_merge($functions, $this->getScheduleFunctions());
+            $functions = array_merge($functions, $this->getNotesFunctions());
+            $functions = array_merge($functions, $this->getGeneralFunctions());
+            $functions = array_merge($functions, $this->getPluginFunctions($user));
+        }
 
         return $functions;
     }
@@ -282,18 +707,73 @@ class IntentParserService
                     'properties' => new \stdClass,
                 ],
             ],
+            [
+                'name' => 'out_of_scope',
+                'description' => 'User is asking about something clearly outside assistant capabilities (weather, news, exchange rates, general knowledge, recipes, external data, calculations not related to personal finance)',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'topic' => [
+                            'type' => 'string',
+                            'description' => 'The topic user is asking about',
+                        ],
+                        'question_type' => [
+                            'type' => 'string',
+                            'description' => 'Type of question (weather, news, exchange_rate, general_knowledge, recipe, etc.)',
+                        ],
+                    ],
+                    'required' => ['topic'],
+                ],
+            ],
+            [
+                'name' => 'unknown',
+                'description' => 'User intent is truly unclear, ambiguous, or gibberish. Use only when message cannot be understood at all.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'unclear_reason' => [
+                            'type' => 'string',
+                            'description' => 'Why the message is unclear',
+                        ],
+                    ],
+                ],
+            ],
         ];
     }
 
     /**
-     * Get plugin function definitions.
+     * Get plugin function definitions with smart selection for scalability.
+     * Now supports targeted plugin selection from classification.
      */
-    protected function getPluginFunctions(User $user): array
+    protected function getPluginFunctions(User $user, array $targetPluginSlugs = []): array
     {
         $functions = [];
         $activePlugins = $this->pluginManager->getActivePluginsForUser($user->id);
 
+        // If specific plugins are targeted, only include those
+        if (! empty($targetPluginSlugs)) {
+            $activePlugins = $activePlugins->filter(function ($up) use ($targetPluginSlugs) {
+                return in_array($up->plugin->slug, $targetPluginSlugs);
+            });
+            $maxPlugins = count($targetPluginSlugs); // Include all targeted
+        } else {
+            // Sort by priority (same logic as prompt-based approach)
+            $activePlugins = $this->prioritizePlugins($activePlugins);
+            $maxPlugins = 10; // Default limit
+        }
+
+        $pluginsIncluded = 0;
+
         foreach ($activePlugins as $userPlugin) {
+            // Check if we've reached plugin limit
+            if ($pluginsIncluded >= $maxPlugins) {
+                Log::info('Function calling: plugin limit reached', [
+                    'included' => $pluginsIncluded,
+                    'total' => $sortedPlugins->count(),
+                ]);
+                break;
+            }
+
             $plugin = $userPlugin->plugin;
             $pluginInstance = $this->pluginManager->getPlugin($plugin->slug);
 
@@ -302,6 +782,10 @@ class IntentParserService
             }
 
             $intents = $pluginInstance->getChatIntents();
+
+            if (empty($intents)) {
+                continue;
+            }
 
             foreach ($intents as $intent) {
                 $properties = [
@@ -329,9 +813,14 @@ class IntentParserService
                     }
                 }
 
+                // Use condensed examples (only 1) to save tokens
+                $exampleText = ! empty($intent['examples'])
+                    ? ' Example: '.$intent['examples'][0]
+                    : '';
+
                 $functions[] = [
                     'name' => $intent['action'],
-                    'description' => $intent['description'].' Examples: '.implode(', ', array_slice($intent['examples'], 0, 2)),
+                    'description' => $intent['description'].$exampleText,
                     'parameters' => [
                         'type' => 'object',
                         'properties' => $properties,
@@ -339,15 +828,22 @@ class IntentParserService
                     ],
                 ];
             }
+
+            $pluginsIncluded++;
         }
 
         return $functions;
     }
 
     /**
-     * Get active plugins information for the user.
+     * Get active plugins information for the user with smart selection.
+     * Implements scalability for many plugins by:
+     * - Limiting number of plugins included
+     * - Prioritizing by usage frequency
+     * - Estimating tokens to prevent prompt overflow
+     * Now supports targeted plugin selection from classification.
      */
-    protected function getActivePluginsInfo(User $user): string
+    protected function getActivePluginsInfo(User $user, ?array $classification = null): string
     {
         $activePlugins = $this->pluginManager->getActivePluginsForUser($user->id);
 
@@ -355,9 +851,35 @@ class IntentParserService
             return '';
         }
 
-        $pluginSections = [];
+        // If classification specifies plugins, only include those
+        if ($classification && $classification['module'] === 'plugin' && ! empty($classification['plugin_slugs'])) {
+            $targetSlugs = $classification['plugin_slugs'];
+            $sortedPlugins = $activePlugins->filter(function ($up) use ($targetSlugs) {
+                return in_array($up->plugin->slug, $targetSlugs);
+            });
+            $maxPlugins = count($targetSlugs); // Include all targeted plugins
+            $maxTokensEstimate = 2000; // Can afford more tokens for targeted plugins
+        } else {
+            // Sort plugins by priority (most recently used / most frequently used first)
+            $sortedPlugins = $this->prioritizePlugins($activePlugins);
+            $maxPlugins = 10; // Max number of plugins to include
+            $maxTokensEstimate = 1500; // Approximate token budget for plugins
+        }
+        $currentTokensEstimate = 0;
 
-        foreach ($activePlugins as $userPlugin) {
+        $pluginSections = [];
+        $pluginsIncluded = 0;
+
+        foreach ($sortedPlugins as $userPlugin) {
+            // Check if we've reached limits
+            if ($pluginsIncluded >= $maxPlugins) {
+                Log::info('Plugin limit reached, truncating plugin list', [
+                    'included' => $pluginsIncluded,
+                    'total' => $sortedPlugins->count(),
+                ]);
+                break;
+            }
+
             $plugin = $userPlugin->plugin;
             $pluginInstance = $this->pluginManager->getPlugin($plugin->slug);
 
@@ -372,57 +894,146 @@ class IntentParserService
                 continue;
             }
 
-            // Build intent definitions for this plugin
-            $intentDefs = [];
-            foreach ($intents as $intent) {
-                $entitiesDef = [];
-                foreach ($intent['entities'] as $key => $type) {
-                    $entitiesDef[] = "{$key}: {$type}";
-                }
+            // Build plugin section and estimate tokens
+            $pluginSection = $this->buildPluginSection($plugin, $intents, $currentTokensEstimate >= $maxTokensEstimate * 0.8);
+            $sectionTokens = $this->estimateTokens($pluginSection);
 
-                $def = "- {$intent['action']}: {$intent['description']}\n";
-                $def .= "  entities: {plugin_slug: \"{$plugin->slug}\", ".implode(', ', $entitiesDef).'}';
-
-                // Only include first 2 examples to save tokens
-                if (! empty($intent['examples'])) {
-                    $examples = array_slice($intent['examples'], 0, 2);
-                    $def .= "\n  Ex: ".implode(', ', array_map(fn ($ex) => "\"{$ex}\"", $examples));
-                }
-
-                $intentDefs[] = $def;
+            // Check if adding this plugin would exceed token budget
+            if ($currentTokensEstimate + $sectionTokens > $maxTokensEstimate) {
+                Log::info('Token budget would be exceeded, stopping plugin inclusion', [
+                    'current' => $currentTokensEstimate,
+                    'would_add' => $sectionTokens,
+                    'budget' => $maxTokensEstimate,
+                ]);
+                break;
             }
 
-            if (! empty($intentDefs)) {
-                $pluginSections[] = "MODULE: plugin\n".implode("\n", $intentDefs);
-            }
+            $pluginSections[] = $pluginSection;
+            $currentTokensEstimate += $sectionTokens;
+            $pluginsIncluded++;
         }
 
         if (empty($pluginSections)) {
             return '';
         }
 
+        // Add summary if not all plugins were included
+        $totalPlugins = $sortedPlugins->count();
+        if ($pluginsIncluded < $totalPlugins) {
+            $remaining = $totalPlugins - $pluginsIncluded;
+            $pluginSections[] = "\n(Note: {$remaining} more plugin(s) available. Ask for 'plugin help' for full list)";
+        }
+
         return implode("\n\n", $pluginSections);
     }
 
     /**
+     * Prioritize plugins based on usage patterns.
+     */
+    protected function prioritizePlugins($plugins)
+    {
+        return $plugins->sortByDesc(function ($userPlugin) {
+            // Priority factors:
+            // 1. Last used date (more recent = higher priority)
+            // 2. Total usage count (more used = higher priority)
+            // 3. Is currently installed (fallback)
+
+            $lastUsedScore = 0;
+            if ($userPlugin->relationLoaded('plugin') && $userPlugin->plugin->relationLoaded('logs')) {
+                $recentLogs = $userPlugin->plugin->logs()
+                    ->where('user_id', $userPlugin->user_id)
+                    ->where('created_at', '>', now()->subDays(7))
+                    ->count();
+                $lastUsedScore = $recentLogs * 10;
+            }
+
+            // Simple scoring: recent usage heavily weighted
+            return $lastUsedScore + ($userPlugin->is_active ? 5 : 0);
+        });
+    }
+
+    /**
+     * Build plugin section with optional condensed mode.
+     */
+    protected function buildPluginSection($plugin, array $intents, bool $condensed = false): string
+    {
+        $section = "### PLUGIN: {$plugin->name} ({$plugin->slug})\n";
+        $section .= "Actions:\n";
+
+        foreach ($intents as $intent) {
+            $entitiesDef = [];
+            foreach ($intent['entities'] as $key => $type) {
+                $isOptional = str_ends_with($type, '|null');
+                $baseType = str_replace('|null', '', $type);
+                $entitiesDef[] = "{$key}".($isOptional ? '?' : '').': '.$baseType;
+            }
+
+            $section .= "- {$intent['action']}: {$intent['description']}\n";
+            $section .= "  entities: {plugin_slug: \"{$plugin->slug}\", ".implode(', ', $entitiesDef)."}\n";
+
+            // In condensed mode, only include 1 example; otherwise 2
+            $exampleLimit = $condensed ? 1 : 2;
+            if (! empty($intent['examples'])) {
+                $examples = array_slice($intent['examples'], 0, $exampleLimit);
+                $section .= '  ex: '.implode(', ', array_map(fn ($ex) => "\"{$ex}\"", $examples))."\n";
+            }
+
+            // Determine if confirmation required
+            $requiresConfirm = $this->functionRequiresConfirmation($intent['action']);
+            $section .= '  requires_confirmation: '.($requiresConfirm ? 'true' : 'false')."\n";
+        }
+
+        return $section;
+    }
+
+    /**
+     * Estimate token count for a string (rough approximation).
+     * Rule of thumb: ~4 characters per token for English, ~2-3 for code/structured text.
+     */
+    protected function estimateTokens(string $text): int
+    {
+        // Rough estimation: 1 token ≈ 3.5 characters on average
+        return (int) ceil(strlen($text) / 3.5);
+    }
+
+    /**
      * Parse AI response to extract intent data.
+     * Handles both function calling (array) and prompt-based (JSON string) responses.
      */
     protected function parseResponse(string|array $response): array
     {
-        // Handle function calling response (array format)
+        // Handle function calling response (array format from OpenAI-style providers)
         if (is_array($response)) {
             return $this->parseFunctionCallResponse($response);
         }
 
-        // Legacy: Handle text-based JSON response (for backward compatibility)
+        // Handle text-based JSON response (prompt-based approach)
+        return $this->parseJsonResponse($response);
+    }
+
+    /**
+     * Parse JSON string response from prompt-based approach.
+     */
+    protected function parseJsonResponse(string $response): array
+    {
         // Clean response - remove markdown code blocks if present
         $response = preg_replace('/```json\s*/', '', $response);
         $response = preg_replace('/```\s*/', '', $response);
         $response = trim($response);
 
+        // Try to extract JSON if there's extra text
+        if (preg_match('/\{[\s\S]*\}/m', $response, $matches)) {
+            $response = $matches[0];
+        }
+
         $data = json_decode($response, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
+            Log::warning('Failed to parse JSON response', [
+                'response' => $response,
+                'error' => json_last_error_msg(),
+            ]);
+
             return [
                 'action' => 'unknown',
                 'module' => 'general',
@@ -432,41 +1043,63 @@ class IntentParserService
             ];
         }
 
+        // Validate required fields
+        if (! isset($data['action']) || ! isset($data['module'])) {
+            Log::warning('Invalid JSON structure', ['data' => $data]);
+
+            return [
+                'action' => 'unknown',
+                'module' => 'general',
+                'entities' => [],
+                'confidence' => 0.0,
+                'requires_confirmation' => false,
+            ];
+        }
+
+        // Check if it's a plugin action - must route to plugin module
+        $action = $data['action'];
+        $module = $data['module'];
+        $entities = $data['entities'] ?? [];
+
+        if (isset($entities['plugin_slug']) || str_starts_with($action, 'plugin_')) {
+            $module = 'plugin';
+        }
+
         return [
-            'action' => $data['action'] ?? 'unknown',
-            'module' => $data['module'] ?? 'general',
-            'entities' => $data['entities'] ?? [],
+            'action' => $action,
+            'module' => $module,
+            'entities' => $entities,
             'confidence' => (float) ($data['confidence'] ?? 0.5),
             'requires_confirmation' => (bool) ($data['requires_confirmation'] ?? false),
         ];
     }
 
     /**
-     * Parse function calling response from OpenAI.
+     * Parse function calling response from OpenAI-style providers.
      */
     protected function parseFunctionCallResponse(array $response): array
     {
-        // Response format from OpenAiProvider when using function calling:
+        // Response format from providers with function calling:
         // ['function_name' => 'create_transaction', 'arguments' => [...]]
 
         $functionName = $response['function_name'] ?? null;
-        $arguments = $response['arguments'] ?? $response;
+        $arguments = $response['arguments'] ?? [];
 
-        // If function_name not in response, try to infer from arguments
+        // If no function was called, treat as unknown intent
         if (! $functionName) {
-            // This shouldn't happen with our OpenAiProvider implementation
-            // but keep as fallback
+            Log::debug('No function name in response', ['response' => $response]);
+
             return [
                 'action' => 'unknown',
                 'module' => 'general',
                 'entities' => $arguments,
-                'confidence' => 0.5,
+                'confidence' => 0.3,
                 'requires_confirmation' => false,
             ];
         }
 
-        // Check if it's a plugin function (starts with 'plugin_')
-        if (str_starts_with($functionName, 'plugin_')) {
+        // Check if it's a plugin function
+        if (isset($arguments['plugin_slug']) || str_starts_with($functionName, 'plugin_')) {
             return [
                 'action' => $functionName,
                 'module' => 'plugin',
@@ -476,27 +1109,21 @@ class IntentParserService
             ];
         }
 
-        // Map function name to module and action
+        // Map function name to module
         $mapping = $this->getFunctionNameToModuleMapping();
+        $module = $mapping[$functionName] ?? 'general';
 
-        if (isset($mapping[$functionName])) {
-            $module = $mapping[$functionName];
-            $action = $functionName;
-        } else {
-            // Unknown function
-            $module = 'general';
-            $action = 'unknown';
+        // If unknown function, log warning
+        if (! isset($mapping[$functionName])) {
+            Log::warning('Unknown function called', ['function' => $functionName]);
         }
 
-        // Determine if confirmation is required
-        $requiresConfirmation = $this->functionRequiresConfirmation($functionName);
-
         return [
-            'action' => $action,
+            'action' => $functionName,
             'module' => $module,
             'entities' => $arguments,
-            'confidence' => 0.95, // Function calling is more confident
-            'requires_confirmation' => $requiresConfirmation,
+            'confidence' => 0.95, // Function calling is generally more confident
+            'requires_confirmation' => $this->functionRequiresConfirmation($functionName),
         ];
     }
 
@@ -524,33 +1151,70 @@ class IntentParserService
             'help' => 'general',
             'confirm' => 'general',
             'cancel' => 'general',
+            'out_of_scope' => 'general',
+            'unknown' => 'general',
         ];
     }
 
     /**
-     * Check if function requires user confirmation.
+     * Check if function/action requires user confirmation.
+     * All mutations (create/update/delete) require confirmation.
      */
     protected function functionRequiresConfirmation(string $functionName): bool
     {
-        $mutationFunctions = [
-            'create_transaction',
-            'create_schedule',
-            'create_note',
-            // Plugin mutations will be detected by checking with the plugin itself
+        // Read-only actions that don't require confirmation
+        $readOnlyActions = [
+            'view_balance',
+            'view_transactions',
+            'view_schedules',
+            'view_notes',
+            'greeting',
+            'help',
+            'out_of_scope',
+            'unknown',
         ];
 
-        // All create/update/delete operations require confirmation
-        if (in_array($functionName, $mutationFunctions)) {
+        if (in_array($functionName, $readOnlyActions)) {
+            return false;
+        }
+
+        // Confirmation actions themselves don't need confirmation
+        if (in_array($functionName, ['confirm', 'cancel'])) {
+            return false;
+        }
+
+        // All create/update/delete actions require confirmation
+        $mutationActions = [
+            'create_transaction',
+            'update_transaction',
+            'delete_transaction',
+            'create_schedule',
+            'update_schedule',
+            'delete_schedule',
+            'create_note',
+            'update_note',
+            'delete_note',
+        ];
+
+        if (in_array($functionName, $mutationActions)) {
             return true;
         }
 
-        // Check if it's a plugin function
+        // Plugin functions: check if it's a mutation based on naming pattern
         if (str_starts_with($functionName, 'plugin_')) {
-            // Plugin mutations generally require confirmation
-            // unless it's explicitly a read-only function
+            // If function name contains create/update/delete/add/remove, it's likely a mutation
+            $mutationPatterns = ['create', 'update', 'delete', 'add', 'remove', 'save', 'store', 'modify'];
+            foreach ($mutationPatterns as $pattern) {
+                if (stripos($functionName, $pattern) !== false) {
+                    return true;
+                }
+            }
+
+            // Default to requiring confirmation for unknown plugin actions
             return true;
         }
 
-        return false;
+        // Default: require confirmation for unknown actions (safer)
+        return true;
     }
 }

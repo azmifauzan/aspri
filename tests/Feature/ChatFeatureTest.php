@@ -302,4 +302,74 @@ class ChatFeatureTest extends TestCase
 
         $response->assertStatus(200);
     }
+
+    public function test_aspri_responds_when_question_is_out_of_scope(): void
+    {
+        $user = User::factory()->create();
+        $user->profile()->create([
+            'call_preference' => 'Kak',
+            'aspri_name' => 'ASPRI',
+            'aspri_persona' => 'asisten yang ramah',
+        ]);
+
+        $thread = ChatThread::factory()->create(['user_id' => $user->id]);
+
+        // Mock the ChatOrchestrator to return out_of_scope response with LLM answer
+        $this->mock(\App\Services\Ai\ChatOrchestrator::class, function ($mock) {
+            $mock->shouldReceive('processMessage')
+                ->once()
+                ->andReturn([
+                    'response' => 'Cuaca hari ini cerah, Kak! Tapi ingat, saya lebih jago bantu kamu catat keuangan atau atur jadwal lho~',
+                    'action_taken' => false,
+                    'pending_action' => null,
+                ]);
+        });
+
+        $response = $this->actingAs($user)->postJson('/chat/message', [
+            'message' => 'Bagaimana cuaca hari ini?',
+            'thread_id' => $thread->id,
+        ]);
+
+        $response->assertStatus(200);
+        // Verify that ASPRI actually tries to answer instead of refusing
+        $content = $response->json('assistantMessage.content');
+        $this->assertNotEmpty($content);
+        // Response should be personalized (contains the answer or helpful response)
+        $this->assertTrue(
+            str_contains(strtolower($content), 'cuaca') ||
+            str_contains(strtolower($content), 'kak') ||
+            str_contains(strtolower($content), 'bantu')
+        );
+    }
+
+    public function test_aspri_responds_when_message_is_unclear(): void
+    {
+        $user = User::factory()->create();
+        $user->profile()->create([
+            'call_preference' => 'Kak',
+            'aspri_name' => 'ASPRI',
+            'aspri_persona' => 'asisten yang ramah',
+        ]);
+
+        $thread = ChatThread::factory()->create(['user_id' => $user->id]);
+
+        // Mock the ChatOrchestrator to return unknown response
+        $this->mock(\App\Services\Ai\ChatOrchestrator::class, function ($mock) {
+            $mock->shouldReceive('processMessage')
+                ->once()
+                ->andReturn([
+                    'response' => 'Maaf, saya tidak memahami maksud pesanmu. Bisa dijelaskan lebih detail?',
+                    'action_taken' => false,
+                    'pending_action' => null,
+                ]);
+        });
+
+        $response = $this->actingAs($user)->postJson('/chat/message', [
+            'message' => 'wkwkwk asdfgh',
+            'thread_id' => $thread->id,
+        ]);
+
+        $response->assertStatus(200);
+        $this->assertStringContainsString('tidak memahami', $response->json('assistantMessage.content'));
+    }
 }

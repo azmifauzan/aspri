@@ -7,6 +7,8 @@ use App\Services\Ai\ActionExecutorService;
 use App\Services\Ai\AiProviderInterface;
 use App\Services\Ai\ChatOrchestrator;
 use App\Services\Ai\ChatService;
+use App\Services\Ai\ClaudeProvider;
+use App\Services\Ai\GeminiProvider;
 use App\Services\Ai\IntentParserService;
 use App\Services\Ai\OpenAiProvider;
 use App\Services\Plugin\PluginConfigurationService;
@@ -35,10 +37,24 @@ class AppServiceProvider extends ServiceProvider
                 $settingsService = $app->make(SettingsService::class);
                 $config = $settingsService->getActiveAiConfig();
 
-                return new OpenAiProvider(
-                    $config['api_key'],
-                    $config['model'],
-                );
+                return match ($config['provider']) {
+                    'gemini' => new GeminiProvider(
+                        $config['api_key'],
+                        $config['model'],
+                    ),
+                    'anthropic' => new ClaudeProvider(
+                        $config['api_key'],
+                        $config['model'],
+                    ),
+                    'openai' => new OpenAiProvider(
+                        $config['api_key'],
+                        $config['model'],
+                    ),
+                    default => new OpenAiProvider(
+                        $config['api_key'],
+                        $config['model'],
+                    ),
+                };
             }
 
             // Fallback to env config during migrations or if table doesn't exist

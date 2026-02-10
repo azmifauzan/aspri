@@ -25,6 +25,7 @@ const isLoading = ref(false);
 const currentThreadId = ref<string | null>(props.currentThread?.id ?? null);
 const threads = ref<ChatThread[]>([...props.threads]);
 const chatInputRef = ref<InstanceType<typeof ChatInput> | null>(null);
+const chatMessageListRef = ref<InstanceType<typeof ChatMessageList> | null>(null);
 
 // Watch for prop changes (when navigating between threads)
 watch(
@@ -59,16 +60,33 @@ const sendMessage = async (content: string) => {
         createdAt: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
     };
     messages.value.push(tempUserMessage);
+    
+    // Scroll after adding user message
+    await nextTick();
+    chatMessageListRef.value?.scrollToBottom();
 
     isLoading.value = true;
 
+    // Create placeholder for streaming assistant message
+    const streamingMessageId = `streaming-${Date.now()}`;
+    let streamingMessage: ChatMessage = {
+        id: streamingMessageId,
+        role: 'assistant',
+        content: '',
+        createdAt: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+    };
+
     try {
-        const response = await fetch(ChatController.sendMessage.url(), {
+        // Get CSRF token
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
+        
+        // Create fetch request with streaming
+        const response = await fetch('/chat/message/stream', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
-                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'text/event-stream',
             },
             body: JSON.stringify({
                 message: content,
@@ -76,55 +94,140 @@ const sendMessage = async (content: string) => {
             }),
         });
 
-        const data = await response.json();
-
         if (!response.ok) {
-            throw new Error(data.error || 'Terjadi kesalahan');
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to connect to chat stream');
         }
 
-        // Update with real messages
-        const userIdx = messages.value.findIndex((m) => m.id === tempUserMessage.id);
-        if (userIdx !== -1) {
-            messages.value[userIdx] = data.userMessage;
-        }
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let messageStarted = false;
+        let currentEvent = '';
 
-        // Add assistant response
-        messages.value.push(data.assistantMessage);
-
-        // Update thread id if this was a new conversation
-        if (!currentThreadId.value && data.thread) {
-            currentThreadId.value = data.thread.id;
+        while (reader) {
+            const { done, value } = await reader.read();
             
-            // Add new thread to sidebar
-            threads.value.unshift({
-                id: data.thread.id,
-                title: data.thread.title,
-                lastMessageAt: 'Baru saja',
-            });
+            if (done) break;
 
-            // Update URL without full page reload
-            window.history.replaceState({}, '', `/chat/${data.thread.id}`);
+            // Decode chunk and add to buffer
+            buffer += decoder.decode(value, { stream: true });
+
+            // Process complete SSE messages (separated by double newline)
+            let doubleNewlineIndex;
+            while ((doubleNewlineIndex = buffer.indexOf('\n\n')) !== -1) {
+                const message = buffer.substring(0, doubleNewlineIndex);
+                buffer = buffer.substring(doubleNewlineIndex + 2);
+
+                // Parse SSE message
+                const lines = message.split('\n');
+                let eventType = '';
+                let eventData = '';
+
+                for (const line of lines) {
+                    if (line.startsWith('event: ')) {
+                        eventType = line.substring(7).trim();
+                    } else if (line.startsWith('data: ')) {
+                        eventData = line.substring(6);
+                    }
+                }
+
+                if (!eventData) continue;
+
+                try {
+                    const data = JSON.parse(eventData);
+
+                    if (eventType === 'thread') {
+                        // Update thread id if this was a new conversation
+                        if (!currentThreadId.value && data.id) {
+                            currentThreadId.value = data.id;
+                            
+                            // Add new thread to sidebar
+                            threads.value.unshift({
+                                id: data.id,
+                                title: data.title,
+                                lastMessageAt: 'Baru saja',
+                            });
+
+                            // Update URL without full page reload
+                            window.history.replaceState({}, '', `/chat/${data.id}`);
+                        }
+                    } else if (eventType === 'user_message') {
+                        // Replace temp message with real one
+                        const userIdx = messages.value.findIndex((m) => m.id === tempUserMessage.id);
+                        if (userIdx !== -1) {
+                            messages.value[userIdx] = data;
+                        }
+                    } else if (eventType === 'message_chunk') {
+                        if (!messageStarted) {
+                            // Add placeholder message on first chunk
+                            messages.value.push(streamingMessage);
+                            messageStarted = true;
+                        }
+
+                        // Append chunk to streaming message
+                        const msgIdx = messages.value.findIndex((m) => m.id === streamingMessageId);
+                        if (msgIdx !== -1) {
+                            messages.value[msgIdx].content += data.content;
+                            
+                            // Auto-scroll as content streams in
+                            await nextTick();
+                            chatMessageListRef.value?.scrollToBottom();
+                        }
+                    } else if (eventType === 'complete') {
+                        // Update streaming message with final ID and timestamp
+                        const msgIdx = messages.value.findIndex((m) => m.id === streamingMessageId);
+                        if (msgIdx !== -1) {
+                            messages.value[msgIdx].id = data.message_id;
+                            messages.value[msgIdx].createdAt = data.createdAt;
+                        }
+
+                        // Update chat limit info if provided
+                        if (data.chatLimit) {
+                            console.log('Chat limit updated:', data.chatLimit);
+                        }
+
+                        isLoading.value = false;
+
+                        // Focus input after successful message
+                        chatInputRef.value?.focusInput();
+
+                        // Final scroll
+                        await nextTick();
+                        setTimeout(() => chatMessageListRef.value?.scrollToBottom(), 100);
+                    } else if (eventType === 'error') {
+                        throw new Error(data.message || 'Terjadi kesalahan');
+                    }
+                } catch (parseError) {
+                    console.error('Failed to parse SSE data:', parseError, eventData);
+                }
+            }
         }
 
-        // Focus input after successful message
-        chatInputRef.value?.focusInput();
-    } catch (error) {
+    } catch (error: any) {
         console.error('Failed to send message:', error);
-        // Remove optimistic message on error
-        messages.value = messages.value.filter((m) => m.id !== tempUserMessage.id);
+        
+        // Remove optimistic and streaming messages on error
+        messages.value = messages.value.filter((m) => 
+            m.id !== tempUserMessage.id && m.id !== streamingMessageId
+        );
         
         // Add error message
         messages.value.push({
             id: `error-${Date.now()}`,
             role: 'assistant',
-            content: 'Maaf, terjadi kesalahan. Silakan coba lagi.',
+            content: error.message || 'Maaf, terjadi kesalahan. Silakan coba lagi.',
             createdAt: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
         });
+        
+        // Scroll to error message
+        await nextTick();
+        chatMessageListRef.value?.scrollToBottom();
+
+        isLoading.value = false;
 
         // Focus input after error
         chatInputRef.value?.focusInput();
-    } finally {
-        isLoading.value = false;
     }
 };
 
@@ -181,6 +284,7 @@ const deleteThread = async (threadId: string) => {
                 <!-- Messages -->
                 <div class="flex-1 overflow-hidden">
                     <ChatMessageList
+                        ref="chatMessageListRef"
                         :messages="messages"
                         :is-loading="isLoading"
                         :user-name="user.name"
