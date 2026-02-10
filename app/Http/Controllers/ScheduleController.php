@@ -11,7 +11,7 @@ class ScheduleController extends Controller
         $schedules = \App\Models\Schedule::where('user_id', auth()->id())
             ->orderBy('start_time', 'asc')
             ->get();
-            
+
         return \Inertia\Inertia::render('Schedules/Index', [
             'schedules' => $schedules,
         ]);
@@ -25,6 +25,10 @@ class ScheduleController extends Controller
             'start_time' => 'required|date',
             'end_time' => 'required|date|after:start_time',
             'location' => 'nullable|string|max:255',
+            'is_completed' => 'boolean',
+            'is_recurring' => 'boolean',
+            'recurrence_rule' => 'nullable|string',
+            'is_all_day' => 'boolean',
         ]);
 
         $request->user()->schedules()->create($validated);
@@ -44,6 +48,10 @@ class ScheduleController extends Controller
             'start_time' => 'required|date',
             'end_time' => 'required|date|after:start_time',
             'location' => 'nullable|string|max:255',
+            'is_completed' => 'boolean',
+            'is_recurring' => 'boolean',
+            'recurrence_rule' => 'nullable|string',
+            'is_all_day' => 'boolean',
         ]);
 
         $schedule->update($validated);
@@ -56,7 +64,7 @@ class ScheduleController extends Controller
         if ($schedule->user_id !== $request->user()->id) {
             abort(403);
         }
-        
+
         $schedule->delete();
 
         return redirect()->back();

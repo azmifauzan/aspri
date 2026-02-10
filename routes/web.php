@@ -12,6 +12,7 @@ use App\Http\Controllers\FinanceController;
 use App\Http\Controllers\SubscriptionController;
 use App\Models\Plugin;
 use App\Services\Admin\SettingsService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;

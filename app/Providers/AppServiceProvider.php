@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -86,8 +87,19 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->forceHttpsInProduction();
         $this->configureDefaults();
         $this->configureDynamicMail();
+    }
+
+    /**
+     * Force HTTPS in production environment.
+     */
+    protected function forceHttpsInProduction(): void
+    {
+        if (app()->isProduction()) {
+            URL::forceScheme('https');
+        }
     }
 
     protected function configureDefaults(): void

@@ -57,8 +57,6 @@ Schema::create('profiles', function (Blueprint $table) {
     $table->foreignId('user_id')->constrained()->cascadeOnDelete();
     
     // Persona settings (ALL REQUIRED)
-    $table->integer('birth_day'); // 1-31, REQUIRED
-    $table->integer('birth_month'); // 1-12, REQUIRED
     $table->string('call_preference'); // "Kak", "Bapak", "Ibu", etc, REQUIRED
     $table->string('aspri_name'); // Custom assistant name, REQUIRED
     $table->text('aspri_persona'); // "pria", "wanita", "kucing", "anjing", or custom, REQUIRED

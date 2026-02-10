@@ -5,8 +5,10 @@ namespace App\Services\Telegram;
 use App\Models\ChatMessage;
 use App\Models\ChatThread;
 use App\Models\User;
+use App\Services\Admin\SettingsService;
 use App\Services\Ai\ChatService;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Telegram\Bot\Api;
 use Telegram\Bot\Exceptions\TelegramSDKException;
 use Telegram\Bot\Objects\Update;
@@ -17,8 +19,21 @@ class TelegramBotService
 
     public function __construct(
         protected ChatService $chatService,
+        protected SettingsService $settingsService,
     ) {
-        $this->telegram = new Api(config('services.telegram.bot_token'));
+        // Get bot token from database first, then fallback to config/env
+        // Check if system_settings table exists (for migrations)
+        $botToken = null;
+        if (Schema::hasTable('system_settings')) {
+            $botToken = $this->settingsService->get('telegram_bot_token');
+        }
+
+        // Fallback to config/env if not in database
+        if (! $botToken) {
+            $botToken = config('services.telegram.bot_token') ?? env('TELEGRAM_BOT_TOKEN');
+        }
+
+        $this->telegram = new Api($botToken);
 
         // Disable SSL verification if configured
         if (config('services.telegram.http_client_verify') === false) {

@@ -105,6 +105,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(Schedule::class);
     }
 
+    public function notes(): HasMany
+    {
+        return $this->hasMany(Note::class);
+    }
+
     public function chatThreads(): HasMany
     {
         return $this->hasMany(ChatThread::class);
@@ -128,6 +133,13 @@ class User extends Authenticatable implements MustVerifyEmail
     public function chatUsageLogs(): HasMany
     {
         return $this->hasMany(ChatUsageLog::class);
+    }
+
+    public function plugins()
+    {
+        return $this->belongsToMany(Plugin::class, 'user_plugins')
+            ->withPivot('is_active')
+            ->withTimestamps();
     }
 
     /**

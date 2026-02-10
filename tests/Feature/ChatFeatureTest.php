@@ -81,8 +81,6 @@ class ChatFeatureTest extends TestCase
     {
         $user = User::factory()->create();
         $user->profile()->create([
-            'birth_day' => 1,
-            'birth_month' => 1,
             'call_preference' => 'Kak',
             'aspri_name' => 'ASPRI',
             'aspri_persona' => 'asisten yang ramah',
@@ -119,8 +117,6 @@ class ChatFeatureTest extends TestCase
     {
         $user = User::factory()->create();
         $user->profile()->create([
-            'birth_day' => 1,
-            'birth_month' => 1,
             'call_preference' => 'Kak',
             'aspri_name' => 'ASPRI',
             'aspri_persona' => 'asisten yang ramah',
@@ -188,8 +184,6 @@ class ChatFeatureTest extends TestCase
 
         $user = User::factory()->create();
         $user->profile()->create([
-            'birth_day' => 1,
-            'birth_month' => 1,
             'call_preference' => 'Kak',
             'aspri_name' => 'ASPRI',
             'aspri_persona' => 'asisten yang ramah',
@@ -226,8 +220,6 @@ class ChatFeatureTest extends TestCase
 
         $user = User::factory()->create();
         $user->profile()->create([
-            'birth_day' => 1,
-            'birth_month' => 1,
             'call_preference' => 'Kak',
             'aspri_name' => 'ASPRI',
             'aspri_persona' => 'asisten yang ramah',
@@ -269,8 +261,6 @@ class ChatFeatureTest extends TestCase
 
         $user = User::factory()->create();
         $user->profile()->create([
-            'birth_day' => 1,
-            'birth_month' => 1,
             'call_preference' => 'Kak',
             'aspri_name' => 'ASPRI',
             'aspri_persona' => 'asisten yang ramah',

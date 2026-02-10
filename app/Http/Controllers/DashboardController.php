@@ -24,16 +24,16 @@ class DashboardController extends Controller
         $lastIncome = (float) (clone $lastMonth)->income()->sum('amount');
         $lastExpense = (float) (clone $lastMonth)->expense()->sum('amount');
 
-        $monthlySummary = [
+        $monthlyFinance = [
             'income' => $income,
-            'expense' => $expense,
+            'expenses' => $expense,
             'balance' => $income - $expense,
             'incomeChange' => $lastIncome > 0 ? round((($income - $lastIncome) / $lastIncome) * 100, 1) : 0,
             'expenseChange' => $lastExpense > 0 ? round((($expense - $lastExpense) / $lastExpense) * 100, 1) : 0,
         ];
 
         // Today's Events
-        $todayEvents = $user->schedules()
+        $todaySchedule = $user->schedules()
             ->whereDate('start_time', \Carbon\Carbon::today())
             ->orderBy('start_time')
             ->get()
@@ -99,8 +99,8 @@ class DashboardController extends Controller
         ]);
 
         return Inertia::render('Dashboard', [
-            'monthlySummary' => $monthlySummary,
-            'todayEvents' => $todayEvents,
+            'monthlyFinance' => $monthlyFinance,
+            'todaySchedule' => $todaySchedule,
             'weeklyExpenses' => $weeklyExpenses,
             'recentActivities' => $recentActivities,
             'subscriptionInfo' => $subscriptionInfo,

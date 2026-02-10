@@ -1,42 +1,52 @@
 # ASPRI - Asisten Pribadi Berbasis AI
 
-**ASPRI** adalah aplikasi asisten pribadi cerdas yang dirancang untuk membantu pengelolaan jadwal dan keuangan harian Anda melalui interaksi percakapan natural.
+**ASPRI** adalah aplikasi asisten pribadi cerdas yang dirancang untuk membantu pengelolaan jadwal, keuangan, dan catatan harian Anda melalui interaksi percakapan natural dengan AI.
 
 ## ✨ Fitur Utama
 
-- 🤖 **Asisten Pribadi Cerdas** - Mengelola jadwal dan keuangan melalui percakapan natural
-- 💬 **Chat-First Experience** - Semua fitur dapat diakses lewat percakapan
-- 👤 **Persona Per User** - Asisten mengikuti preferensi dan gaya komunikasi Anda
+- 🤖 **Asisten Pribadi Cerdas** - Mengelola jadwal, keuangan, dan notes melalui percakapan natural
+- 💬 **Chat-First Experience** - Semua fitur dapat diakses lewat percakapan dengan AI
+- 👤 **Persona Kustom Per User** - Asisten mengikuti preferensi panggilan dan gaya komunikasi Anda
 - 📱 **Integrasi Telegram** - Catat pengeluaran, buat note, atau cek jadwal langsung dari Telegram
 - 📊 **Dashboard Interaktif** - Visualisasi data keuangan dan jadwal dalam satu tampilan
-- 🎁 **Plugin System** - Extend asisten dengan plugin untuk kebutuhan spesifik Anda
+- 🎁 **Plugin System** - Extend fungsionalitas asisten dengan plugin-plugin powerful
+- 💳 **Subscription System** - Fitur premium dengan layanan berlangganan
+- 👥 **Admin Panel** - Manajemen user, plugin, jadwal, dan monitoring sistem lengkap
 
 ## 🎯 Modul Utama
 
 | Modul | Deskripsi |
 |-------|-----------|
-| **Dashboard** | Ringkasan aktivitas dan status keuangan |
-| **Chat** | Riwayat percakapan dengan asisten + integrasi bot |
-| **Notes** | Penyimpanan note dengan block-based content |
-| **Schedule** | Manajemen kalender, event, dan reminder |
-| **Finance** | Pencatatan transaksi, budgeting, dan laporan |
-| **Plugins** | 🎁 Sistem plugin untuk memperluas fitur asisten |
+| **Dashboard** | Ringkasan aktivitas, status keuangan bulan ini, dan jadwal hari ini |
+| **Chat** | Riwayat percakapan dengan asisten AI + integrasi bot Telegram |
+| **Notes** | Penyimpanan catatan dengan block-based content editor |
+| **Schedule** | Manajemen kalender, event, dan reminder otomatis |
+| **Finance** | Pencatatan transaksi, kategori, akun, budgeting, dan laporan |
+| **Plugins** | 🎁 Sistem plugin untuk memperluas fitur asisten (motivasi, pengingat, dll) |
+| **Subscription** | 💳 Upload bukti pembayaran dan aktivasi fitur premium |
+| **Admin Panel** | 👥 User management, payment approval, activity logs, dan monitoring |
 
 ## 🛠️ Tech Stack
 
-- **Backend**: Laravel 12
-- **Frontend**: Vue 3 + Inertia.js v2
-- **Styling**: Tailwind CSS v4
+- **Backend**: Laravel 12 (PHP 8.4)
+- **Frontend**: Vue 3 + Inertia.js v2 + TypeScript
+- **Styling**: Tailwind CSS v4 + Reka UI Components
 - **Database**: SQLite (dev) / PostgreSQL (prod)
-- **AI**: OpenAI GPT-4 / Google Gemini
-- **Bot**: Telegram Bot API
+- **AI**: Multi-provider (OpenAI GPT-4, Google Gemini, Claude Sonnet)
+- **Bot**: Telegram Bot API SDK
+- **Queue**: Redis / Database
+- **Authentication**: Laravel Fortify (Login, Register, 2FA)
+- **Email**: SMTP / Mailgun / SendGrid support
+- **Icons**: Lucide Icons
 
 ## 📋 Prerequisites
 
-- PHP 8.2+
-- Node.js 20+
-- Composer
+- PHP 8.4+ (with extensions: mbstring, openssl, pdo, tokenizer, xml, ctype, json, bcmath, fileinfo)
+- Node.js 20+ (with npm)
+- Composer 2.x
 - SQLite or PostgreSQL
+- Redis (optional, for queue and cache)
+- HTTPS/SSL certificate (untuk production)
 
 ## 🚀 Quick Start
 
@@ -116,40 +126,69 @@ TELEGRAM_WEBHOOK_SECRET=
 ```
 aspri/
 ├── app/
-│   ├── Http/Controllers/
-│   ├── Models/
-│   ├── Services/
-│   │   ├── AI/
-│   │   ├── Chat/
-│   │   └── Telegram/
-│   └── Jobs/
+│   ├── Actions/              # Fortify actions (registration, profile update, etc)
+│   ├── Http/
+│   │   ├── Controllers/      # Web & API controllers
+│   │   │   ├── Admin/        # Admin panel controllers
+│   │   │   ├── Api/          # API controllers  
+│   │   │   └── Settings/     # User settings controllers
+│   │   ├── Middleware/       # Custom middleware
+│   │   └── Requests/         # Form request validation
+│   ├── Models/               # Eloquent models
+│   ├── Services/             # Business logic services
+│   │   ├── Admin/            # Admin services
+│   │   ├── AI/               # AI provider integration
+│   │   ├── Chat/             # Chat intent parsing & response
+│   │   └── Telegram/         # Telegram bot handlers
+│   ├── Jobs/                 # Queue jobs (notifications, scheduled tasks)
+│   ├── Plugins/              # Built-in plugin classes
+│   ├── Policies/             # Authorization policies
+│   ├── Providers/            # Service providers
+│   └── Notifications/        # Email & Telegram notifications
 ├── resources/
 │   ├── js/
-│   │   ├── pages/
-│   │   └── components/
-│   └── css/
+│   │   ├── actions/          # Wayfinder generated functions
+│   │   ├── components/       # Vue components
+│   │   │   └── ui/           # Reusable UI components (Reka UI)
+│   │   ├── layouts/          # Page layouts
+│   │   ├── pages/            # Inertia pages (view layer)
+│   │   └── types/            # TypeScript type definitions
+│   ├── css/                  # Tailwind CSS & custom styles
+│   └── views/                # Blade templates (minimal, mostly for emails)
 ├── database/
-│   └── migrations/
+│   ├── factories/            # Model factories
+│   ├── migrations/           # Database migrations
+│   └── seeders/              # Database seeders (including plugins)
 ├── routes/
-├── docs/                  # Documentation
-└── tests/
+│   ├── web.php               # Web routes (main app)
+│   ├── api.php               # API routes (Telegram webhook, etc)
+│   ├── console.php           # Console routes (artisan commands)
+│   └── settings.php          # User settings routes
+├── docs/                     # Comprehensive documentation
+├── tests/
+│   ├── Feature/              # Feature tests (HTTP, integration)
+│   └── Unit/                 # Unit tests (isolated logic)
+└── public/                   # Public assets (compiled JS/CSS)
 ```
 
 ## 📖 Documentation
 
 Dokumentasi lengkap tersedia di folder `docs/`:
 
-- [Architecture](docs/ARCHITECTURE.md) - Arsitektur sistem
-- [Blueprint](docs/BLUEPRINT.md) - Feature specifications
-- [Database](docs/DATABASE.md) - Database schema
-- [Plan](docs/PLAN.md) - Implementation plan
-- [Phases](docs/PHASES.md) - Development phases
-- [AI Integration](docs/AI_INTEGRATION.md) - AI integration guide
-- [Telegram](docs/TELEGRAM.md) - Telegram bot integration
-- [Plugins](docs/PLUGINS.md) - Plugin system overview
-- [Plugin Development Guide](docs/PLUGIN_DEVELOPMENT_GUIDE.md) - Build your own plugins
+- [Architecture](docs/ARCHITECTURE.md) - Arsitektur sistem dan flow data
+- [Blueprint](docs/BLUEPRINT.md) - Feature specifications lengkap
+- [Database](docs/DATABASE.md) - Database schema dan relationships
+- [Plan](docs/PLAN.md) - Implementation plan dan roadmap
+- [Phases](docs/PHASES.md) - Development phases progress
+- [AI Integration](docs/AI_INTEGRATION.md) - Multi-provider AI integration
+- [Telegram](docs/TELEGRAM.md) - Telegram bot integration & webhook
+- [Plugins](docs/PLUGINS.md) - Plugin system overview & architecture
+- [Plugin Development Guide](docs/PLUGIN_DEVELOPMENT_GUIDE.md) - Panduan membuat plugin
 - [Plugin API Reference](docs/PLUGIN_API.md) - Complete API documentation
 - [Plugin Usage Examples](docs/PLUGIN_USAGE_EXAMPLES.md) - Real-world plugin examples
+- [Subscription](docs/SUBSCRIPTION.md) - Subscription & payment system
+- [HTTPS Security](docs/HTTPS_SECURITY.md) - SSL/TLS configuration guide
+- [Admin Panel](docs/ADMIN.md) - Admin features dan management
 
 ## 🎁 Plugin System
 

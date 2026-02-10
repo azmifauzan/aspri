@@ -40,8 +40,6 @@ class CreateNewUser implements CreatesNewUsers
         ]);
 
         $user->profile()->create([
-            'birth_day' => $input['birth_day'],
-            'birth_month' => $input['birth_month'],
             'call_preference' => $input['call_preference'],
             'aspri_name' => $input['aspri_name'],
             'aspri_persona' => $input['aspri_persona'],

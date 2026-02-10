@@ -11,12 +11,16 @@ import { register } from '@/routes';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
 import { Form, Head } from '@inertiajs/vue3';
+import { Eye, EyeOff } from 'lucide-vue-next';
+import { ref } from 'vue';
 
 defineProps<{
     status?: string;
     canResetPassword: boolean;
     canRegister: boolean;
 }>();
+
+const showPassword = ref(false);
 </script>
 
 <template>
@@ -67,15 +71,27 @@ defineProps<{
                             Lupa password?
                         </TextLink>
                     </div>
-                    <Input
-                        id="password"
-                        type="password"
-                        name="password"
-                        required
-                        :tabindex="2"
-                        autocomplete="current-password"
-                        placeholder="Masukkan password"
-                    />
+                    <div class="relative">
+                        <Input
+                            id="password"
+                            :type="showPassword ? 'text' : 'password'"
+                            name="password"
+                            required
+                            :tabindex="2"
+                            autocomplete="current-password"
+                            placeholder="Masukkan password"
+                            class="pr-10"
+                        />
+                        <button
+                            type="button"
+                            @click="showPassword = !showPassword"
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                            :tabindex="-1"
+                        >
+                            <Eye v-if="!showPassword" class="h-4 w-4" />
+                            <EyeOff v-else class="h-4 w-4" />
+                        </button>
+                    </div>
                     <InputError :message="errors.password" />
                 </div>
 

@@ -9,6 +9,11 @@ import AuthBase from '@/layouts/AuthLayout.vue';
 import { login } from '@/routes';
 import { store } from '@/routes/register';
 import { Form, Head } from '@inertiajs/vue3';
+import { Eye, EyeOff } from 'lucide-vue-next';
+import { ref } from 'vue';
+
+const showPassword = ref(false);
+const showPasswordConfirmation = ref(false);
 </script>
 
 <template>
@@ -59,15 +64,27 @@ import { Form, Head } from '@inertiajs/vue3';
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="grid gap-2">
                         <Label for="password">Password</Label>
-                        <Input
-                            id="password"
-                            type="password"
-                            required
-                            :tabindex="3"
-                            autocomplete="new-password"
-                            name="password"
-                            placeholder="Minimal 8 karakter"
-                        />
+                        <div class="relative">
+                            <Input
+                                id="password"
+                                :type="showPassword ? 'text' : 'password'"
+                                required
+                                :tabindex="3"
+                                autocomplete="new-password"
+                                name="password"
+                                placeholder="Minimal 8 karakter"
+                                class="pr-10"
+                            />
+                            <button
+                                type="button"
+                                @click="showPassword = !showPassword"
+                                class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                :tabindex="-1"
+                            >
+                                <Eye v-if="!showPassword" class="h-4 w-4" />
+                                <EyeOff v-else class="h-4 w-4" />
+                            </button>
+                        </div>
                         <InputError :message="errors.password" />
                     </div>
 
@@ -75,15 +92,27 @@ import { Form, Head } from '@inertiajs/vue3';
                         <Label for="password_confirmation"
                             >Konfirmasi Password</Label
                         >
-                        <Input
-                            id="password_confirmation"
-                            type="password"
-                            required
-                            :tabindex="4"
-                            autocomplete="new-password"
-                            name="password_confirmation"
-                            placeholder="Ulangi password"
-                        />
+                        <div class="relative">
+                            <Input
+                                id="password_confirmation"
+                                :type="showPasswordConfirmation ? 'text' : 'password'"
+                                required
+                                :tabindex="4"
+                                autocomplete="new-password"
+                                name="password_confirmation"
+                                placeholder="Ulangi password"
+                                class="pr-10"
+                            />
+                            <button
+                                type="button"
+                                @click="showPasswordConfirmation = !showPasswordConfirmation"
+                                class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                :tabindex="-1"
+                            >
+                                <Eye v-if="!showPasswordConfirmation" class="h-4 w-4" />
+                                <EyeOff v-else class="h-4 w-4" />
+                            </button>
+                        </div>
                         <InputError :message="errors.password_confirmation" />
                     </div>
                 </div>
@@ -96,44 +125,12 @@ import { Form, Head } from '@inertiajs/vue3';
                     <div class="grid gap-6">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div class="grid gap-2">
-                                <Label for="birth_date">Tanggal Lahir</Label>
-                                <Input
-                                    id="birth_date"
-                                    type="number"
-                                    required
-                                    :tabindex="5"
-                                    name="birth_day"
-                                    placeholder="1-31"
-                                    min="1"
-                                    max="31"
-                                />
-                                <InputError :message="errors.birth_day" />
-                            </div>
-
-                            <div class="grid gap-2">
-                                <Label for="birth_month">Bulan Lahir</Label>
-                                <Input
-                                    id="birth_month"
-                                    type="number"
-                                    required
-                                    :tabindex="6"
-                                    name="birth_month"
-                                    placeholder="1-12"
-                                    min="1"
-                                    max="12"
-                                />
-                                <InputError :message="errors.birth_month" />
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div class="grid gap-2">
                                 <Label for="call_preference">Cara Panggilan</Label>
                                 <Input
                                     id="call_preference"
                                     type="text"
                                     required
-                                    :tabindex="7"
+                                    :tabindex="5"
                                     name="call_preference"
                                     placeholder="Contoh: Kak, Bapak, Ibu, Mas, Mbak"
                                 />
@@ -149,7 +146,7 @@ import { Form, Head } from '@inertiajs/vue3';
                                     id="aspri_name"
                                     type="text"
                                     required
-                                    :tabindex="8"
+                                    :tabindex="6"
                                     name="aspri_name"
                                     placeholder="Contoh: ASPRI, Jarvis, Friday"
                                 />
@@ -166,7 +163,7 @@ import { Form, Head } from '@inertiajs/vue3';
                                 id="aspri_persona"
                                 type="text"
                                 required
-                                :tabindex="9"
+                                :tabindex="7"
                                 name="aspri_persona"
                                 placeholder="Contoh: pria, wanita, profesional, santai"
                             />
@@ -182,7 +179,7 @@ import { Form, Head } from '@inertiajs/vue3';
                 <Button
                     type="submit"
                     class="mt-4 w-full md:w-auto md:self-end"
-                    :tabindex="10"
+                    :tabindex="8"
                     :disabled="processing"
                     data-test="register-user-button"
                 >
@@ -196,7 +193,7 @@ import { Form, Head } from '@inertiajs/vue3';
                 <TextLink
                     :href="login()"
                     class="underline underline-offset-4"
-                    :tabindex="11"
+                    :tabindex="9"
                     >Masuk di sini</TextLink
                 >
             </div>

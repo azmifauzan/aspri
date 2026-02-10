@@ -17,8 +17,6 @@ trait ProfileValidationRules
         return [
             'name' => $this->nameRules(),
             'email' => $this->emailRules($userId),
-            'birth_day' => ['required', 'integer', 'min:1', 'max:31'],
-            'birth_month' => ['required', 'integer', 'min:1', 'max:12'],
             'call_preference' => ['required', 'string', 'max:50'],
             'aspri_name' => ['required', 'string', 'max:50'],
             'aspri_persona' => ['required', 'string', 'max:255'],

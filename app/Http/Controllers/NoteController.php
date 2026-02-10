@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\NoteStoreRequest;
+use App\Http\Requests\NoteUpdateRequest;
 use App\Models\Note;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class NoteController extends Controller
@@ -24,17 +25,9 @@ class NoteController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(NoteStoreRequest $request)
     {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'content' => 'nullable|string',
-            'is_pinned' => 'boolean',
-            'color' => 'nullable|string',
-            'tags' => 'nullable|array',
-        ]);
-
-        $request->user()->notes()->create($validated);
+        $request->user()->notes()->create($request->validated());
 
         return redirect()->back();
     }
@@ -42,19 +35,11 @@ class NoteController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Note $note)
+    public function update(NoteUpdateRequest $request, Note $note)
     {
         $this->authorize('update', $note);
 
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'content' => 'nullable|string',
-            'is_pinned' => 'boolean',
-            'color' => 'nullable|string',
-            'tags' => 'nullable|array',
-        ]);
-
-        $note->update($validated);
+        $note->update($request->validated());
 
         return redirect()->back();
     }

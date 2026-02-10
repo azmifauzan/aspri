@@ -27,8 +27,6 @@ class ProfileController extends Controller
             'mustVerifyEmail' => $user instanceof MustVerifyEmail,
             'status' => $request->session()->get('status'),
             'profile' => $profile ? [
-                'birth_day' => $profile->birth_day,
-                'birth_month' => $profile->birth_month,
                 'call_preference' => $profile->call_preference,
                 'aspri_name' => $profile->aspri_name,
                 'aspri_persona' => $profile->aspri_persona,
@@ -60,8 +58,6 @@ class ProfileController extends Controller
         $user->profile()->updateOrCreate(
             ['user_id' => $user->id],
             [
-                'birth_day' => $validated['birth_day'],
-                'birth_month' => $validated['birth_month'],
                 'call_preference' => $validated['call_preference'],
                 'aspri_name' => $validated['aspri_name'],
                 'aspri_persona' => $validated['aspri_persona'],

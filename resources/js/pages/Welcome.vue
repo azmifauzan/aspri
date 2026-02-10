@@ -138,7 +138,19 @@ const features = [
                         <Bot class="h-6 w-6 text-primary" />
                         <span class="text-xl font-bold">ASPRI</span>
                     </div>
-                    <nav class="flex items-center gap-2">
+                    <nav class="flex items-center gap-3">
+                        <a
+                            href="https://github.com/azmifauzan/aspri"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="hidden sm:block transition-opacity hover:opacity-80"
+                        >
+                            <img
+                                src="https://img.shields.io/github/stars/azmifauzan/aspri?style=social"
+                                alt="GitHub stars"
+                                class="h-5"
+                            />
+                        </a>
                         <Link
                             v-if="$page.props.auth.user"
                             :href="dashboard()"

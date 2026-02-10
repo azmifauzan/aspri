@@ -9,7 +9,6 @@ use Carbon\Carbon;
 use Database\Seeders\FinanceCategorySeeder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -110,7 +109,7 @@ class FinanceController extends Controller
         $validated = $request->validate([
             'tx_type' => 'required|in:income,expense',
             'amount' => 'required|numeric|min:0',
-            'category_id' => 'nullable|uuid|exists:finance_categories,id',
+            'category_id' => 'required|uuid|exists:finance_categories,id',
             'account_id' => 'nullable|uuid|exists:finance_accounts,id',
             'occurred_at' => 'required|date',
             'note' => 'nullable|string|max:500',
@@ -214,7 +213,6 @@ class FinanceController extends Controller
      * Update a category
      */
     public function updateCategory(Request $request, FinanceCategory $category): RedirectResponse
-
     {
         if ($category->user_id !== $request->user()->id) {
             abort(403);
@@ -252,11 +250,15 @@ class FinanceController extends Controller
             abort(403);
         }
 
+        // Check if category has transactions
+        if ($category->transactions()->count() > 0) {
+            return back()->withErrors(['category' => 'Kategori tidak bisa dihapus karena masih memiliki transaksi.']);
+        }
+
         $category->delete();
 
         return back()->with('success', 'Kategori berhasil dihapus');
     }
-
 
     /**
      * Accounts management page

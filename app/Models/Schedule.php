@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Models\User;
 
 class Schedule extends Model
 {
@@ -14,11 +13,18 @@ class Schedule extends Model
         'start_time',
         'end_time',
         'location',
+        'is_completed',
+        'is_recurring',
+        'recurrence_rule',
+        'is_all_day',
     ];
 
     protected $casts = [
         'start_time' => 'datetime',
         'end_time' => 'datetime',
+        'is_completed' => 'boolean',
+        'is_recurring' => 'boolean',
+        'is_all_day' => 'boolean',
     ];
 
     public function user()

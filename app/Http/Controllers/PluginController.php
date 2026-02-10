@@ -166,6 +166,12 @@ class PluginController extends Controller
     {
         $user = $request->user();
 
+        // Check if plugin is activated for this user
+        $userPlugin = $plugin->userPlugins()->where('user_id', $user->id)->first();
+        if (! $userPlugin || ! $userPlugin->is_active) {
+            abort(403, 'Plugin must be activated before configuration.');
+        }
+
         try {
             $this->configService->saveConfig($user->id, $plugin->slug, $request->validated('config'));
 

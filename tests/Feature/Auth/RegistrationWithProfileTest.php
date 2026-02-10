@@ -17,8 +17,6 @@ class RegistrationWithProfileTest extends TestCase
             'email' => 'test@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
-            'birth_day' => 15,
-            'birth_month' => 6,
             'call_preference' => 'Kak',
             'aspri_name' => 'ASPRI',
             'aspri_persona' => 'pria',
@@ -30,8 +28,6 @@ class RegistrationWithProfileTest extends TestCase
         $user = User::where('email', 'test@example.com')->first();
         $this->assertNotNull($user);
         $this->assertNotNull($user->profile);
-        $this->assertEquals(15, $user->profile->birth_day);
-        $this->assertEquals(6, $user->profile->birth_month);
         $this->assertEquals('Kak', $user->profile->call_preference);
         $this->assertEquals('ASPRI', $user->profile->aspri_name);
         $this->assertEquals('pria', $user->profile->aspri_persona);
@@ -46,8 +42,6 @@ class RegistrationWithProfileTest extends TestCase
             'email' => 'test@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
-            'birth_day' => 25,
-            'birth_month' => 12,
             'call_preference' => 'Bapak',
             'aspri_name' => 'Jarvis',
             'aspri_persona' => 'profesional dan formal',
@@ -58,8 +52,6 @@ class RegistrationWithProfileTest extends TestCase
 
         $user = User::where('email', 'test@example.com')->first();
         $this->assertNotNull($user->profile);
-        $this->assertEquals(25, $user->profile->birth_day);
-        $this->assertEquals(12, $user->profile->birth_month);
         $this->assertEquals('Bapak', $user->profile->call_preference);
         $this->assertEquals('Jarvis', $user->profile->aspri_name);
         $this->assertEquals('profesional dan formal', $user->profile->aspri_persona);
@@ -75,8 +67,6 @@ class RegistrationWithProfileTest extends TestCase
         ]);
 
         $response->assertSessionHasErrors([
-            'birth_day',
-            'birth_month',
             'call_preference',
             'aspri_name',
             'aspri_persona',
@@ -87,8 +77,6 @@ class RegistrationWithProfileTest extends TestCase
     {
         $user = User::factory()->create();
         $user->profile()->create([
-            'birth_day' => 15,
-            'birth_month' => 6,
             'call_preference' => 'Kak',
             'aspri_name' => 'ASPRI',
             'aspri_persona' => 'pria',

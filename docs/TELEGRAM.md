@@ -25,13 +25,30 @@ graph LR
 3. Ikuti instruksi untuk set nama dan username
 4. Simpan token yang diberikan
 
-### 2. Configure Environment
+### 2. Configure Bot Token
+
+Ada dua cara untuk mengkonfigurasi bot token:
+
+#### Option A: Via Admin Panel (Recommended)
+
+1. Login sebagai super admin
+2. Buka **Admin > Settings > Telegram**
+3. Masukkan bot token dan webhook URL
+4. Klik Save
+
+Bot token akan disimpan terenkripsi di database dan diambil secara otomatis oleh sistem.
+
+#### Option B: Via Environment Variable
+
+Tambahkan ke file `.env`:
 
 ```env
 TELEGRAM_BOT_TOKEN=123456789:ABCdefGHIjklMNOpqrsTUVwxyz
 TELEGRAM_BOT_USERNAME=aspri_assistant_bot
 TELEGRAM_WEBHOOK_SECRET=random-secret-string
 ```
+
+**Note:** Token dari database (Admin Panel) memiliki prioritas lebih tinggi daripada environment variable. Jika token tidak ada di database, sistem akan fallback ke environment variable.
 
 ### 3. Set Webhook
 
@@ -89,8 +106,10 @@ class TelegramWebhookController extends Controller
 namespace App\Services\Telegram;
 
 use App\Models\ExternalIdentity;
+use App\Services\Admin\SettingsService;
 use App\Services\Chat\ChatOrchestrator;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Schema;
 
 class TelegramBotService
 {
@@ -98,9 +117,19 @@ class TelegramBotService
     
     public function __construct(
         private ChatOrchestrator $chatOrchestrator,
+        private SettingsService $settingsService,
     ) {
-        $token = config('services.telegram.token');
-        $this->baseUrl = "https://api.telegram.org/bot{$token}";
+        // Get bot token from database first, then fallback to config/env
+        $botToken = null;
+        if (Schema::hasTable('system_settings')) {
+            $botToken = $this->settingsService->get('telegram_bot_token');
+        }
+        
+        if (!$botToken) {
+            $botToken = config('services.telegram.bot_token') ?? env('TELEGRAM_BOT_TOKEN');
+        }
+        
+        $this->baseUrl = "https://api.telegram.org/bot{$botToken}";
     }
     
     public function handleUpdate(array $update): void

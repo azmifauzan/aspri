@@ -490,8 +490,6 @@ ASPRI (Asisten Pribadi Berbasis AI) is an AI-powered personal assistant applicat
 
 ### User Profile & Persona
 - Users have a `profiles` table with persona settings (ALL REQUIRED during registration):
-  - `birth_day`: Day of birth (1-31) - REQUIRED
-  - `birth_month`: Month of birth (1-12) - REQUIRED
   - `call_preference`: How the assistant addresses the user (e.g., "Kak", "Bapak", "Ibu") - REQUIRED
   - `aspri_name`: Custom name for the assistant (e.g., "ASPRI", "Jarvis") - REQUIRED
   - `aspri_persona`: Personality/behavior of the AI (e.g., "pria", "wanita", "kucing", "anjing", or custom) - REQUIRED

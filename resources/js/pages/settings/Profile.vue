@@ -23,8 +23,6 @@ import { Form, Head, Link, usePage } from '@inertiajs/vue3';
 import { ref, watch } from 'vue';
 
 type Profile = {
-    birth_day: number | null;
-    birth_month: number | null;
     call_preference: string | null;
     aspri_name: string | null;
     aspri_persona: string | null;
@@ -47,30 +45,6 @@ const breadcrumbItems: BreadcrumbItem[] = [
 
 const page = usePage();
 const user = page.props.auth.user;
-
-// Reactive form data for select components
-const birthDay = ref(props.profile?.birth_day?.toString() ?? '');
-const birthMonth = ref(props.profile?.birth_month?.toString() ?? '');
-
-const months = [
-    { value: '1', label: 'Januari' },
-    { value: '2', label: 'Februari' },
-    { value: '3', label: 'Maret' },
-    { value: '4', label: 'April' },
-    { value: '5', label: 'Mei' },
-    { value: '6', label: 'Juni' },
-    { value: '7', label: 'Juli' },
-    { value: '8', label: 'Agustus' },
-    { value: '9', label: 'September' },
-    { value: '10', label: 'Oktober' },
-    { value: '11', label: 'November' },
-    { value: '12', label: 'Desember' },
-];
-
-const days = Array.from({ length: 31 }, (_, i) => ({
-    value: (i + 1).toString(),
-    label: (i + 1).toString(),
-}));
 
 const personaOptions = [
     { value: 'asisten yang ramah dan membantu', label: 'Ramah & Membantu' },
@@ -147,56 +121,6 @@ const selectedPersona = ref(props.profile?.aspri_persona ?? 'asisten yang ramah 
                             class="mt-2 text-sm font-medium text-green-600"
                         >
                             Link verifikasi baru telah dikirim ke alamat email kamu.
-                        </div>
-                    </div>
-
-                    <Separator />
-
-                    <Heading
-                        variant="small"
-                        title="Tanggal Lahir"
-                        description="Digunakan untuk ucapan ulang tahun"
-                    />
-
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="grid gap-2">
-                            <Label for="birth_day">Tanggal</Label>
-                            <input type="hidden" name="birth_day" :value="birthDay" />
-                            <Select v-model="birthDay">
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Pilih tanggal" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem
-                                        v-for="day in days"
-                                        :key="day.value"
-                                        :value="day.value"
-                                    >
-                                        {{ day.label }}
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <InputError class="mt-2" :message="errors.birth_day" />
-                        </div>
-
-                        <div class="grid gap-2">
-                            <Label for="birth_month">Bulan</Label>
-                            <input type="hidden" name="birth_month" :value="birthMonth" />
-                            <Select v-model="birthMonth">
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Pilih bulan" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem
-                                        v-for="month in months"
-                                        :key="month.value"
-                                        :value="month.value"
-                                    >
-                                        {{ month.label }}
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <InputError class="mt-2" :message="errors.birth_month" />
                         </div>
                     </div>
 
