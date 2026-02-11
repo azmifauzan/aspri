@@ -4,7 +4,6 @@ namespace App\Plugins\KataMotivasi;
 
 use App\Models\User;
 use App\Services\Plugin\BasePlugin;
-use Telegram\Bot\Api;
 
 class KataMotivasiPlugin extends BasePlugin
 {
@@ -85,6 +84,28 @@ class KataMotivasiPlugin extends BasePlugin
         ];
     }
 
+    public function getDefaultConfig(): array
+    {
+        return [
+            'delivery_time' => '07:00',
+            'categories' => ['general'],
+            'include_author' => true,
+            'include_custom' => false,
+            'custom_quotes' => '',
+        ];
+    }
+
+    public function validateConfig(array $config): array
+    {
+        $errors = [];
+
+        if (isset($config['delivery_time']) && ! preg_match('/^\d{2}:\d{2}$/', $config['delivery_time'])) {
+            $errors['delivery_time'] = 'Format waktu tidak valid (harus HH:MM)';
+        }
+
+        return $errors;
+    }
+
     public function supportsScheduling(): bool
     {
         return true;
@@ -99,6 +120,94 @@ class KataMotivasiPlugin extends BasePlugin
             'type' => 'daily',
             'value' => '07:00',
         ];
+    }
+
+    public function supportsChatIntegration(): bool
+    {
+        return true;
+    }
+
+    public function getChatIntents(): array
+    {
+        $slugPrefix = str_replace('-', '_', $this->getSlug());
+
+        return [
+            [
+                'action' => "plugin_{$slugPrefix}_quote",
+                'description' => 'Minta kata motivasi acak',
+                'entities' => [
+                    'category' => 'string|null',
+                ],
+                'examples' => [
+                    'beri saya kata motivasi',
+                    'kata motivasi hari ini',
+                    'motivational quote',
+                ],
+            ],
+        ];
+    }
+
+    public function handleChatIntent(int $userId, string $action, array $entities): array
+    {
+        $slugPrefix = str_replace('-', '_', $this->getSlug());
+
+        if ($action !== "plugin_{$slugPrefix}_quote") {
+            return [
+                'success' => false,
+                'message' => 'Action not supported',
+            ];
+        }
+
+        $config = $this->getUserConfig($userId);
+
+        if (! empty($entities['category'])) {
+            $config['categories'] = [$entities['category']];
+        }
+
+        $quote = $this->getRandomQuote($config);
+
+        if (! $quote) {
+            return [
+                'success' => false,
+                'message' => 'Belum ada kata motivasi untuk kategori tersebut.',
+            ];
+        }
+
+        $user = $this->getUser($userId);
+
+        if (! $user) {
+            return [
+                'success' => false,
+                'message' => 'User tidak ditemukan.',
+            ];
+        }
+
+        return [
+            'success' => true,
+            'message' => $this->formatMessage($quote, $config, $user),
+            'data' => $quote,
+        ];
+    }
+
+    public function activate(int $userId): void
+    {
+        $config = $this->getUserConfig($userId);
+
+        $this->createSchedule($userId, [
+            'schedule_type' => 'daily',
+            'schedule_value' => $config['delivery_time'],
+            'metadata' => [
+                'type' => 'daily_quote',
+            ],
+        ]);
+
+        $this->log($userId, 'info', 'Kata Motivasi activated');
+    }
+
+    public function deactivate(int $userId): void
+    {
+        $this->deleteSchedules($userId);
+        $this->log($userId, 'info', 'Kata Motivasi deactivated');
     }
 
     /**
@@ -117,12 +226,6 @@ class KataMotivasiPlugin extends BasePlugin
             return;
         }
 
-        if (! $user->telegram_chat_id) {
-            $this->logWarning('User has no Telegram connected', $userId);
-
-            return;
-        }
-
         try {
             $quote = $this->getRandomQuote($config);
 
@@ -133,7 +236,7 @@ class KataMotivasiPlugin extends BasePlugin
             }
 
             $message = $this->formatMessage($quote, $config, $user);
-            $this->sendTelegramMessage($user->telegram_chat_id, $message);
+            $this->sendTelegramMessage($userId, $message);
 
             $this->logInfo('Motivational quote sent', $userId, [
                 'quote' => $quote['quote'],
@@ -225,35 +328,6 @@ class KataMotivasiPlugin extends BasePlugin
             $hour >= 15 && $hour < 18 => 'Selamat Sore',
             default => 'Selamat Malam',
         };
-    }
-
-    /**
-     * Send message via Telegram.
-     */
-    protected function sendTelegramMessage(int $chatId, string $message): void
-    {
-        $token = config('services.telegram.bot_token');
-
-        if (! $token) {
-            throw new \RuntimeException('Telegram bot token not configured');
-        }
-
-        $telegram = new Api($token);
-
-        // Disable SSL verification if configured
-        if (config('services.telegram.http_client_verify') === false) {
-            $telegram->setHttpClientHandler(
-                new \Telegram\Bot\HttpClients\GuzzleHttpClient(
-                    new \GuzzleHttp\Client(['verify' => false])
-                )
-            );
-        }
-
-        $telegram->sendMessage([
-            'chat_id' => $chatId,
-            'text' => $message,
-            'parse_mode' => 'Markdown',
-        ]);
     }
 
     /**

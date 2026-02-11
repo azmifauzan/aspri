@@ -863,4 +863,30 @@ PROMPT;
     {
         return $this->personalizeResponse($user, 'help', ['topic' => $topic]);
     }
+
+    /**
+     * Parse user intent from message.
+     *
+     * @return array{module: string, action: string, entities: array, confidence: float, raw_intent: string}
+     */
+    public function parseIntent(User $user, string $message, array $conversationHistory = []): array
+    {
+        return $this->intentParser->parse($user, $message, $conversationHistory);
+    }
+
+    /**
+     * Get ChatService instance.
+     */
+    public function getChatService(): ChatService
+    {
+        return $this->chatService;
+    }
+
+    /**
+     * Get AiProvider instance.
+     */
+    public function getAiProvider(): AiProviderInterface
+    {
+        return $this->aiProvider;
+    }
 }

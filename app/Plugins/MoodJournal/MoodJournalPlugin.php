@@ -3,7 +3,6 @@
 namespace App\Plugins\MoodJournal;
 
 use App\Services\Plugin\BasePlugin;
-use App\Services\TelegramService;
 
 class MoodJournalPlugin extends BasePlugin
 {
@@ -211,9 +210,11 @@ class MoodJournalPlugin extends BasePlugin
 
             if ($type === 'mood_checkin') {
                 $period = $context['period'] ?? 'daily';
-                $this->sendMoodCheckin($userId, $period);
+                $message = $this->buildMoodCheckinMessage($userId, $period);
+                $this->sendTelegramMessage($userId, $message);
             } elseif ($type === 'weekly_insight') {
-                $this->sendWeeklyInsight($userId);
+                $message = $this->buildWeeklyInsightMessage();
+                $this->sendTelegramMessage($userId, $message);
             }
 
             $this->log($userId, 'info', "Executed: {$type}");
@@ -222,10 +223,79 @@ class MoodJournalPlugin extends BasePlugin
         }
     }
 
-    private function sendMoodCheckin(int $userId, string $period): void
+    public function supportsScheduling(): bool
+    {
+        return true;
+    }
+
+    public function getDefaultSchedule(): ?array
+    {
+        return [
+            'type' => 'daily',
+            'value' => '21:00',
+        ];
+    }
+
+    public function supportsChatIntegration(): bool
+    {
+        return true;
+    }
+
+    public function getChatIntents(): array
+    {
+        $slugPrefix = str_replace('-', '_', $this->getSlug());
+
+        return [
+            [
+                'action' => "plugin_{$slugPrefix}_checkin",
+                'description' => 'Check-in mood harian',
+                'entities' => [
+                    'period' => 'string|null',
+                ],
+                'examples' => [
+                    'mood check-in hari ini',
+                    'checkin mood pagi',
+                    'how is my mood today',
+                ],
+            ],
+            [
+                'action' => "plugin_{$slugPrefix}_weekly_insight",
+                'description' => 'Insight mood mingguan',
+                'entities' => [
+                    'week' => 'string|null',
+                ],
+                'examples' => [
+                    'insight mood minggu ini',
+                    'weekly mood insight',
+                ],
+            ],
+        ];
+    }
+
+    public function handleChatIntent(int $userId, string $action, array $entities): array
+    {
+        $slugPrefix = str_replace('-', '_', $this->getSlug());
+        $period = $entities['period'] ?? 'daily';
+
+        return match ($action) {
+            "plugin_{$slugPrefix}_checkin" => [
+                'success' => true,
+                'message' => $this->buildMoodCheckinMessage($userId, $period),
+            ],
+            "plugin_{$slugPrefix}_weekly_insight" => [
+                'success' => true,
+                'message' => $this->buildWeeklyInsightMessage(),
+            ],
+            default => [
+                'success' => false,
+                'message' => 'Action not supported',
+            ],
+        };
+    }
+
+    private function buildMoodCheckinMessage(int $userId, string $period): string
     {
         $config = $this->getUserConfig($userId);
-        $telegramService = app(TelegramService::class);
 
         $periodLabels = [
             'morning' => 'Pagi',
@@ -262,13 +332,11 @@ class MoodJournalPlugin extends BasePlugin
             $message .= '💚 Apa yang Anda syukuri hari ini?';
         }
 
-        $telegramService->sendMessage($userId, $message);
+        return $message;
     }
 
-    private function sendWeeklyInsight(int $userId): void
+    private function buildWeeklyInsightMessage(): string
     {
-        $telegramService = app(TelegramService::class);
-
         $message = "📊 *Insight Mood Mingguan*\n\n";
         $message .= "Ringkasan minggu ini:\n\n";
 
@@ -281,6 +349,6 @@ class MoodJournalPlugin extends BasePlugin
         $message .= "📈 Pola mood minggu depan akan lebih baik jika Anda konsisten dengan kebiasaan positif!\n\n";
         $message .= 'Ingat: Perasaan adalah valid, dan tidak apa-apa untuk tidak selalu baik-baik saja. 💚';
 
-        $telegramService->sendMessage($userId, $message);
+        return $message;
     }
 }

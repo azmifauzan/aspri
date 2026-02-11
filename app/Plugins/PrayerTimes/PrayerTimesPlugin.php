@@ -205,6 +205,108 @@ class PrayerTimesPlugin extends BasePlugin
         }
     }
 
+    public function supportsScheduling(): bool
+    {
+        return true;
+    }
+
+    public function getDefaultSchedule(): ?array
+    {
+        return [
+            'type' => 'daily',
+            'value' => '04:30',
+        ];
+    }
+
+    public function supportsChatIntegration(): bool
+    {
+        return true;
+    }
+
+    public function getChatIntents(): array
+    {
+        $slugPrefix = str_replace('-', '_', $this->getSlug());
+
+        return [
+            [
+                'action' => "plugin_{$slugPrefix}_check",
+                'description' => 'Cek jadwal solat untuk tanggal tertentu',
+                'entities' => [
+                    'date' => 'string|null',
+                ],
+                'examples' => [
+                    'jadwal solat hari ini',
+                    'cek jadwal solat besok',
+                    'prayer times today',
+                ],
+            ],
+        ];
+    }
+
+    public function handleChatIntent(int $userId, string $action, array $entities): array
+    {
+        $slugPrefix = str_replace('-', '_', $this->getSlug());
+
+        if ($action !== "plugin_{$slugPrefix}_check") {
+            return [
+                'success' => false,
+                'message' => 'Action not supported',
+            ];
+        }
+
+        $date = $entities['date'] ?? null;
+        $result = $this->checkPrayerTimes($userId, $date);
+
+        if ($result['success']) {
+            $timings = $result['timings'];
+
+            $now = Carbon::now();
+            $nextPrayer = null;
+            $nextTime = null;
+
+            foreach (['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'] as $prayer) {
+                $prayerTime = Carbon::createFromFormat('H:i', $timings[$prayer]);
+                if ($prayerTime->greaterThan($now)) {
+                    $nextPrayer = $prayer;
+                    $nextTime = $timings[$prayer];
+                    break;
+                }
+            }
+
+            $prayerNames = [
+                'Fajr' => 'Subuh',
+                'Dhuhr' => 'Dzuhur',
+                'Asr' => 'Ashar',
+                'Maghrib' => 'Maghrib',
+                'Isha' => 'Isya',
+            ];
+
+            $response = "🕌 *Jadwal Solat*\n\n";
+            $response .= "📍 {$result['location']}\n";
+            $response .= "📅 {$result['date']}\n\n";
+            $response .= "🌅 Subuh: {$timings['Fajr']}\n";
+            $response .= "☀️ Dzuhur: {$timings['Dhuhr']}\n";
+            $response .= "🌤️ Ashar: {$timings['Asr']}\n";
+            $response .= "🌆 Maghrib: {$timings['Maghrib']}\n";
+            $response .= "🌙 Isya: {$timings['Isha']}\n";
+
+            if ($nextPrayer && $nextTime) {
+                $response .= "\n⏰ Solat berikutnya: {$prayerNames[$nextPrayer]} ({$nextTime})\n";
+            }
+
+            return [
+                'success' => true,
+                'message' => $response,
+                'data' => $result,
+            ];
+        }
+
+        return [
+            'success' => false,
+            'message' => '❌ Maaf, gagal mengambil jadwal solat. Coba lagi nanti.',
+        ];
+    }
+
     public function checkPrayerTimes(int $userId, ?string $date = null): array
     {
         $config = $this->getUserConfig($userId);
@@ -285,74 +387,9 @@ class PrayerTimesPlugin extends BasePlugin
             $message .= "🌙 Isya: *{$timings['Isha']}*\n\n";
             $message .= '_Data dari AlAdhan API_';
 
-            // Send via Telegram if service available
-            if (app()->bound('telegram')) {
-                app('telegram')->sendMessage($userId, $message);
-            }
+            $this->sendTelegramMessage($userId, $message);
 
             $this->log($userId, 'info', 'Daily schedule sent');
         }
-    }
-
-    public function handleIntent(int $userId, array $intent): ?array
-    {
-        $action = $intent['action'] ?? '';
-        $entities = $intent['entities'] ?? [];
-
-        if (in_array($action, ['prayer_times', 'check_prayer', 'jadwal_solat'])) {
-            $date = $entities['date'] ?? null;
-            $result = $this->checkPrayerTimes($userId, $date);
-
-            if ($result['success']) {
-                $timings = $result['timings'];
-
-                // Find next prayer
-                $now = Carbon::now();
-                $nextPrayer = null;
-                $nextTime = null;
-
-                foreach (['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'] as $prayer) {
-                    $prayerTime = Carbon::createFromFormat('H:i', $timings[$prayer]);
-                    if ($prayerTime->greaterThan($now)) {
-                        $nextPrayer = $prayer;
-                        $nextTime = $timings[$prayer];
-                        break;
-                    }
-                }
-
-                $prayerNames = [
-                    'Fajr' => 'Subuh',
-                    'Dhuhr' => 'Dzuhur',
-                    'Asr' => 'Ashar',
-                    'Maghrib' => 'Maghrib',
-                    'Isha' => 'Isya',
-                ];
-
-                $response = "🕌 *Jadwal Solat*\n\n";
-                $response .= "📍 {$result['location']}\n";
-                $response .= "📅 {$result['date']}\n\n";
-                $response .= "🌅 Subuh: {$timings['Fajr']}\n";
-                $response .= "☀️ Dzuhur: {$timings['Dhuhr']}\n";
-                $response .= "🌤️ Ashar: {$timings['Asr']}\n";
-                $response .= "🌆 Maghrib: {$timings['Maghrib']}\n";
-                $response .= "🌙 Isya: {$timings['Isha']}\n";
-
-                if ($nextPrayer && $nextTime) {
-                    $response .= "\n⏰ Solat berikutnya: {$prayerNames[$nextPrayer]} ({$nextTime})\n";
-                }
-
-                return [
-                    'response' => $response,
-                    'data' => $result,
-                ];
-            }
-
-            return [
-                'response' => '❌ Maaf, gagal mengambil jadwal solat. Coba lagi nanti.',
-                'error' => $result['error'],
-            ];
-        }
-
-        return null;
     }
 }

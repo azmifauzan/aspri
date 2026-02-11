@@ -3,7 +3,6 @@
 namespace App\Plugins\BirthdayReminder;
 
 use App\Services\Plugin\BasePlugin;
-use App\Services\TelegramService;
 
 class BirthdayReminderPlugin extends BasePlugin
 {
@@ -169,9 +168,11 @@ class BirthdayReminderPlugin extends BasePlugin
             $type = $context['type'] ?? 'birthday_check';
 
             if ($type === 'birthday_check') {
-                $this->checkUpcomingBirthdays($userId);
+                $message = $this->buildUpcomingBirthdaysMessage($userId);
+                $this->sendTelegramMessage($userId, $message);
             } elseif ($type === 'monthly_overview') {
-                $this->sendMonthlyOverview($userId);
+                $message = $this->buildMonthlyOverviewMessage();
+                $this->sendTelegramMessage($userId, $message);
             }
 
             $this->log($userId, 'info', "Executed: {$type}");
@@ -180,12 +181,80 @@ class BirthdayReminderPlugin extends BasePlugin
         }
     }
 
-    private function checkUpcomingBirthdays(int $userId): void
+    public function supportsScheduling(): bool
+    {
+        return true;
+    }
+
+    public function getDefaultSchedule(): ?array
+    {
+        return [
+            'type' => 'daily',
+            'value' => '08:00',
+        ];
+    }
+
+    public function supportsChatIntegration(): bool
+    {
+        return true;
+    }
+
+    public function getChatIntents(): array
+    {
+        $slugPrefix = str_replace('-', '_', $this->getSlug());
+
+        return [
+            [
+                'action' => "plugin_{$slugPrefix}_check",
+                'description' => 'Cek pengingat ulang tahun terdekat',
+                'entities' => [
+                    'period' => 'string|null',
+                ],
+                'examples' => [
+                    'cek ulang tahun minggu ini',
+                    'ulang tahun terdekat',
+                    'birthday reminder hari ini',
+                    'siapa yang ulang tahun minggu ini',
+                ],
+            ],
+            [
+                'action' => "plugin_{$slugPrefix}_monthly_overview",
+                'description' => 'Ringkasan ulang tahun bulan ini',
+                'entities' => [
+                    'month' => 'string|null',
+                ],
+                'examples' => [
+                    'ringkasan ulang tahun bulan ini',
+                    'birthday overview bulan ini',
+                    'siapa saja ulang tahun bulan ini',
+                ],
+            ],
+        ];
+    }
+
+    public function handleChatIntent(int $userId, string $action, array $entities): array
+    {
+        $slugPrefix = str_replace('-', '_', $this->getSlug());
+
+        return match ($action) {
+            "plugin_{$slugPrefix}_check" => [
+                'success' => true,
+                'message' => $this->buildUpcomingBirthdaysMessage($userId),
+            ],
+            "plugin_{$slugPrefix}_monthly_overview" => [
+                'success' => true,
+                'message' => $this->buildMonthlyOverviewMessage(),
+            ],
+            default => [
+                'success' => false,
+                'message' => 'Action not supported',
+            ],
+        };
+    }
+
+    private function buildUpcomingBirthdaysMessage(int $userId): string
     {
         $config = $this->getUserConfig($userId);
-        $telegramService = app(TelegramService::class);
-
-        $advanceNoticeDays = $config['advance_notice_days'];
 
         // This would need a birthdays table or use contacts
         // For now, send a reminder to add birthdays if none exist
@@ -196,15 +265,11 @@ class BirthdayReminderPlugin extends BasePlugin
         $message .= "\"Tambah ulang tahun [Nama] [DD/MM/YYYY]\"\n\n";
         $message .= 'Contoh: "Tambah ulang tahun Budi 15/08/1990"';
 
-        // Don't send if no birthdays - reduce noise
-        // $telegramService->sendMessage($userId, $message);
+        return $message;
     }
 
-    private function sendMonthlyOverview(int $userId): void
+    private function buildMonthlyOverviewMessage(): string
     {
-        $config = $this->getUserConfig($userId);
-        $telegramService = app(TelegramService::class);
-
         $currentMonth = now()->format('F Y');
 
         $message = "🎉 *Ulang Tahun Bulan {$currentMonth}*\n\n";
@@ -220,6 +285,6 @@ class BirthdayReminderPlugin extends BasePlugin
         $message .= "• klien\n\n";
         $message .= 'Contoh: "Tambah ulang tahun Sarah 25/03/1995 teman"';
 
-        $telegramService->sendMessage($userId, $message);
+        return $message;
     }
 }

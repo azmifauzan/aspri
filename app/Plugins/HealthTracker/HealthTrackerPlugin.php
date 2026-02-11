@@ -4,7 +4,6 @@ namespace App\Plugins\HealthTracker;
 
 use App\Models\User;
 use App\Services\Plugin\BasePlugin;
-use App\Services\TelegramService;
 
 class HealthTrackerPlugin extends BasePlugin
 {
@@ -195,9 +194,11 @@ class HealthTrackerPlugin extends BasePlugin
             $type = $context['type'] ?? 'daily_reminder';
 
             if ($type === 'daily_reminder') {
-                $this->sendDailyReminder($userId);
+                $message = $this->buildDailyReminderMessage($userId);
+                $this->sendTelegramMessage($userId, $message);
             } elseif ($type === 'weekly_report') {
-                $this->sendWeeklyReport($userId);
+                $message = $this->buildWeeklyReportMessage($userId);
+                $this->sendTelegramMessage($userId, $message);
             }
 
             $this->log($userId, 'info', "Executed: {$type}");
@@ -206,10 +207,78 @@ class HealthTrackerPlugin extends BasePlugin
         }
     }
 
-    private function sendDailyReminder(int $userId): void
+    public function supportsScheduling(): bool
+    {
+        return true;
+    }
+
+    public function getDefaultSchedule(): ?array
+    {
+        return [
+            'type' => 'daily',
+            'value' => '20:00',
+        ];
+    }
+
+    public function supportsChatIntegration(): bool
+    {
+        return true;
+    }
+
+    public function getChatIntents(): array
+    {
+        $slugPrefix = str_replace('-', '_', $this->getSlug());
+
+        return [
+            [
+                'action' => "plugin_{$slugPrefix}_reminder",
+                'description' => 'Pengingat kesehatan harian',
+                'entities' => [
+                    'time' => 'string|null',
+                ],
+                'examples' => [
+                    'ingatkan kesehatan harian',
+                    'pengingat catat kesehatan',
+                    'remind me to log my health',
+                ],
+            ],
+            [
+                'action' => "plugin_{$slugPrefix}_weekly_report",
+                'description' => 'Laporan kesehatan mingguan',
+                'entities' => [
+                    'week' => 'string|null',
+                ],
+                'examples' => [
+                    'laporan kesehatan minggu ini',
+                    'weekly health report',
+                ],
+            ],
+        ];
+    }
+
+    public function handleChatIntent(int $userId, string $action, array $entities): array
+    {
+        $slugPrefix = str_replace('-', '_', $this->getSlug());
+
+        return match ($action) {
+            "plugin_{$slugPrefix}_reminder" => [
+                'success' => true,
+                'message' => $this->buildDailyReminderMessage($userId),
+            ],
+            "plugin_{$slugPrefix}_weekly_report" => [
+                'success' => true,
+                'message' => $this->buildWeeklyReportMessage($userId),
+            ],
+            default => [
+                'success' => false,
+                'message' => 'Action not supported',
+            ],
+        };
+    }
+
+    private function buildDailyReminderMessage(int $userId): string
     {
         $config = $this->getUserConfig($userId);
-        $telegramService = app(TelegramService::class);
 
         $message = "🏥 *Pengingat Kesehatan Harian*\n\n";
         $message .= "Jangan lupa catat kesehatan Anda hari ini:\n\n";
@@ -229,13 +298,12 @@ class HealthTrackerPlugin extends BasePlugin
 
         $message .= "\nKetik data kesehatan Anda ke ASPRI untuk dicatat!";
 
-        $telegramService->sendMessage($userId, $message);
+        return $message;
     }
 
-    private function sendWeeklyReport(int $userId): void
+    private function buildWeeklyReportMessage(int $userId): string
     {
         $config = $this->getUserConfig($userId);
-        $telegramService = app(TelegramService::class);
 
         $user = User::find($userId);
         $startDate = now()->subDays(7);
@@ -261,6 +329,6 @@ class HealthTrackerPlugin extends BasePlugin
 
         $message .= "\nTerus semangat mencapai target kesehatan Anda! 💪";
 
-        $telegramService->sendMessage($userId, $message);
+        return $message;
     }
 }

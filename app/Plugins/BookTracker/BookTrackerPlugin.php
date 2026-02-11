@@ -3,7 +3,6 @@
 namespace App\Plugins\BookTracker;
 
 use App\Services\Plugin\BasePlugin;
-use App\Services\TelegramService;
 
 class BookTrackerPlugin extends BasePlugin
 {
@@ -174,10 +173,12 @@ class BookTrackerPlugin extends BasePlugin
                 $today = strtolower(now()->format('l'));
 
                 if (in_array($today, $days)) {
-                    $this->sendDailyReminder($userId);
+                    $message = $this->buildDailyReminderMessage($userId);
+                    $this->sendTelegramMessage($userId, $message);
                 }
             } elseif ($type === 'monthly_summary') {
-                $this->sendMonthlySummary($userId);
+                $message = $this->buildMonthlySummaryMessage($userId);
+                $this->sendTelegramMessage($userId, $message);
             }
 
             $this->log($userId, 'info', "Executed: {$type}");
@@ -186,10 +187,78 @@ class BookTrackerPlugin extends BasePlugin
         }
     }
 
-    private function sendDailyReminder(int $userId): void
+    public function supportsScheduling(): bool
+    {
+        return true;
+    }
+
+    public function getDefaultSchedule(): ?array
+    {
+        return [
+            'type' => 'daily',
+            'value' => '20:00',
+        ];
+    }
+
+    public function supportsChatIntegration(): bool
+    {
+        return true;
+    }
+
+    public function getChatIntents(): array
+    {
+        $slugPrefix = str_replace('-', '_', $this->getSlug());
+
+        return [
+            [
+                'action' => "plugin_{$slugPrefix}_reminder",
+                'description' => 'Pengingat membaca harian dan target buku',
+                'entities' => [
+                    'time' => 'string|null',
+                ],
+                'examples' => [
+                    'ingatkan saya membaca hari ini',
+                    'pengingat baca buku',
+                    'remind me to read today',
+                ],
+            ],
+            [
+                'action' => "plugin_{$slugPrefix}_monthly_summary",
+                'description' => 'Ringkasan membaca bulanan',
+                'entities' => [
+                    'month' => 'string|null',
+                ],
+                'examples' => [
+                    'ringkasan membaca bulan ini',
+                    'monthly reading summary',
+                ],
+            ],
+        ];
+    }
+
+    public function handleChatIntent(int $userId, string $action, array $entities): array
+    {
+        $slugPrefix = str_replace('-', '_', $this->getSlug());
+
+        return match ($action) {
+            "plugin_{$slugPrefix}_reminder" => [
+                'success' => true,
+                'message' => $this->buildDailyReminderMessage($userId),
+            ],
+            "plugin_{$slugPrefix}_monthly_summary" => [
+                'success' => true,
+                'message' => $this->buildMonthlySummaryMessage($userId),
+            ],
+            default => [
+                'success' => false,
+                'message' => 'Action not supported',
+            ],
+        };
+    }
+
+    private function buildDailyReminderMessage(int $userId): string
     {
         $config = $this->getUserConfig($userId);
-        $telegramService = app(TelegramService::class);
 
         $motivationalQuotes = [
             '📚 "Membaca adalah jendela dunia."',
@@ -207,13 +276,12 @@ class BookTrackerPlugin extends BasePlugin
         $message .= "Luangkan waktu 20-30 menit untuk membaca hari ini! 📖\n\n";
         $message .= 'Sedang baca apa sekarang?';
 
-        $telegramService->sendMessage($userId, $message);
+        return $message;
     }
 
-    private function sendMonthlySummary(int $userId): void
+    private function buildMonthlySummaryMessage(int $userId): string
     {
         $config = $this->getUserConfig($userId);
-        $telegramService = app(TelegramService::class);
 
         $currentMonth = now()->subMonth()->format('F Y');
         $yearlyGoal = $config['yearly_goal'];
@@ -228,6 +296,6 @@ class BookTrackerPlugin extends BasePlugin
         $message .= "💡 Tips: Bawa buku kemana pun Anda pergi, manfaatkan waktu tunggu untuk membaca beberapa halaman.\n\n";
         $message .= 'Buku apa yang akan Anda baca bulan ini?';
 
-        $telegramService->sendMessage($userId, $message);
+        return $message;
     }
 }

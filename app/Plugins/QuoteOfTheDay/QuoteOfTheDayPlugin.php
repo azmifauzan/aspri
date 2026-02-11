@@ -159,6 +159,118 @@ class QuoteOfTheDayPlugin extends BasePlugin
         }
     }
 
+    public function supportsScheduling(): bool
+    {
+        return true;
+    }
+
+    public function getDefaultSchedule(): ?array
+    {
+        return [
+            'type' => 'daily',
+            'value' => '06:00',
+        ];
+    }
+
+    public function supportsChatIntegration(): bool
+    {
+        return true;
+    }
+
+    public function getChatIntents(): array
+    {
+        $slugPrefix = str_replace('-', '_', $this->getSlug());
+
+        return [
+            [
+                'action' => "plugin_{$slugPrefix}_random",
+                'description' => 'Kutipan inspiratif acak',
+                'entities' => [
+                    'tags' => 'string|null',
+                ],
+                'examples' => [
+                    'beri saya quote',
+                    'quote motivasi',
+                    'inspirational quote',
+                ],
+            ],
+            [
+                'action' => "plugin_{$slugPrefix}_search",
+                'description' => 'Cari kutipan berdasarkan kata kunci',
+                'entities' => [
+                    'query' => 'string',
+                ],
+                'examples' => [
+                    'cari quote tentang sukses',
+                    'search quote about life',
+                ],
+            ],
+        ];
+    }
+
+    public function handleChatIntent(int $userId, string $action, array $entities): array
+    {
+        $slugPrefix = str_replace('-', '_', $this->getSlug());
+
+        if ($action === "plugin_{$slugPrefix}_random") {
+            $tags = $entities['tags'] ?? null;
+            $result = $this->getRandomQuote($userId, ['tags' => $tags]);
+
+            if ($result['success']) {
+                $message = "💡 *Quote for You*\n\n";
+                $message .= "_{$result['quote']}_\n\n";
+                $message .= "— *{$result['author']}*";
+
+                if (! empty($result['tags'])) {
+                    $tagList = array_map(fn ($tag) => "#{$tag}", array_slice($result['tags'], 0, 3));
+                    $message .= "\n\n".implode(' ', $tagList);
+                }
+
+                return [
+                    'success' => true,
+                    'message' => $message,
+                    'data' => $result,
+                ];
+            }
+
+            return [
+                'success' => false,
+                'message' => '❌ Maaf, gagal mengambil kutipan. Coba lagi nanti.',
+            ];
+        }
+
+        if ($action === "plugin_{$slugPrefix}_search") {
+            $query = $entities['query'] ?? '';
+            $result = $this->searchQuotes($userId, $query);
+
+            if ($result['success'] && ! empty($result['quotes'])) {
+                $message = "💡 *Hasil Pencarian Kutipan*\n\n";
+
+                foreach (array_slice($result['quotes'], 0, 3) as $index => $quote) {
+                    $num = $index + 1;
+                    $message .= "*{$num}.* _{$quote['content']}_\n";
+                    $message .= "   — {$quote['author']}\n\n";
+                }
+
+                return [
+                    'success' => true,
+                    'message' => $message,
+                    'data' => $result,
+                ];
+            }
+
+            return [
+                'success' => false,
+                'message' => '❌ Tidak ditemukan kutipan yang sesuai.',
+            ];
+        }
+
+        return [
+            'success' => false,
+            'message' => 'Action not supported',
+        ];
+    }
+
     public function getRandomQuote(int $userId, array $context = []): array
     {
         $config = $this->getUserConfig($userId);
@@ -243,10 +355,7 @@ class QuoteOfTheDayPlugin extends BasePlugin
 
             $message .= "\n_From Quotable API_";
 
-            // Send via Telegram if service available
-            if (app()->bound('telegram')) {
-                app('telegram')->sendMessage($userId, $message);
-            }
+            $this->sendTelegramMessage($userId, $message);
 
             $this->log($userId, 'info', 'Daily quote sent');
         }
@@ -320,64 +429,5 @@ class QuoteOfTheDayPlugin extends BasePlugin
                 'error' => $e->getMessage(),
             ];
         }
-    }
-
-    public function handleIntent(int $userId, array $intent): ?array
-    {
-        $action = $intent['action'] ?? '';
-        $entities = $intent['entities'] ?? [];
-
-        if (in_array($action, ['get_quote', 'motivational_quote', 'inspiration'])) {
-            $tags = $entities['tags'] ?? null;
-            $result = $this->getRandomQuote($userId, ['tags' => $tags]);
-
-            if ($result['success']) {
-                $message = "💡 *Quote for You*\n\n";
-                $message .= "_{$result['quote']}_\n\n";
-                $message .= "— *{$result['author']}*";
-
-                if (! empty($result['tags'])) {
-                    $tags = array_map(fn ($tag) => "#{$tag}", array_slice($result['tags'], 0, 3));
-                    $message .= "\n\n".implode(' ', $tags);
-                }
-
-                return [
-                    'response' => $message,
-                    'data' => $result,
-                ];
-            }
-
-            return [
-                'response' => '❌ Maaf, gagal mengambil kutipan. Coba lagi nanti.',
-                'error' => $result['error'],
-            ];
-        }
-
-        if ($action === 'search_quote') {
-            $query = $entities['query'] ?? '';
-            $result = $this->searchQuotes($userId, $query);
-
-            if ($result['success'] && ! empty($result['quotes'])) {
-                $message = "💡 *Hasil Pencarian Kutipan*\n\n";
-
-                foreach (array_slice($result['quotes'], 0, 3) as $index => $quote) {
-                    $num = $index + 1;
-                    $message .= "*{$num}.* _{$quote['content']}_\n";
-                    $message .= "   — {$quote['author']}\n\n";
-                }
-
-                return [
-                    'response' => $message,
-                    'data' => $result,
-                ];
-            }
-
-            return [
-                'response' => '❌ Tidak ditemukan kutipan yang sesuai.',
-                'error' => $result['error'] ?? 'No results',
-            ];
-        }
-
-        return null;
     }
 }

@@ -5,7 +5,6 @@ namespace App\Plugins\PengingatMinumAir;
 use App\Models\User;
 use App\Services\Plugin\BasePlugin;
 use Carbon\Carbon;
-use Telegram\Bot\Api;
 
 class PengingatMinumAirPlugin extends BasePlugin
 {
@@ -102,6 +101,71 @@ class PengingatMinumAirPlugin extends BasePlugin
         ];
     }
 
+    public function supportsChatIntegration(): bool
+    {
+        return true;
+    }
+
+    public function getChatIntents(): array
+    {
+        $slugPrefix = str_replace('-', '_', $this->getSlug());
+
+        return [
+            [
+                'action' => "plugin_{$slugPrefix}_reminder",
+                'description' => 'Pengingat minum air dan target hidrasi',
+                'entities' => [
+                    'count' => 'number|null',
+                ],
+                'examples' => [
+                    'ingatkan saya minum air',
+                    'pengingat minum air',
+                    'remind me to drink water',
+                ],
+            ],
+        ];
+    }
+
+    public function handleChatIntent(int $userId, string $action, array $entities): array
+    {
+        $slugPrefix = str_replace('-', '_', $this->getSlug());
+
+        if ($action !== "plugin_{$slugPrefix}_reminder") {
+            return [
+                'success' => false,
+                'message' => 'Action not supported',
+            ];
+        }
+
+        $message = $this->buildReminderMessage($userId);
+
+        return [
+            'success' => true,
+            'message' => $message,
+        ];
+    }
+
+    public function activate(int $userId): void
+    {
+        $config = $this->getUserConfig($userId);
+
+        $this->createSchedule($userId, [
+            'schedule_type' => 'interval',
+            'schedule_value' => $config['reminder_interval'] ?? '120',
+            'metadata' => [
+                'type' => 'water_reminder',
+            ],
+        ]);
+
+        $this->log($userId, 'info', 'Pengingat Minum Air activated');
+    }
+
+    public function deactivate(int $userId): void
+    {
+        $this->deleteSchedules($userId);
+        $this->log($userId, 'info', 'Pengingat Minum Air deactivated');
+    }
+
     /**
      * Execute the plugin - send a water reminder.
      *
@@ -133,7 +197,7 @@ class PengingatMinumAirPlugin extends BasePlugin
 
         try {
             $message = $this->formatMessage($config, $user);
-            $this->sendTelegramMessage($user->telegram_chat_id, $message);
+            $this->sendTelegramMessage($userId, $message);
 
             $this->logInfo('Water reminder sent', $userId);
         } catch (\Exception $e) {
@@ -217,33 +281,16 @@ class PengingatMinumAirPlugin extends BasePlugin
         return $message;
     }
 
-    /**
-     * Send message via Telegram.
-     */
-    protected function sendTelegramMessage(int $chatId, string $message): void
+    private function buildReminderMessage(int $userId): string
     {
-        $token = config('services.telegram.bot_token');
+        $config = $this->getUserConfig($userId);
+        $user = $this->getUser($userId);
 
-        if (! $token) {
-            throw new \RuntimeException('Telegram bot token not configured');
+        if (! $user) {
+            return 'User tidak ditemukan.';
         }
 
-        $telegram = new Api($token);
-
-        // Disable SSL verification if configured
-        if (config('services.telegram.http_client_verify') === false) {
-            $telegram->setHttpClientHandler(
-                new \Telegram\Bot\HttpClients\GuzzleHttpClient(
-                    new \GuzzleHttp\Client(['verify' => false])
-                )
-            );
-        }
-
-        $telegram->sendMessage([
-            'chat_id' => $chatId,
-            'text' => $message,
-            'parse_mode' => 'Markdown',
-        ]);
+        return $this->formatMessage($config, $user);
     }
 
     /**

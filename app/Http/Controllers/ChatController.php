@@ -6,6 +6,7 @@ use App\Http\Requests\Chat\SendMessageRequest;
 use App\Models\ChatMessage;
 use App\Models\ChatThread;
 use App\Models\ChatUsageLog;
+use App\Models\PendingAction;
 use App\Services\Ai\ChatOrchestrator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -272,7 +273,7 @@ class ChatController extends Controller
 
             try {
                 // Parse intent first
-                $intent = $this->chatOrchestrator->intentParser->parse($user, $messageContent, $history);
+                $intent = $this->chatOrchestrator->parseIntent($user, $messageContent, $history);
 
                 // Check for pending actions
                 $pendingAction = PendingAction::where('thread_id', $thread->id)
@@ -287,10 +288,10 @@ class ChatController extends Controller
                 // For simple general chat, use streaming
                 if ($shouldStream) {
                     // Build messages using ChatService
-                    $messages = $this->chatOrchestrator->chatService->formatMessages($user, $messageContent, $history);
+                    $messages = $this->chatOrchestrator->getChatService()->formatMessages($user, $messageContent, $history);
 
                     // Stream response
-                    $fullResponse = $this->chatOrchestrator->aiProvider->chatStream($messages, function ($chunk) {
+                    $fullResponse = $this->chatOrchestrator->getAiProvider()->chatStream($messages, function ($chunk) {
                         echo "event: message_chunk\n";
                         echo 'data: '.json_encode(['content' => $chunk])."\n\n";
                         ob_flush();

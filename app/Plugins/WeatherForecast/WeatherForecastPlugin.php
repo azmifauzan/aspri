@@ -180,6 +180,85 @@ class WeatherForecastPlugin extends BasePlugin
         }
     }
 
+    public function supportsScheduling(): bool
+    {
+        return true;
+    }
+
+    public function getDefaultSchedule(): ?array
+    {
+        return [
+            'type' => 'daily',
+            'value' => '06:00',
+        ];
+    }
+
+    public function supportsChatIntegration(): bool
+    {
+        return true;
+    }
+
+    public function getChatIntents(): array
+    {
+        $slugPrefix = str_replace('-', '_', $this->getSlug());
+
+        return [
+            [
+                'action' => "plugin_{$slugPrefix}_check",
+                'description' => 'Cek cuaca untuk lokasi tertentu',
+                'entities' => [
+                    'latitude' => 'number|null',
+                    'longitude' => 'number|null',
+                ],
+                'examples' => [
+                    'cek cuaca hari ini',
+                    'weather forecast',
+                    'cuaca di jakarta',
+                ],
+            ],
+        ];
+    }
+
+    public function handleChatIntent(int $userId, string $action, array $entities): array
+    {
+        $slugPrefix = str_replace('-', '_', $this->getSlug());
+
+        if ($action !== "plugin_{$slugPrefix}_check") {
+            return [
+                'success' => false,
+                'message' => 'Action not supported',
+            ];
+        }
+
+        $result = $this->checkWeather($userId, $entities);
+
+        if ($result['success']) {
+            $current = $result['current'];
+            $weatherDesc = $this->getWeatherDescription($current['weather_code']);
+            $temp = round($current['temperature_2m']);
+            $feelsLike = round($current['apparent_temperature']);
+
+            return [
+                'success' => true,
+                'message' => sprintf(
+                    "🌤️ *Cuaca di %s*\n\n🌡️ %s°C (terasa %s°C)\n☁️ %s\n💧 Kelembaban: %s%%\n💨 Angin: %s km/h\n\n_Data dari Open-Meteo_",
+                    $result['location'],
+                    $temp,
+                    $feelsLike,
+                    $weatherDesc,
+                    $current['relative_humidity_2m'],
+                    round($current['wind_speed_10m'])
+                ),
+                'data' => $result,
+            ];
+        }
+
+        return [
+            'success' => false,
+            'message' => '❌ Maaf, gagal mengambil data cuaca. Coba lagi nanti.',
+        ];
+    }
+
     public function checkWeather(int $userId, array $context = []): array
     {
         $config = $this->getUserConfig($userId);
@@ -260,10 +339,7 @@ class WeatherForecastPlugin extends BasePlugin
 
             $message .= '_Update: '.now()->format('d M Y H:i').'_';
 
-            // Send via Telegram if service available
-            if (app()->bound('telegram')) {
-                app('telegram')->sendMessage($userId, $message);
-            }
+            $this->sendTelegramMessage($userId, $message);
 
             $this->log($userId, 'info', 'Morning forecast sent');
         }
@@ -296,42 +372,5 @@ class WeatherForecastPlugin extends BasePlugin
         ];
 
         return $descriptions[$code] ?? 'Tidak Diketahui';
-    }
-
-    public function handleIntent(int $userId, array $intent): ?array
-    {
-        $action = $intent['action'] ?? '';
-        $entities = $intent['entities'] ?? [];
-
-        if (in_array($action, ['check_weather', 'weather_forecast'])) {
-            $result = $this->checkWeather($userId, $entities);
-
-            if ($result['success']) {
-                $current = $result['current'];
-                $weatherDesc = $this->getWeatherDescription($current['weather_code']);
-                $temp = round($current['temperature_2m']);
-                $feelsLike = round($current['apparent_temperature']);
-
-                return [
-                    'response' => sprintf(
-                        "🌤️ *Cuaca di %s*\n\n🌡️ %s°C (terasa %s°C)\n☁️ %s\n💧 Kelembaban: %s%%\n💨 Angin: %s km/h\n\n_Data dari Open-Meteo_",
-                        $result['location'],
-                        $temp,
-                        $feelsLike,
-                        $weatherDesc,
-                        $current['relative_humidity_2m'],
-                        round($current['wind_speed_10m'])
-                    ),
-                    'data' => $result,
-                ];
-            }
-
-            return [
-                'response' => '❌ Maaf, gagal mengambil data cuaca. Coba lagi nanti.',
-                'error' => $result['error'],
-            ];
-        }
-
-        return null;
     }
 }

@@ -194,6 +194,129 @@ class NewsHeadlinesPlugin extends BasePlugin
         }
     }
 
+    public function supportsScheduling(): bool
+    {
+        return true;
+    }
+
+    public function getDefaultSchedule(): ?array
+    {
+        return [
+            'type' => 'daily',
+            'value' => '07:00',
+        ];
+    }
+
+    public function supportsChatIntegration(): bool
+    {
+        return true;
+    }
+
+    public function getChatIntents(): array
+    {
+        $slugPrefix = str_replace('-', '_', $this->getSlug());
+
+        return [
+            [
+                'action' => "plugin_{$slugPrefix}_latest",
+                'description' => 'Berita terbaru sesuai kategori',
+                'entities' => [
+                    'category' => 'string|null',
+                ],
+                'examples' => [
+                    'berita terkini',
+                    'latest news technology',
+                    'berita bisnis hari ini',
+                ],
+            ],
+            [
+                'action' => "plugin_{$slugPrefix}_search",
+                'description' => 'Cari berita berdasarkan kata kunci',
+                'entities' => [
+                    'query' => 'string',
+                ],
+                'examples' => [
+                    'cari berita AI',
+                    'search news about startup',
+                ],
+            ],
+        ];
+    }
+
+    public function handleChatIntent(int $userId, string $action, array $entities): array
+    {
+        $slugPrefix = str_replace('-', '_', $this->getSlug());
+
+        if ($action === "plugin_{$slugPrefix}_latest") {
+            $category = $entities['category'] ?? null;
+            $result = $this->getTopHeadlines($userId, $category);
+
+            if ($result['success'] && ! empty($result['articles'])) {
+                $message = "📰 *Berita Terkini*\n\n";
+
+                foreach (array_slice($result['articles'], 0, 5) as $index => $article) {
+                    $num = $index + 1;
+                    $message .= "*{$num}. {$article['title']}*\n";
+                    $message .= '📰 '.($article['source']['name'] ?? 'Unknown')."\n";
+
+                    if (! empty($article['url'])) {
+                        $message .= "🔗 {$article['url']}\n";
+                    }
+
+                    $message .= "\n";
+                }
+
+                return [
+                    'success' => true,
+                    'message' => $message,
+                    'data' => $result,
+                ];
+            }
+
+            return [
+                'success' => false,
+                'message' => '❌ Maaf, gagal mengambil berita. Pastikan API key sudah dikonfigurasi.',
+            ];
+        }
+
+        if ($action === "plugin_{$slugPrefix}_search") {
+            $query = $entities['query'] ?? '';
+            $result = $this->searchNews($userId, ['query' => $query]);
+
+            if ($result['success'] && ! empty($result['articles'])) {
+                $message = "📰 *Hasil Pencarian Berita*\n\n";
+
+                foreach (array_slice($result['articles'], 0, 5) as $index => $article) {
+                    $num = $index + 1;
+                    $message .= "*{$num}. {$article['title']}*\n";
+                    $message .= '📰 '.($article['source']['name'] ?? 'Unknown')."\n";
+
+                    if (! empty($article['url'])) {
+                        $message .= "🔗 {$article['url']}\n";
+                    }
+
+                    $message .= "\n";
+                }
+
+                return [
+                    'success' => true,
+                    'message' => $message,
+                    'data' => $result,
+                ];
+            }
+
+            return [
+                'success' => false,
+                'message' => '❌ Tidak ditemukan berita yang sesuai.',
+            ];
+        }
+
+        return [
+            'success' => false,
+            'message' => 'Action not supported',
+        ];
+    }
+
     public function getTopHeadlines(int $userId, ?string $category = null): array
     {
         $config = $this->getUserConfig($userId);
@@ -287,10 +410,7 @@ class NewsHeadlinesPlugin extends BasePlugin
 
         $message .= '_Powered by NewsAPI_';
 
-        // Send via Telegram if service available
-        if (app()->bound('telegram')) {
-            app('telegram')->sendMessage($userId, $message);
-        }
+        $this->sendTelegramMessage($userId, $message);
 
         $this->log($userId, 'info', 'News brief sent');
     }
@@ -339,44 +459,5 @@ class NewsHeadlinesPlugin extends BasePlugin
                 'error' => $e->getMessage(),
             ];
         }
-    }
-
-    public function handleIntent(int $userId, array $intent): ?array
-    {
-        $action = $intent['action'] ?? '';
-        $entities = $intent['entities'] ?? [];
-
-        if (in_array($action, ['get_news', 'latest_news', 'top_headlines'])) {
-            $category = $entities['category'] ?? null;
-            $result = $this->getTopHeadlines($userId, $category);
-
-            if ($result['success'] && ! empty($result['articles'])) {
-                $message = "📰 *Berita Terkini*\n\n";
-
-                foreach (array_slice($result['articles'], 0, 5) as $index => $article) {
-                    $num = $index + 1;
-                    $message .= "*{$num}. {$article['title']}*\n";
-                    $message .= "📰 {$article['source']['name']}\n";
-
-                    if (! empty($article['url'])) {
-                        $message .= "🔗 {$article['url']}\n";
-                    }
-
-                    $message .= "\n";
-                }
-
-                return [
-                    'response' => $message,
-                    'data' => $result,
-                ];
-            }
-
-            return [
-                'response' => '❌ Maaf, gagal mengambil berita. Pastikan API key sudah dikonfigurasi.',
-                'error' => $result['error'] ?? 'Unknown error',
-            ];
-        }
-
-        return null;
     }
 }

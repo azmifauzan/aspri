@@ -195,14 +195,16 @@ class CurrencyConverterPlugin extends BasePlugin
 
     public function getChatIntents(): array
     {
+        $slugPrefix = str_replace('-', '_', $this->getSlug());
+
         return [
             [
-                'action' => 'plugin_currency_convert',
+                'action' => "plugin_{$slugPrefix}_convert",
                 'description' => 'Konversi mata uang / cek nilai tukar',
                 'entities' => [
                     'amount' => 'number|null',
-                    'from_currency' => 'string|null',
-                    'to_currency' => 'string|null',
+                    'from' => 'string|null',
+                    'to' => 'string|null',
                 ],
                 'examples' => [
                     'berapa kurs IDR ke USD sekarang',
@@ -210,6 +212,7 @@ class CurrencyConverterPlugin extends BasePlugin
                     '1000 rupiah ke dolar',
                     'berapa nilai 50 euro dalam yen',
                     'kurs SGD hari ini',
+                    'how much is 500 USD in EUR',
                 ],
             ],
         ];
@@ -217,7 +220,9 @@ class CurrencyConverterPlugin extends BasePlugin
 
     public function handleChatIntent(int $userId, string $action, array $entities): array
     {
-        if ($action !== 'plugin_currency_convert') {
+        $slugPrefix = str_replace('-', '_', $this->getSlug());
+
+        if ($action !== "plugin_{$slugPrefix}_convert") {
             return [
                 'success' => false,
                 'message' => 'Action not supported',
@@ -227,8 +232,8 @@ class CurrencyConverterPlugin extends BasePlugin
         $config = $this->getUserConfig($userId);
 
         $amount = $entities['amount'] ?? 1;
-        $from = strtoupper($entities['from_currency'] ?? $entities['from'] ?? $config['base_currency'] ?? 'IDR');
-        $to = strtoupper($entities['to_currency'] ?? $entities['to'] ?? 'USD');
+        $from = strtoupper($entities['from'] ?? $entities['from_currency'] ?? $config['base_currency'] ?? 'IDR');
+        $to = strtoupper($entities['to'] ?? $entities['to_currency'] ?? 'USD');
 
         $result = $this->convertCurrency($userId, [
             'amount' => $amount,
@@ -342,56 +347,12 @@ class CurrencyConverterPlugin extends BasePlugin
 
                 $message .= "\n_Update: ".now()->format('d M Y H:i').'_';
 
-                // Send via Telegram if service available
-                if (app()->bound('telegram')) {
-                    app('telegram')->sendMessage($userId, $message);
-                }
+                $this->sendTelegramMessage($userId, $message);
 
                 $this->log($userId, 'info', 'Daily rates sent');
             }
         } catch (\Exception $e) {
             $this->log($userId, 'error', 'Failed to send daily rates: '.$e->getMessage());
         }
-    }
-
-    public function handleIntent(int $userId, array $intent): ?array
-    {
-        $action = $intent['action'] ?? '';
-        $entities = $intent['entities'] ?? [];
-
-        if (in_array($action, ['convert_currency', 'exchange_rate'])) {
-            $amount = $entities['amount'] ?? 1;
-            $from = strtoupper($entities['from_currency'] ?? 'IDR');
-            $to = strtoupper($entities['to_currency'] ?? 'USD');
-
-            $result = $this->convertCurrency($userId, [
-                'amount' => $amount,
-                'from' => $from,
-                'to' => $to,
-            ]);
-
-            if ($result['success']) {
-                return [
-                    'response' => sprintf(
-                        "💱 %s %s = %s %s\n\nNilai tukar: 1 %s = %s %s\n\n_Data realtime dari ExchangeRate-API_",
-                        number_format($result['amount'], 2),
-                        $result['from'],
-                        number_format($result['result'], 2),
-                        $result['to'],
-                        $result['from'],
-                        number_format($result['rate'], 4),
-                        $result['to']
-                    ),
-                    'data' => $result,
-                ];
-            }
-
-            return [
-                'response' => '❌ Maaf, gagal mengambil data kurs. Coba lagi nanti.',
-                'error' => $result['error'],
-            ];
-        }
-
-        return null;
     }
 }

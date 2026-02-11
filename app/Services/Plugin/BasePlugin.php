@@ -7,6 +7,7 @@ use App\Models\PluginLog;
 use App\Models\User;
 use App\Models\UserPlugin;
 use App\Services\Plugin\Contracts\PluginInterface;
+use App\Services\Telegram\TelegramBotService;
 
 abstract class BasePlugin implements PluginInterface
 {
@@ -268,6 +269,36 @@ abstract class BasePlugin implements PluginInterface
     protected function getUser(int $userId): ?User
     {
         return User::find($userId);
+    }
+
+    /**
+     * Send a Telegram message to the user.
+     *
+     * @param  array<string, mixed>  $options
+     */
+    protected function sendTelegramMessage(int $userId, string $message, array $options = []): bool
+    {
+        $user = $this->getUser($userId);
+
+        if (! $user) {
+            $this->logWarning('User not found', $userId);
+
+            return false;
+        }
+
+        if (! $user->telegram_chat_id) {
+            $this->logWarning('User has no Telegram connected', $userId);
+
+            return false;
+        }
+
+        if (! array_key_exists('parse_mode', $options)) {
+            $options['parse_mode'] = 'Markdown';
+        }
+
+        app(TelegramBotService::class)->sendMessage($user->telegram_chat_id, $message, $options);
+
+        return true;
     }
 
     /**

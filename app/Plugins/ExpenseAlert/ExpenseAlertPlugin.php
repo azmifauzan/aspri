@@ -7,7 +7,6 @@ use App\Models\User;
 use App\Services\Plugin\BasePlugin;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
-use Telegram\Bot\Api;
 
 class ExpenseAlertPlugin extends BasePlugin
 {
@@ -133,7 +132,7 @@ class ExpenseAlertPlugin extends BasePlugin
 
             if ($dailySummary) {
                 $message = $this->formatDailySummary($userId, $config, $expenses, $budget, $percentage);
-                $this->sendTelegramMessage($user->telegram_chat_id, $message);
+                $this->sendTelegramMessage($userId, $message);
                 $this->logInfo('Daily expense summary sent', $userId, [
                     'expenses' => $expenses,
                     'budget' => $budget,
@@ -242,7 +241,7 @@ class ExpenseAlertPlugin extends BasePlugin
 
         if ($crossedThreshold !== null) {
             $message = $this->formatThresholdAlert($user, $config, $expenses, $budget, $percentage, $crossedThreshold);
-            $this->sendTelegramMessage($user->telegram_chat_id, $message);
+            $this->sendTelegramMessage($user->id, $message);
 
             // Update last alert percentage
             $userPlugin?->setConfig('last_alert_percentage', $percentage);
@@ -396,33 +395,56 @@ class ExpenseAlertPlugin extends BasePlugin
         };
     }
 
-    /**
-     * Send message via Telegram.
-     */
-    protected function sendTelegramMessage(int $chatId, string $message): void
+    public function supportsChatIntegration(): bool
     {
-        $token = config('services.telegram.bot_token');
+        return true;
+    }
 
-        if (! $token) {
-            throw new \RuntimeException('Telegram bot token not configured');
+    public function getChatIntents(): array
+    {
+        $slugPrefix = str_replace('-', '_', $this->getSlug());
+
+        return [
+            [
+                'action' => "plugin_{$slugPrefix}_summary",
+                'description' => 'Ringkasan pengeluaran bulan ini',
+                'entities' => [
+                    'month' => 'string|null',
+                ],
+                'examples' => [
+                    'ringkasan pengeluaran bulan ini',
+                    'expense summary this month',
+                    'berapa budget terpakai',
+                ],
+            ],
+        ];
+    }
+
+    public function handleChatIntent(int $userId, string $action, array $entities): array
+    {
+        $slugPrefix = str_replace('-', '_', $this->getSlug());
+
+        if ($action !== "plugin_{$slugPrefix}_summary") {
+            return [
+                'success' => false,
+                'message' => 'Action not supported',
+            ];
         }
 
-        $telegram = new Api($token);
+        $expenses = $this->getMonthlyExpenses($userId);
+        $config = $this->getUserConfig($userId);
+        $budget = (float) ($config['monthly_budget'] ?? 5000000);
+        $percentage = ($expenses / max(1, $budget)) * 100;
 
-        // Disable SSL verification if configured
-        if (config('services.telegram.http_client_verify') === false) {
-            $telegram->setHttpClientHandler(
-                new \Telegram\Bot\HttpClients\GuzzleHttpClient(
-                    new \GuzzleHttp\Client(['verify' => false])
-                )
-            );
-        }
-
-        $telegram->sendMessage([
-            'chat_id' => $chatId,
-            'text' => $message,
-            'parse_mode' => 'Markdown',
-        ]);
+        return [
+            'success' => true,
+            'message' => $this->formatDailySummary($userId, $config, $expenses, $budget, $percentage),
+            'data' => [
+                'expenses' => $expenses,
+                'budget' => $budget,
+                'percentage' => $percentage,
+            ],
+        ];
     }
 
     /**
@@ -430,10 +452,26 @@ class ExpenseAlertPlugin extends BasePlugin
      */
     public function activate(int $userId): void
     {
-        parent::activate($userId);
+        $config = $this->getUserConfig($userId);
+
+        $this->createSchedule($userId, [
+            'schedule_type' => 'daily',
+            'schedule_value' => $config['summary_time'] ?? '20:00',
+            'metadata' => [
+                'type' => 'daily_summary',
+            ],
+        ]);
 
         // Reset last alert percentage when plugin is activated
         $userPlugin = $this->getUserPlugin($userId);
         $userPlugin?->setConfig('last_alert_percentage', 0);
+
+        $this->logInfo('Expense Alert activated', $userId);
+    }
+
+    public function deactivate(int $userId): void
+    {
+        $this->deleteSchedules($userId);
+        $this->logInfo('Expense Alert deactivated', $userId);
     }
 }

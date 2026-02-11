@@ -3,7 +3,6 @@
 namespace App\Plugins\HabitTracker;
 
 use App\Services\Plugin\BasePlugin;
-use App\Services\TelegramService;
 
 class HabitTrackerPlugin extends BasePlugin
 {
@@ -165,9 +164,11 @@ class HabitTrackerPlugin extends BasePlugin
             $type = $context['type'] ?? 'daily_reminder';
 
             if ($type === 'daily_reminder') {
-                $this->sendDailyReminder($userId);
+                $message = $this->buildDailyReminderMessage($userId);
+                $this->sendTelegramMessage($userId, $message);
             } elseif ($type === 'weekly_review') {
-                $this->sendWeeklyReview($userId);
+                $message = $this->buildWeeklyReviewMessage($userId);
+                $this->sendTelegramMessage($userId, $message);
             }
 
             $this->log($userId, 'info', "Executed: {$type}");
@@ -176,10 +177,78 @@ class HabitTrackerPlugin extends BasePlugin
         }
     }
 
-    private function sendDailyReminder(int $userId): void
+    public function supportsScheduling(): bool
+    {
+        return true;
+    }
+
+    public function getDefaultSchedule(): ?array
+    {
+        return [
+            'type' => 'daily',
+            'value' => '20:00',
+        ];
+    }
+
+    public function supportsChatIntegration(): bool
+    {
+        return true;
+    }
+
+    public function getChatIntents(): array
+    {
+        $slugPrefix = str_replace('-', '_', $this->getSlug());
+
+        return [
+            [
+                'action' => "plugin_{$slugPrefix}_reminder",
+                'description' => 'Pengingat check-in kebiasaan harian',
+                'entities' => [
+                    'time' => 'string|null',
+                ],
+                'examples' => [
+                    'ingatkan kebiasaan hari ini',
+                    'pengingat habit',
+                    'remind me about my habits',
+                ],
+            ],
+            [
+                'action' => "plugin_{$slugPrefix}_weekly_review",
+                'description' => 'Review kebiasaan mingguan',
+                'entities' => [
+                    'week' => 'string|null',
+                ],
+                'examples' => [
+                    'review kebiasaan minggu ini',
+                    'weekly habit review',
+                ],
+            ],
+        ];
+    }
+
+    public function handleChatIntent(int $userId, string $action, array $entities): array
+    {
+        $slugPrefix = str_replace('-', '_', $this->getSlug());
+
+        return match ($action) {
+            "plugin_{$slugPrefix}_reminder" => [
+                'success' => true,
+                'message' => $this->buildDailyReminderMessage($userId),
+            ],
+            "plugin_{$slugPrefix}_weekly_review" => [
+                'success' => true,
+                'message' => $this->buildWeeklyReviewMessage($userId),
+            ],
+            default => [
+                'success' => false,
+                'message' => 'Action not supported',
+            ],
+        };
+    }
+
+    private function buildDailyReminderMessage(int $userId): string
     {
         $config = $this->getUserConfig($userId);
-        $telegramService = app(TelegramService::class);
 
         $habits = array_filter(array_map('trim', explode("\n", $config['habits'])));
 
@@ -193,13 +262,12 @@ class HabitTrackerPlugin extends BasePlugin
 
         $message .= "\nKetik kebiasaan yang sudah Anda lakukan ke ASPRI!";
 
-        $telegramService->sendMessage($userId, $message);
+        return $message;
     }
 
-    private function sendWeeklyReview(int $userId): void
+    private function buildWeeklyReviewMessage(int $userId): string
     {
         $config = $this->getUserConfig($userId);
-        $telegramService = app(TelegramService::class);
 
         $habits = array_filter(array_map('trim', explode("\n", $config['habits'])));
 
@@ -214,6 +282,6 @@ class HabitTrackerPlugin extends BasePlugin
         $message .= "🔥 Setiap hari yang Anda check-in adalah kemenangan!\n\n";
         $message .= 'Tip: Kebiasaan terbentuk dari konsistensi kecil setiap hari.';
 
-        $telegramService->sendMessage($userId, $message);
+        return $message;
     }
 }

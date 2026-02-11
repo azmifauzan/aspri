@@ -3,7 +3,6 @@
 namespace App\Plugins\PomodoroTimer;
 
 use App\Services\Plugin\BasePlugin;
-use App\Services\TelegramService;
 
 class PomodoroTimerPlugin extends BasePlugin
 {
@@ -195,7 +194,8 @@ class PomodoroTimerPlugin extends BasePlugin
             $type = $context['type'] ?? 'daily_summary';
 
             if ($type === 'daily_summary') {
-                $this->sendDailySummary($userId);
+                $message = $this->buildDailySummaryMessage($userId);
+                $this->sendTelegramMessage($userId, $message);
             }
 
             $this->log($userId, 'info', "Executed: {$type}");
@@ -204,10 +204,63 @@ class PomodoroTimerPlugin extends BasePlugin
         }
     }
 
-    private function sendDailySummary(int $userId): void
+    public function supportsScheduling(): bool
+    {
+        return true;
+    }
+
+    public function getDefaultSchedule(): ?array
+    {
+        return [
+            'type' => 'daily',
+            'value' => '21:00',
+        ];
+    }
+
+    public function supportsChatIntegration(): bool
+    {
+        return true;
+    }
+
+    public function getChatIntents(): array
+    {
+        $slugPrefix = str_replace('-', '_', $this->getSlug());
+
+        return [
+            [
+                'action' => "plugin_{$slugPrefix}_daily_summary",
+                'description' => 'Ringkasan pomodoro harian',
+                'entities' => [
+                    'date' => 'string|null',
+                ],
+                'examples' => [
+                    'ringkasan pomodoro hari ini',
+                    'pomodoro summary today',
+                ],
+            ],
+        ];
+    }
+
+    public function handleChatIntent(int $userId, string $action, array $entities): array
+    {
+        $slugPrefix = str_replace('-', '_', $this->getSlug());
+
+        if ($action !== "plugin_{$slugPrefix}_daily_summary") {
+            return [
+                'success' => false,
+                'message' => 'Action not supported',
+            ];
+        }
+
+        return [
+            'success' => true,
+            'message' => $this->buildDailySummaryMessage($userId),
+        ];
+    }
+
+    private function buildDailySummaryMessage(int $userId): string
     {
         $config = $this->getUserConfig($userId);
-        $telegramService = app(TelegramService::class);
 
         $dailyGoal = $config['daily_goal'];
         $workDuration = $config['work_duration'];
@@ -242,6 +295,6 @@ class PomodoroTimerPlugin extends BasePlugin
 
         $message .= "💡 Siap untuk produktif besok? Mulai sesi Pomodoro dengan ketik 'start pomodoro'!";
 
-        $telegramService->sendMessage($userId, $message);
+        return $message;
     }
 }

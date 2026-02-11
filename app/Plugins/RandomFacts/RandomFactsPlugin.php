@@ -154,6 +154,135 @@ class RandomFactsPlugin extends BasePlugin
         }
     }
 
+    public function supportsScheduling(): bool
+    {
+        return true;
+    }
+
+    public function getDefaultSchedule(): ?array
+    {
+        return [
+            'type' => 'daily',
+            'value' => '09:00',
+        ];
+    }
+
+    public function supportsChatIntegration(): bool
+    {
+        return true;
+    }
+
+    public function getChatIntents(): array
+    {
+        $slugPrefix = str_replace('-', '_', $this->getSlug());
+
+        return [
+            [
+                'action' => "plugin_{$slugPrefix}_random",
+                'description' => 'Fakta menarik acak',
+                'entities' => [
+                    'count' => 'number|null',
+                ],
+                'examples' => [
+                    'beri saya fakta menarik',
+                    'random fact',
+                    'fakta unik 3',
+                ],
+            ],
+            [
+                'action' => "plugin_{$slugPrefix}_animal",
+                'description' => 'Fakta hewan acak',
+                'entities' => [
+                    'type' => 'string|null',
+                ],
+                'examples' => [
+                    'fakta hewan',
+                    'animal fact',
+                ],
+            ],
+        ];
+    }
+
+    public function handleChatIntent(int $userId, string $action, array $entities): array
+    {
+        $slugPrefix = str_replace('-', '_', $this->getSlug());
+
+        if ($action === "plugin_{$slugPrefix}_random") {
+            $count = (int) ($entities['count'] ?? 1);
+            $result = $this->getRandomFact($userId, min(max($count, 1), 5));
+
+            if ($result['success'] && ! empty($result['facts'])) {
+                $message = "🧠 *Fakta Menarik*\n\n";
+
+                foreach ($result['facts'] as $index => $factData) {
+                    $num = $index + 1;
+                    $fact = $factData['fact'];
+                    $emoji = $this->getFactEmoji($fact);
+
+                    if ($count > 1) {
+                        $message .= "*{$num}.* {$emoji} {$fact}\n\n";
+                    } else {
+                        $message .= "{$emoji} {$fact}\n\n";
+                    }
+                }
+
+                $message .= '💡 _Tahukah Anda?_';
+
+                return [
+                    'success' => true,
+                    'message' => $message,
+                    'data' => $result,
+                ];
+            }
+
+            return [
+                'success' => false,
+                'message' => '❌ Maaf, gagal mengambil fakta. Pastikan API key sudah dikonfigurasi.',
+            ];
+        }
+
+        if ($action === "plugin_{$slugPrefix}_animal") {
+            $result = $this->getAnimalFact($userId);
+
+            if ($result['success'] && ! empty($result['animals'])) {
+                $animal = $result['animals'][0];
+
+                $message = "🐾 *Fakta Hewan*\n\n";
+                $message .= "*{$animal['name']}*\n\n";
+
+                if (isset($animal['characteristics'])) {
+                    $chars = $animal['characteristics'];
+
+                    if (isset($chars['type'])) {
+                        $message .= "📋 Tipe: {$chars['type']}\n";
+                    }
+                    if (isset($chars['habitat'])) {
+                        $message .= "🏞️ Habitat: {$chars['habitat']}\n";
+                    }
+                    if (isset($chars['lifespan'])) {
+                        $message .= "⏳ Umur: {$chars['lifespan']}\n";
+                    }
+                }
+
+                return [
+                    'success' => true,
+                    'message' => $message,
+                    'data' => $result,
+                ];
+            }
+
+            return [
+                'success' => false,
+                'message' => '❌ Maaf, gagal mengambil fakta hewan.',
+            ];
+        }
+
+        return [
+            'success' => false,
+            'message' => 'Action not supported',
+        ];
+    }
+
     public function getRandomFact(int $userId, int $limit = 1): array
     {
         $config = $this->getUserConfig($userId);
@@ -220,10 +349,7 @@ class RandomFactsPlugin extends BasePlugin
             $message .= "💡 _Tahukah Anda?_\n";
             $message .= '_Powered by API Ninjas_';
 
-            // Send via Telegram if service available
-            if (app()->bound('telegram')) {
-                app('telegram')->sendMessage($userId, $message);
-            }
+            $this->sendTelegramMessage($userId, $message);
 
             $this->log($userId, 'info', 'Daily facts sent');
         }
@@ -320,81 +446,5 @@ class RandomFactsPlugin extends BasePlugin
                 'error' => $e->getMessage(),
             ];
         }
-    }
-
-    public function handleIntent(int $userId, array $intent): ?array
-    {
-        $action = $intent['action'] ?? '';
-        $entities = $intent['entities'] ?? [];
-
-        if (in_array($action, ['random_fact', 'fun_fact', 'interesting_fact', 'tahukah_kamu'])) {
-            $count = $entities['count'] ?? 1;
-            $result = $this->getRandomFact($userId, min($count, 5));
-
-            if ($result['success'] && ! empty($result['facts'])) {
-                $message = "🧠 *Fakta Menarik*\n\n";
-
-                foreach ($result['facts'] as $index => $factData) {
-                    $num = $index + 1;
-                    $fact = $factData['fact'];
-                    $emoji = $this->getFactEmoji($fact);
-
-                    if ($count > 1) {
-                        $message .= "*{$num}.* {$emoji} {$fact}\n\n";
-                    } else {
-                        $message .= "{$emoji} {$fact}\n\n";
-                    }
-                }
-
-                $message .= '💡 _Tahukah Anda?_';
-
-                return [
-                    'response' => $message,
-                    'data' => $result,
-                ];
-            }
-
-            return [
-                'response' => '❌ Maaf, gagal mengambil fakta. Pastikan API key sudah dikonfigurasi.',
-                'error' => $result['error'] ?? 'Unknown error',
-            ];
-        }
-
-        if ($action === 'animal_fact') {
-            $result = $this->getAnimalFact($userId);
-
-            if ($result['success'] && ! empty($result['animals'])) {
-                $animal = $result['animals'][0];
-
-                $message = "🐾 *Fakta Hewan*\n\n";
-                $message .= "*{$animal['name']}*\n\n";
-
-                if (isset($animal['characteristics'])) {
-                    $chars = $animal['characteristics'];
-
-                    if (isset($chars['type'])) {
-                        $message .= "📋 Tipe: {$chars['type']}\n";
-                    }
-                    if (isset($chars['habitat'])) {
-                        $message .= "🏞️ Habitat: {$chars['habitat']}\n";
-                    }
-                    if (isset($chars['lifespan'])) {
-                        $message .= "⏳ Umur: {$chars['lifespan']}\n";
-                    }
-                }
-
-                return [
-                    'response' => $message,
-                    'data' => $result,
-                ];
-            }
-
-            return [
-                'response' => '❌ Maaf, gagal mengambil fakta hewan.',
-                'error' => $result['error'] ?? 'Unknown error',
-            ];
-        }
-
-        return null;
     }
 }
