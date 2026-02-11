@@ -19,7 +19,8 @@ class AdminNotificationService
     protected function getTelegram(): ?Api
     {
         if ($this->telegram === null) {
-            $token = config('services.telegram.bot_token');
+            // Read token from system_settings (encrypted)
+            $token = SystemSetting::getValue('telegram_bot_token');
             if (! $token) {
                 return null;
             }

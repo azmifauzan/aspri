@@ -116,8 +116,9 @@ WORKDIR /var/www/html
 # Copy configuration files
 COPY docker/supervisord.conf /etc/supervisor/supervisord.conf
 COPY docker/app-entrypoint.sh /usr/local/bin/app-entrypoint.sh
+COPY docker/queue-worker.sh /usr/local/bin/queue-worker.sh
 COPY docker/health-check.sh /usr/local/bin/health-check.sh
-RUN chmod +x /usr/local/bin/app-entrypoint.sh /usr/local/bin/health-check.sh
+RUN chmod +x /usr/local/bin/app-entrypoint.sh /usr/local/bin/queue-worker.sh /usr/local/bin/health-check.sh
 
 # Copy application files (leverage .dockerignore)
 COPY --chown=www-data:www-data . .

@@ -4,6 +4,7 @@ import {
     QuickActionsCard,
     RecentActivityCard,
     SubscriptionCard,
+    TelegramCard,
     TodayScheduleCard,
     WeeklyChartCard,
     WelcomeCard,
@@ -16,6 +17,7 @@ import type {
     MonthlySummary,
     RecentActivity,
     SubscriptionInfo,
+    TelegramInfo,
     TodayEvent,
     WeeklyExpense,
 } from '@/types';
@@ -29,6 +31,7 @@ const page = usePage<{
     recentActivities: RecentActivity[];
     subscriptionInfo: SubscriptionInfo;
     chatLimit: ChatLimit;
+    telegramInfo: TelegramInfo;
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -45,6 +48,7 @@ const weeklyExpenses = page.props.weeklyExpenses;
 const recentActivities = page.props.recentActivities;
 const subscriptionInfo = page.props.subscriptionInfo;
 const chatLimit = page.props.chatLimit;
+const telegramInfo = page.props.telegramInfo;
 </script>
 
 <template>
@@ -55,15 +59,20 @@ const chatLimit = page.props.chatLimit;
             <!-- Welcome Card - Full Width -->
             <WelcomeCard />
 
-            <!-- Grid: Summary, Schedule, Subscription, Quick Actions -->
-            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <MonthlySummaryCard :summary="monthlySummary" />
-                <TodayScheduleCard :events="todayEvents" />
+            <!-- Baris 1: Subscription, Telegram, Quick Actions -->
+            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 <SubscriptionCard :subscription-info="subscriptionInfo" :chat-limit="chatLimit" />
+                <TelegramCard :telegram-info="telegramInfo" />
                 <QuickActionsCard />
             </div>
 
-            <!-- Grid: Weekly Chart & Recent Activity -->
+            <!-- Baris 2: Monthly Summary, Today Schedule -->
+            <div class="grid gap-4 md:grid-cols-2">
+                <MonthlySummaryCard :summary="monthlySummary" />
+                <TodayScheduleCard :events="todayEvents" />
+            </div>
+
+            <!-- Baris 3: Weekly Chart & Recent Activity -->
             <div class="grid gap-4 lg:grid-cols-3">
                 <div class="lg:col-span-2">
                     <WeeklyChartCard :expenses="weeklyExpenses" />

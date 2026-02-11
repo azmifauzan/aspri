@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\ChatUsageLog;
+use App\Models\SystemSetting;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -91,11 +93,36 @@ class DashboardController extends Controller
             'remaining' => $user->getRemainingChats(),
         ];
 
+        // Telegram integration status
+        $isLinked = ! empty($user->telegram_chat_id);
+        $linkCode = null;
+        if (! $isLinked) {
+            // Check for existing unexpired link code
+            if ($user->telegram_link_code && $user->telegram_link_expires_at && $user->telegram_link_expires_at > now()) {
+                $linkCode = $user->telegram_link_code;
+            } else {
+                // Generate new code
+                $linkCode = strtoupper(Str::random(8));
+                $user->update([
+                    'telegram_link_code' => $linkCode,
+                    'telegram_link_expires_at' => now()->addHours(24),
+                ]);
+            }
+        }
+
+        $telegramInfo = [
+            'isLinked' => $isLinked,
+            'username' => $user->telegram_username,
+            'linkCode' => $linkCode,
+            'botUsername' => SystemSetting::getValue('telegram_bot_username'),
+        ];
+
         // DEBUG
         logger()->info('Dashboard Data', [
             'user_id' => $user->id,
             'subscriptionInfo' => $subscriptionInfo,
             'chatLimit' => $chatLimit,
+            'telegramInfo' => $telegramInfo,
         ]);
 
         return Inertia::render('Dashboard', [
@@ -105,6 +132,7 @@ class DashboardController extends Controller
             'recentActivities' => $recentActivities,
             'subscriptionInfo' => $subscriptionInfo,
             'chatLimit' => $chatLimit,
+            'telegramInfo' => $telegramInfo,
         ]);
     }
 }

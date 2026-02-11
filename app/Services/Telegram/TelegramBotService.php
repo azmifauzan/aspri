@@ -96,6 +96,9 @@ class TelegramBotService
             return;
         }
 
+        // Send typing indicator immediately for better UX
+        $this->sendChatAction($chatId, 'typing');
+
         // Process regular message with AI
         $this->processMessageWithAi($chatId, $text, $telegramUser);
     }
@@ -277,15 +280,20 @@ class TelegramBotService
 
             // Save user message
             $userMessage = $thread->messages()->create([
+                'user_id' => $user->id,
                 'role' => 'user',
                 'content' => $text,
             ]);
+
+            // Send typing indicator again before AI processing (which can take time)
+            $this->sendChatAction($chatId, 'typing');
 
             // Process message through ChatOrchestrator (with intent parsing and persona)
             $result = $this->chatOrchestrator->processMessage($user, $text, $thread, $conversationHistory);
 
             // Save assistant response
             $thread->messages()->create([
+                'user_id' => $user->id,
                 'role' => 'assistant',
                 'content' => $result['response'],
             ]);

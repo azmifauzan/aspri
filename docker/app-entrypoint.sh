@@ -4,8 +4,10 @@ set -e
 echo "Starting Laravel application setup..."
 
 # Wait for database connection if needed
-#echo "Checking database connection..."
-#timeout 30 bash -c 'until nc -z ${DB_HOST:-127.0.0.1} ${DB_PORT:-3306}; do echo "Waiting for database..."; sleep 2; done' || echo "Database connection timeout, continuing..."
+if [ -n "$DB_HOST" ]; then
+    echo "Checking database connection to ${DB_HOST}:${DB_PORT:-5432}..."
+    timeout 60 bash -c 'until nc -z ${DB_HOST} ${DB_PORT:-5432}; do echo "Waiting for database..."; sleep 2; done' && echo "Database is ready!" || echo "Database connection timeout, continuing anyway..."
+fi
 
 # Clear and optimize caches for better performance
 echo "Optimizing Laravel caches..."

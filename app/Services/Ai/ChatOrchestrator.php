@@ -31,6 +31,12 @@ class ChatOrchestrator
             ->latest()
             ->first();
 
+        Log::debug('Checking for pending action', [
+            'thread_id' => $thread->id,
+            'has_pending_action' => $pendingAction !== null,
+            'pending_action_id' => $pendingAction?->id,
+        ]);
+
         // Parse the intent
         $intent = $this->intentParser->parse($user, $message, $conversationHistory);
 
@@ -38,15 +44,24 @@ class ChatOrchestrator
 
         // Handle confirmation/cancellation of pending action
         if ($pendingAction && $intent['action'] === 'confirm') {
+            Log::info('Confirm action detected, calling handleConfirmation');
+
             return $this->handleConfirmation($user, $pendingAction);
         }
 
         if ($pendingAction && $intent['action'] === 'cancel') {
+            Log::info('Cancel action detected, calling handleCancellation');
+
             return $this->handleCancellation($pendingAction);
         }
 
         // Cancel any existing pending action if user is doing something else
         if ($pendingAction) {
+            Log::info('Canceling existing pending action due to new request', [
+                'pending_action_id' => $pendingAction->id,
+                'action_type' => $pendingAction->action_type,
+                'new_intent_action' => $intent['action'],
+            ]);
             $pendingAction->cancel();
         }
 
@@ -65,9 +80,22 @@ class ChatOrchestrator
      */
     protected function handleConfirmation(User $user, PendingAction $pendingAction): array
     {
+        Log::info('Handling confirmation', [
+            'pending_action_id' => $pendingAction->id,
+            'action_type' => $pendingAction->action_type,
+            'module' => $pendingAction->module,
+            'payload' => $pendingAction->payload,
+        ]);
+
         $pendingAction->confirm();
+        Log::debug('Pending action confirmed', ['pending_action_id' => $pendingAction->id]);
 
         $result = $this->actionExecutor->execute($pendingAction);
+        Log::info('Action executed', [
+            'pending_action_id' => $pendingAction->id,
+            'success' => $result['success'],
+            'message' => $result['message'] ?? null,
+        ]);
 
         $response = $result['success']
             ? $this->formatSuccessResponse($user, $result)
@@ -372,19 +400,13 @@ class ChatOrchestrator
             return $this->handleOutOfScopeQuestion($user, $intent, $history, $currentMessage);
         }
 
-        // Handle unknown intents
+        // Handle unknown intents - use contextual AI response instead of generic template
         if ($intent['action'] === 'unknown') {
-            return [
-                'response' => $this->personalizeResponse($user, 'unknown', [
-                    'unclear_reason' => $intent['entities']['unclear_reason'] ?? null,
-                ]),
-                'action_taken' => false,
-                'pending_action' => null,
-            ];
+            return $this->handleCasualConversation($user, $intent, $history, $currentMessage);
         }
 
         // For any other unknown intents, use AI to generate a helpful response
-        return $this->generateAiResponse($user, '', $history);
+        return $this->handleCasualConversation($user, $intent, $history, $currentMessage);
     }
 
     /**
@@ -406,17 +428,6 @@ class ChatOrchestrator
 Kamu adalah {$aspriName}, {$aspriPersona}.
 Kamu adalah asisten pribadi yang membantu user mengelola keuangan, jadwal, dan catatan.
 Kamu harus memanggil user dengan "{$callPref} {$userName}".
-
-PERINGATAN PENTING:
-- Jika user bertanya tentang data pribadi mereka (saldo, transaksi, jadwal, catatan), kamu HARUS mengatakan bahwa kamu tidak memiliki akses ke data tersebut saat ini.
-- Untuk data DALAM aplikasi (finance, schedule, notes), arahkan user untuk menggunakan perintah yang tepat.
-- Untuk pertanyaan umum/pengetahuan (cuaca, berita, resep, dll) yang TIDAK terkait data pribadi, jawab dengan pengetahuanmu.
-
-Contoh:
-- "berapa saldo saya?" → "Maaf {$callPref}, saya tidak bisa mengakses data saldomu saat ini. Coba tanya 'lihat saldo bulan ini'."
-- "bagaimana cuaca hari ini?" → Jawab dengan pengetahuanmu tentang cuaca
-- "siapa presiden indonesia?" → Jawab dengan pengetahuanmu
-- "berapa kurs dollar?" → Jawab dengan informasimu (tapi sebutkan mungkin sudah tidak update)
 
 Jawab dengan gaya komunikasimu yang khas. Tetap ramah dan membantu.
 PROMPT;
@@ -464,11 +475,80 @@ PROMPT;
     }
 
     /**
+     * Handle casual conversation or unknown intents by using AI with full context.
+     * This ensures ASPRI can respond naturally to any message, even when intent is unclear.
+     */
+    protected function handleCasualConversation(User $user, array $intent, array $history, string $currentMessage): array
+    {
+        $profile = $user->profile;
+        $callPref = $profile?->call_preference ?? 'Kak';
+        $userName = $user->name;
+        $aspriName = $profile?->aspri_name ?? 'ASPRI';
+        $aspriPersona = $profile?->aspri_persona ?? 'asisten yang ramah dan membantu';
+
+        $unclearReason = $intent['entities']['unclear_reason'] ?? null;
+
+        $systemPrompt = <<<PROMPT
+Kamu adalah {$aspriName}, {$aspriPersona}.
+Kamu adalah asisten pribadi yang membantu user mengelola keuangan, jadwal, dan catatan.
+Kamu harus memanggil user dengan "{$callPref} {$userName}".
+
+KONTEKS: User mengirim pesan yang tidak termasuk perintah spesifik aplikasi.
+
+TUGAS:
+1. Jika pesan user adalah pertanyaan atau pernyataan yang bisa kamu jawab/tanggapi dengan pengetahuanmu, jawab dengan natural sesuai kepribadianmu.
+2. Jika pesan user tidak jelas atau ambigu, minta klarifikasi dengan ramah. Jelaskan bahwa kamu tidak yakin apa yang dimaksud, dan berikan contoh perintah yang bisa kamu bantu (misalnya: "catat pengeluaran", "lihat jadwal", "buat catatan").
+3. Jika user bertanya tentang data pribadi mereka (saldo, transaksi, jadwal, catatan), arahkan untuk menggunakan perintah yang tepat (misalnya: "coba tanya 'lihat saldo bulan ini'").
+4. Untuk pertanyaan umum atau casual chat, respon dengan natural dan ramah sesuai kepribadianmu.
+
+PENTING: Selalu tetap dalam karakter kepribadianmu. Jangan kaku atau terlalu formal.
+PROMPT;
+
+        // Get the last user message from history to get the actual question
+        $lastUserMessage = trim($currentMessage);
+        if ($lastUserMessage === '') {
+            foreach (array_reverse($history) as $msg) {
+                if ($msg['role'] === 'user') {
+                    $lastUserMessage = $msg['content'];
+                    break;
+                }
+            }
+        }
+
+        $messages = [
+            ['role' => 'system', 'content' => $systemPrompt],
+        ];
+
+        // Add recent conversation history for context (last 5 exchanges)
+        foreach (array_slice($history, -10) as $msg) {
+            $messages[] = $msg;
+        }
+
+        // Add current message if not already in history
+        if ($lastUserMessage) {
+            if (empty($history) || end($history)['content'] !== $lastUserMessage) {
+                $messages[] = ['role' => 'user', 'content' => $lastUserMessage];
+            }
+        }
+
+        $response = $this->aiProvider->chat($messages, [
+            'temperature' => 0.8, // Higher temperature for more natural, conversational responses
+            'max_tokens' => 1500,
+        ]);
+
+        return [
+            'response' => $response,
+            'action_taken' => false,
+            'pending_action' => null,
+        ];
+    }
+
+    /**
      * Create a pending action for confirmation.
      */
     protected function createPendingAction(User $user, ChatThread $thread, array $intent): PendingAction
     {
-        return PendingAction::create([
+        $pendingAction = PendingAction::create([
             'user_id' => $user->id,
             'thread_id' => $thread->id,
             'action_type' => $intent['action'],
@@ -477,6 +557,14 @@ PROMPT;
             'status' => 'pending',
             'expires_at' => now()->addMinutes(5),
         ]);
+
+        Log::info('Pending action created', [
+            'pending_action_id' => $pendingAction->id,
+            'action_type' => $pendingAction->action_type,
+            'module' => $pendingAction->module,
+        ]);
+
+        return $pendingAction;
     }
 
     /**

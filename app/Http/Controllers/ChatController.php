@@ -254,7 +254,9 @@ class ChatController extends Controller
                 'id' => $thread->id,
                 'title' => $thread->title,
             ])."\n\n";
-            ob_flush();
+            if (ob_get_level() > 0) {
+                ob_flush();
+            }
             flush();
 
             // Send user message
@@ -265,7 +267,9 @@ class ChatController extends Controller
                 'content' => $userMessage->content,
                 'createdAt' => $userMessage->created_at->format('H:i'),
             ])."\n\n";
-            ob_flush();
+            if (ob_get_level() > 0) {
+                ob_flush();
+            }
             flush();
 
             // Process message through ChatOrchestrator with streaming
@@ -294,7 +298,9 @@ class ChatController extends Controller
                     $fullResponse = $this->chatOrchestrator->getAiProvider()->chatStream($messages, function ($chunk) {
                         echo "event: message_chunk\n";
                         echo 'data: '.json_encode(['content' => $chunk])."\n\n";
-                        ob_flush();
+                        if (ob_get_level() > 0) {
+                            ob_flush();
+                        }
                         flush();
                     }, [
                         'temperature' => 0.8,
@@ -308,7 +314,9 @@ class ChatController extends Controller
                     // Send full response at once
                     echo "event: message_chunk\n";
                     echo 'data: '.json_encode(['content' => $fullResponse])."\n\n";
-                    ob_flush();
+                    if (ob_get_level() > 0) {
+                        ob_flush();
+                    }
                     flush();
                 }
             } catch (\Exception $e) {
@@ -318,7 +326,9 @@ class ChatController extends Controller
 
                 echo "event: error\n";
                 echo 'data: '.json_encode(['message' => $fullResponse])."\n\n";
-                ob_flush();
+                if (ob_get_level() > 0) {
+                    ob_flush();
+                }
                 flush();
             }
 
@@ -348,7 +358,9 @@ class ChatController extends Controller
                     'is_limited' => $user->hasReachedChatLimit(),
                 ],
             ])."\n\n";
-            ob_flush();
+            if (ob_get_level() > 0) {
+                ob_flush();
+            }
             flush();
         }, 200, [
             'Content-Type' => 'text/event-stream',

@@ -185,6 +185,11 @@ class ActionExecutorService
     protected function createSchedule(User $user, array $payload): array
     {
         try {
+            \Illuminate\Support\Facades\Log::info('Creating schedule', [
+                'user_id' => $user->id,
+                'payload' => $payload,
+            ]);
+
             $startTime = isset($payload['start_time'])
                 ? Carbon::parse($payload['start_time'])
                 : now()->addHour();
@@ -202,6 +207,11 @@ class ActionExecutorService
                 'location' => $payload['location'] ?? null,
             ]);
 
+            \Illuminate\Support\Facades\Log::info('Schedule created successfully', [
+                'schedule_id' => $schedule->id,
+                'title' => $schedule->title,
+            ]);
+
             return [
                 'success' => true,
                 'message' => "Jadwal \"{$payload['title']}\" berhasil dibuat untuk {$startTime->format('d M Y H:i')}!",
@@ -214,6 +224,11 @@ class ActionExecutorService
                 ],
             ];
         } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to create schedule', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
             return [
                 'success' => false,
                 'message' => 'Gagal membuat jadwal: '.$e->getMessage(),

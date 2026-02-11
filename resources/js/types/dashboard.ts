@@ -44,6 +44,13 @@ export interface ChatLimit {
     remaining: number;
 }
 
+export interface TelegramInfo {
+    isLinked: boolean;
+    username: string | null;
+    linkCode: string | null;
+    botUsername: string | null;
+}
+
 export interface DashboardProps {
     monthlySummary: MonthlySummary;
     todayEvents: TodayEvent[];
@@ -51,4 +58,5 @@ export interface DashboardProps {
     recentActivities: RecentActivity[];
     subscriptionInfo: SubscriptionInfo;
     chatLimit: ChatLimit;
+    telegramInfo: TelegramInfo;
 }
