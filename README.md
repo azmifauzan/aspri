@@ -11,6 +11,7 @@
 - 📊 **Dashboard Interaktif** - Visualisasi data keuangan dan jadwal dalam satu tampilan
 - 🎁 **Plugin System** - Extend fungsionalitas asisten dengan plugin-plugin powerful
 - 💳 **Subscription System** - Fitur premium dengan layanan berlangganan
+- 🎟️ **Promo Code System** - Kode promo untuk memperpanjang masa berlaku membership
 - 👥 **Admin Panel** - Manajemen user, plugin, jadwal, dan monitoring sistem lengkap
 
 ## 🎯 Modul Utama
@@ -24,6 +25,7 @@
 | **Finance** | Pencatatan transaksi, kategori, akun, budgeting, dan laporan |
 | **Plugins** | 🎁 Sistem plugin untuk memperluas fitur asisten (motivasi, pengingat, dll) |
 | **Subscription** | 💳 Upload bukti pembayaran dan aktivasi fitur premium |
+| **Promo Codes** | 🎟️ Kode promo untuk memperpanjang membership (admin generate, user redeem) |
 | **Admin Panel** | 👥 User management, payment approval, activity logs, dan monitoring |
 
 ## 🛠️ Tech Stack

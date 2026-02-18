@@ -19,7 +19,7 @@ import { dashboard } from '@/routes';
 import admin from '@/routes/admin';
 import { type BreadcrumbItem, type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
-import { Activity, ArrowLeft, CreditCard, Database, FileText, LayoutDashboard, Settings, Users } from 'lucide-vue-next';
+import { Activity, ArrowLeft, CreditCard, Database, FileText, LayoutDashboard, Settings, Tag, Users } from 'lucide-vue-next';
 
 type Props = {
     breadcrumbs?: BreadcrumbItem[];
@@ -46,6 +46,11 @@ const adminNavItems: NavItem[] = [
         title: 'Payments',
         href: admin.payments.index(),
         icon: CreditCard,
+    },
+    {
+        title: 'Promo Codes',
+        href: admin.promoCodes.index(),
+        icon: Tag,
     },
     {
         title: 'Queue Monitor',

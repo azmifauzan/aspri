@@ -256,7 +256,134 @@ Di admin panel, tambahkan:
 - View all subscriptions
 - Subscription analytics (trial conversions, revenue)
 - Manual subscription management
-- Promo code management (future)
+- Promo code management (CRUD, toggle active, search/filter)
+
+## Promo Code System
+
+### Overview
+
+Admin dapat membuat kode promo yang dapat digunakan oleh user untuk memperpanjang masa berlaku membership. Setiap kode promo memiliki durasi perpanjangan (dalam hari), batas penggunaan, dan tanggal kadaluarsa.
+
+### User Journey
+
+```mermaid
+graph TD
+    ADMIN[Admin Buat Promo Code] --> CODE[Kode Promo Aktif]
+    CODE --> USER[User Input Kode di Subscription Page]
+    USER --> VALIDATE{Validasi}
+    VALIDATE -->|Kode tidak ada| ERR1[Error: Kode tidak ditemukan]
+    VALIDATE -->|Kode expired| ERR2[Error: Kode sudah kadaluarsa]
+    VALIDATE -->|Kuota habis| ERR3[Error: Kuota sudah habis]
+    VALIDATE -->|Sudah dipakai| ERR4[Error: Sudah pernah digunakan]
+    VALIDATE -->|Tidak ada subscription| ERR5[Error: Belum berlangganan]
+    VALIDATE -->|Valid| REDEEM[Perpanjang Subscription]
+    REDEEM --> DONE[Membership Diperpanjang]
+```
+
+### Database Schema
+
+#### promo_codes
+```php
+Schema::create('promo_codes', function (Blueprint $table) {
+    $table->id();
+    $table->string('code', 50)->unique();
+    $table->text('description')->nullable();
+    $table->integer('duration_days');
+    $table->integer('max_usages')->default(1);
+    $table->integer('usage_count')->default(0);
+    $table->boolean('is_active')->default(true);
+    $table->timestamp('expires_at')->nullable();
+    $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+    $table->timestamps();
+
+    $table->index(['code', 'is_active']);
+    $table->index('expires_at');
+});
+```
+
+#### promo_code_redemptions
+```php
+Schema::create('promo_code_redemptions', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('promo_code_id')->constrained()->cascadeOnDelete();
+    $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+    $table->foreignUuid('subscription_id')->nullable()->constrained()->nullOnDelete();
+    $table->integer('days_added');
+    $table->timestamp('previous_ends_at');
+    $table->timestamp('new_ends_at');
+    $table->timestamps();
+
+    $table->unique(['promo_code_id', 'user_id']);
+});
+```
+
+### Promo Code Validation
+
+Kode promo divalidasi dengan ketentuan berikut sebelum dapat digunakan:
+
+1. **Kode harus ada** di database
+2. **Kode harus aktif** (`is_active = true`)
+3. **Belum kadaluarsa** (`expires_at` belum lewat)
+4. **Kuota belum habis** (`usage_count < max_usages`)
+5. **User belum pernah redeem** kode yang sama (unique constraint)
+6. **User harus punya active subscription** untuk diperpanjang
+
+### API Endpoints
+
+#### Admin (Promo Code Management)
+- `GET /admin/promo-codes` — Daftar kode promo (paginated, search, filter)
+- `POST /admin/promo-codes` — Buat kode promo baru
+- `PUT /admin/promo-codes/{promoCode}` — Update kode promo
+- `DELETE /admin/promo-codes/{promoCode}` — Hapus kode (hanya jika belum digunakan)
+- `POST /admin/promo-codes/{promoCode}/toggle-active` — Toggle status aktif
+
+#### User (Promo Code Redemption)
+- `POST /subscription/redeem-promo` — Redeem kode promo
+
+### Admin UI Features
+
+- Tabel kode promo dengan search dan filter (aktif/expired/nonaktif)
+- Dialog form untuk buat dan edit kode promo
+- Auto-generate kode acak (8 karakter uppercase alfanumerik)
+- Toggle aktif/nonaktif dengan satu klik
+- Copy kode ke clipboard
+- Hapus kode (hanya yang belum pernah digunakan)
+- Pagination
+
+### User UI Features
+
+- Form input kode promo di halaman Subscription
+- Riwayat penggunaan kode promo oleh user
+- Feedback sukses/error saat redeem
+
+### Service Layer
+
+```php
+// PromoCodeService
+class PromoCodeService
+{
+    // Validasi kode promo
+    public function validatePromoCode(string $code, User $user): array;
+
+    // Redeem kode promo (dalam DB transaction)
+    public function redeemPromoCode(string $code, User $user): PromoCodeRedemption;
+
+    // CRUD operations
+    public function createPromoCode(array $data): PromoCode;
+    public function updatePromoCode(PromoCode $promoCode, array $data): PromoCode;
+    public function getPromoCodes(array $filters = []): array;
+}
+```
+
+### Testing
+
+Fitur promo code memiliki 41 test cases yang mencakup:
+- **Model tests**: Validitas kode, atribut, scopes
+- **Service validation tests**: Semua error cases + valid flow
+- **Service redemption tests**: Perpanjangan subscription, pembuatan redemption, increment usage
+- **Admin HTTP tests**: View, create, duplicate prevention, update, delete, toggle active
+- **User HTTP tests**: Redeem valid/invalid/expired, tanpa subscription, double redeem, guest access
+- **Filter & search tests**: Filter status, search by code/description
 
 ## Payment Integration (Future)
 

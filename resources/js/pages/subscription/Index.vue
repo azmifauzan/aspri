@@ -9,6 +9,7 @@ import { Spinner } from '@/components/ui/spinner';
 import AppLayout from '@/layouts/AppLayout.vue';
 import subscription from '@/routes/subscription';
 import type { BreadcrumbItem } from '@/types';
+import type { PromoCodeRedemption } from '@/types/admin';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import {
     AlertCircle,
@@ -18,6 +19,7 @@ import {
     Clock,
     CreditCard,
     Crown,
+    Gift,
     MessageSquare,
     Sparkles,
     Upload,
@@ -63,6 +65,7 @@ const props = defineProps<{
     subscriptionInfo: SubscriptionInfo;
     pendingPayments: PaymentProof[];
     paymentHistory: PaymentProof[];
+    promoRedemptions: PromoCodeRedemption[];
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -78,6 +81,10 @@ const paymentForm = useForm({
     bank_name: '',
     account_name: '',
     transfer_date: '',
+});
+
+const promoForm = useForm({
+    code: '',
 });
 
 const formatCurrency = (value: number) => {
@@ -150,6 +157,23 @@ const cancelPayment = (paymentId: number) => {
                 preserveScroll: true,
             });
         }
+    });
+};
+
+const submitPromoCode = () => {
+    promoForm.post(subscription.redeemPromo().url, {
+        preserveScroll: true,
+        onSuccess: () => {
+            promoForm.reset();
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil!',
+                text: 'Kode promo berhasil digunakan. Subscription Anda telah diperpanjang.',
+            });
+        },
+        onError: () => {
+            // Errors will be shown inline
+        },
     });
 };
 
@@ -417,6 +441,66 @@ const getPlanLabel = (plan: string) => {
                                 Kirim Bukti Transfer
                             </Button>
                         </form>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <!-- Promo Code Redemption -->
+            <Card v-if="subscriptionInfo.status !== 'none'">
+                <CardHeader>
+                    <CardTitle class="flex items-center gap-2">
+                        <Gift class="h-5 w-5" />
+                        Gunakan Kode Promo
+                    </CardTitle>
+                    <CardDescription>
+                        Masukkan kode promo untuk memperpanjang masa langganan Anda.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form class="flex flex-col gap-4 md:flex-row md:items-end" @submit.prevent="submitPromoCode">
+                        <div class="flex-1 space-y-2">
+                            <Label for="promo_code">Kode Promo</Label>
+                            <Input
+                                id="promo_code"
+                                v-model="promoForm.code"
+                                placeholder="Masukkan kode promo..."
+                                class="font-mono uppercase"
+                                required
+                            />
+                            <InputError :message="promoForm.errors.code" />
+                        </div>
+                        <Button type="submit" :disabled="promoForm.processing || !promoForm.code">
+                            <Spinner v-if="promoForm.processing" class="mr-2" />
+                            <Gift v-else class="mr-2 h-4 w-4" />
+                            Gunakan Kode
+                        </Button>
+                    </form>
+
+                    <!-- Promo Redemption History -->
+                    <div v-if="promoRedemptions.length > 0" class="mt-6 space-y-3">
+                        <h4 class="text-sm font-medium text-muted-foreground">Riwayat Penggunaan Kode Promo</h4>
+                        <div
+                            v-for="redemption in promoRedemptions"
+                            :key="redemption.id"
+                            class="flex items-center justify-between rounded-lg border p-3"
+                        >
+                            <div class="space-y-1">
+                                <div class="flex items-center gap-2">
+                                    <code class="rounded bg-muted px-2 py-0.5 text-sm font-mono">
+                                        {{ redemption.promo_code?.code }}
+                                    </code>
+                                    <Badge variant="default">+{{ redemption.days_added }} hari</Badge>
+                                </div>
+                                <div class="text-sm text-muted-foreground">
+                                    {{ formatDate(redemption.created_at) }}
+                                </div>
+                            </div>
+                            <div class="text-right text-sm text-muted-foreground">
+                                <div v-if="redemption.new_ends_at">
+                                    Hingga {{ formatDate(redemption.new_ends_at) }}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </CardContent>
             </Card>

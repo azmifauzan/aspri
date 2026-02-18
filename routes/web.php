@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\PaymentController;
+use App\Http\Controllers\Admin\PromoCodeController;
 use App\Http\Controllers\Admin\QueueMonitorController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\UserManagementController;
@@ -91,6 +92,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('subscription', [SubscriptionController::class, 'index'])->name('subscription.index');
     Route::post('subscription/payment', [SubscriptionController::class, 'submitPayment'])->name('subscription.submit-payment');
     Route::delete('subscription/payment/{paymentProof}', [SubscriptionController::class, 'cancelPayment'])->name('subscription.cancel-payment');
+    Route::post('subscription/redeem-promo', [SubscriptionController::class, 'redeemPromoCode'])->name('subscription.redeem-promo');
 
     // Chat routes
     Route::get('chat', [ChatController::class, 'index'])->name('chat.index');
@@ -163,6 +165,13 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     });
 
     // Payment Management
+    Route::get('/promo-codes', [PromoCodeController::class, 'index'])->name('promo-codes.index');
+    Route::post('/promo-codes', [PromoCodeController::class, 'store'])->name('promo-codes.store');
+    Route::get('/promo-codes/{promoCode}', [PromoCodeController::class, 'show'])->name('promo-codes.show');
+    Route::put('/promo-codes/{promoCode}', [PromoCodeController::class, 'update'])->name('promo-codes.update');
+    Route::delete('/promo-codes/{promoCode}', [PromoCodeController::class, 'destroy'])->name('promo-codes.destroy');
+    Route::post('/promo-codes/{promoCode}/toggle-active', [PromoCodeController::class, 'toggleActive'])->name('promo-codes.toggle-active');
+
     Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
     Route::get('/payments/{payment}', [PaymentController::class, 'show'])->name('payments.show');
     Route::post('/payments/{payment}/approve', [PaymentController::class, 'approve'])->name('payments.approve');

@@ -130,6 +130,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(PaymentProof::class);
     }
 
+    public function promoCodeRedemptions(): HasMany
+    {
+        return $this->hasMany(PromoCodeRedemption::class);
+    }
+
     public function chatUsageLogs(): HasMany
     {
         return $this->hasMany(ChatUsageLog::class);

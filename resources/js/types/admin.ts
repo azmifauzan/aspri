@@ -303,3 +303,81 @@ export interface ActivityLogsPageProps {
 export interface QueueMonitorPageProps {
     stats: QueueStats;
 }
+
+export interface PromoCode {
+    id: number;
+    code: string;
+    description: string | null;
+    duration_days: number;
+    max_usages: number;
+    usage_count: number;
+    is_active: boolean;
+    expires_at: string;
+    created_by: number | null;
+    created_at: string;
+    updated_at: string;
+    remaining_usages: number;
+    redemptions_count?: number;
+    creator?: {
+        id: number;
+        name: string;
+        email: string;
+    };
+}
+
+export interface PaginationMeta {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+    from: number | null;
+    to: number | null;
+}
+
+export interface PromoCodesPageProps {
+    promoCodes: {
+        data: PromoCode[];
+        meta: PaginationMeta;
+    };
+    filters: {
+        search: string;
+        status: string;
+    };
+}
+
+export interface PromoCodeRedemption {
+    id: number;
+    promo_code_id: number;
+    user_id: number;
+    subscription_id: number | null;
+    days_added: number;
+    previous_ends_at: string | null;
+    new_ends_at: string | null;
+    created_at: string;
+    promo_code?: {
+        id: number;
+        code: string;
+        description: string | null;
+    };
+    user?: {
+        id: number;
+        name: string;
+        email: string;
+    };
+}
+
+export interface PromoCodeShowPageProps {
+    promoCode: PromoCode;
+    redemptions: {
+        data: PromoCodeRedemption[];
+        current_page: number;
+        last_page: number;
+        per_page: number;
+        total: number;
+        links: Array<{
+            url: string | null;
+            label: string;
+            active: boolean;
+        }>;
+    };
+}

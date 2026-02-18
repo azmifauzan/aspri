@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\RedeemPromoCodeRequest;
 use App\Models\PaymentProof;
+use App\Services\Subscription\PromoCodeService;
 use App\Services\Subscription\SubscriptionService;
 use App\Services\Telegram\AdminNotificationService;
 use Illuminate\Http\RedirectResponse;
@@ -15,7 +17,8 @@ class SubscriptionController extends Controller
 {
     public function __construct(
         private SubscriptionService $subscriptionService,
-        private AdminNotificationService $adminNotificationService
+        private AdminNotificationService $adminNotificationService,
+        private PromoCodeService $promoCodeService
     ) {}
 
     /**
@@ -35,6 +38,11 @@ class SubscriptionController extends Controller
                 ->get(),
             'paymentHistory' => $user->paymentProofs()
                 ->with('subscription')
+                ->orderBy('created_at', 'desc')
+                ->take(10)
+                ->get(),
+            'promoRedemptions' => $user->promoCodeRedemptions()
+                ->with('promoCode')
                 ->orderBy('created_at', 'desc')
                 ->take(10)
                 ->get(),
@@ -93,5 +101,22 @@ class SubscriptionController extends Controller
         $paymentProof->delete();
 
         return back()->with('success', 'Bukti pembayaran berhasil dibatalkan.');
+    }
+
+    /**
+     * Redeem a promo code to extend subscription.
+     */
+    public function redeemPromoCode(RedeemPromoCodeRequest $request): RedirectResponse
+    {
+        $result = $this->promoCodeService->redeemPromoCode(
+            $request->validated()['code'],
+            auth()->user()
+        );
+
+        if (! $result['success']) {
+            return back()->with('error', $result['message']);
+        }
+
+        return back()->with('success', $result['message']);
     }
 }
