@@ -23,6 +23,8 @@ class PromoCode extends Model
         'created_by',
     ];
 
+    protected $appends = ['remaining_usages'];
+
     protected function casts(): array
     {
         return [

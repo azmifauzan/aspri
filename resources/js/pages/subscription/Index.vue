@@ -198,6 +198,8 @@ const getPlanLabel = (plan: string) => {
             return 'Bulanan';
         case 'yearly':
             return 'Tahunan';
+        case 'none':
+            return 'Free Trial';
         default:
             return plan;
     }
@@ -231,12 +233,24 @@ const getPlanLabel = (plan: string) => {
                                     Trial
                                 </Badge>
                             </div>
-                            <div v-if="subscriptionInfo.ends_at" class="flex items-center gap-2 text-sm text-muted-foreground">
-                                <Calendar class="h-4 w-4" />
-                                Berakhir: {{ formatDate(subscriptionInfo.ends_at) }}
-                                <span v-if="subscriptionInfo.days_remaining > 0" class="text-orange-500">
+                            <div v-if="subscriptionInfo.ends_at" class="flex items-center gap-2 text-sm">
+                                <Calendar class="h-4 w-4 text-muted-foreground" />
+                                <span class="text-muted-foreground">Berlaku hingga:</span>
+                                <span class="font-medium">{{ formatDate(subscriptionInfo.ends_at) }}</span>
+                                <span v-if="subscriptionInfo.days_remaining > 0" class="text-orange-500 font-medium">
                                     ({{ subscriptionInfo.days_remaining }} hari lagi)
                                 </span>
+                                <span v-else class="text-red-500 font-medium">
+                                    (Sudah berakhir)
+                                </span>
+                            </div>
+                            <div v-else-if="subscriptionInfo.plan && subscriptionInfo.plan !== 'none'" class="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Calendar class="h-4 w-4" />
+                                Tidak ada batas waktu
+                            </div>
+                            <div v-else class="flex items-center gap-2 text-sm text-muted-foreground">
+                                <AlertCircle class="h-4 w-4" />
+                                Masa trial gratis — upgrade ke paket premium untuk akses penuh
                             </div>
                         </div>
                         <div class="flex items-center gap-2 text-sm">
@@ -446,7 +460,7 @@ const getPlanLabel = (plan: string) => {
             </Card>
 
             <!-- Promo Code Redemption -->
-            <Card v-if="subscriptionInfo.status !== 'none'">
+            <Card>
                 <CardHeader>
                     <CardTitle class="flex items-center gap-2">
                         <Gift class="h-5 w-5" />
@@ -457,23 +471,25 @@ const getPlanLabel = (plan: string) => {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <form class="flex flex-col gap-4 md:flex-row md:items-end" @submit.prevent="submitPromoCode">
-                        <div class="flex-1 space-y-2">
+                    <form @submit.prevent="submitPromoCode">
+                        <div class="space-y-2">
                             <Label for="promo_code">Kode Promo</Label>
-                            <Input
-                                id="promo_code"
-                                v-model="promoForm.code"
-                                placeholder="Masukkan kode promo..."
-                                class="font-mono uppercase"
-                                required
-                            />
+                            <div class="flex gap-2">
+                                <Input
+                                    id="promo_code"
+                                    v-model="promoForm.code"
+                                    placeholder="Masukkan kode promo..."
+                                    class="flex-1 font-mono uppercase"
+                                    required
+                                />
+                                <Button type="submit" :disabled="promoForm.processing || !promoForm.code">
+                                    <Spinner v-if="promoForm.processing" class="mr-2" />
+                                    <Gift v-else class="mr-2 h-4 w-4" />
+                                    Gunakan Kode
+                                </Button>
+                            </div>
                             <InputError :message="promoForm.errors.code" />
                         </div>
-                        <Button type="submit" :disabled="promoForm.processing || !promoForm.code">
-                            <Spinner v-if="promoForm.processing" class="mr-2" />
-                            <Gift v-else class="mr-2 h-4 w-4" />
-                            Gunakan Kode
-                        </Button>
                     </form>
 
                     <!-- Promo Redemption History -->

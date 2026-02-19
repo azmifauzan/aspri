@@ -76,7 +76,7 @@ class PromoCodeService
 
         return [
             'valid' => true,
-            'message' => "Kode promo valid! Anda akan mendapat perpanjangan {$promoCode->duration_days} hari.",
+            'message' => "Kode promo valid! Anda akan mendapat {$promoCode->duration_days} hari akses full member.",
             'promo_code' => $promoCode,
         ];
     }
@@ -100,16 +100,40 @@ class PromoCodeService
         return DB::transaction(function () use ($promoCode, $user) {
             $subscription = $user->activeSubscription();
 
+            // If no active subscription yet, create one as monthly plan starting now
             if (! $subscription) {
-                return ['success' => false, 'message' => 'Subscription aktif tidak ditemukan.'];
+                $newEndsAt = now()->addDays($promoCode->duration_days);
+
+                $subscription = Subscription::create([
+                    'user_id' => $user->id,
+                    'plan' => 'monthly',
+                    'status' => 'active',
+                    'starts_at' => now(),
+                    'ends_at' => $newEndsAt,
+                    'price_paid' => 0,
+                    'notes' => 'Activated via promo code: '.$promoCode->code,
+                ]);
+
+                $previousEndsAt = now();
+            } elseif ($subscription->isFreeTrial()) {
+                // Upgrade free trial to full member (monthly plan) for duration_days from now
+                $previousEndsAt = $subscription->ends_at->copy();
+                $newEndsAt = now()->addDays($promoCode->duration_days);
+
+                $subscription->update([
+                    'plan' => 'monthly',
+                    'ends_at' => $newEndsAt,
+                    'notes' => 'Upgraded from free trial via promo code: '.$promoCode->code,
+                ]);
+            } else {
+                // Already paid member — extend ends_at
+                $previousEndsAt = $subscription->ends_at->copy();
+                $newEndsAt = $previousEndsAt->copy()->addDays($promoCode->duration_days);
+
+                $subscription->update([
+                    'ends_at' => $newEndsAt,
+                ]);
             }
-
-            $previousEndsAt = $subscription->ends_at->copy();
-            $newEndsAt = $previousEndsAt->copy()->addDays($promoCode->duration_days);
-
-            $subscription->update([
-                'ends_at' => $newEndsAt,
-            ]);
 
             $redemption = PromoCodeRedemption::create([
                 'promo_code_id' => $promoCode->id,

@@ -60,9 +60,18 @@ class ActionExecutorService
     {
         return match ($action) {
             'create_note' => $this->createNote($user, $payload),
+            'update_note' => $this->updateNote($user, $payload),
             'delete_note' => $this->deleteNote($user, $payload),
             default => ['success' => false, 'message' => 'Aksi catatan tidak dikenali', 'data' => null],
         };
+    }
+
+    /**
+     * Execute a notes action directly (without PendingAction).
+     */
+    public function executeDirectNotesAction(User $user, string $action, array $payload): array
+    {
+        return $this->executeNotesAction($user, $action, $payload);
     }
 
     /**
@@ -307,6 +316,74 @@ class ActionExecutorService
             return [
                 'success' => false,
                 'message' => 'Gagal menyimpan catatan: '.$e->getMessage(),
+                'data' => null,
+            ];
+        }
+    }
+
+    /**
+     * Update an existing note.
+     */
+    protected function updateNote(User $user, array $payload): array
+    {
+        try {
+            $query = Note::where('user_id', $user->id);
+
+            if (isset($payload['note_id'])) {
+                $query->where('id', $payload['note_id']);
+            } elseif (isset($payload['title'])) {
+                $query->where('title', 'like', "%{$payload['title']}%");
+            } elseif (isset($payload['keyword'])) {
+                $keyword = $payload['keyword'];
+                $query->where(function ($q) use ($keyword) {
+                    $q->where('title', 'like', "%{$keyword}%")
+                        ->orWhere('content', 'like', "%{$keyword}%");
+                });
+            }
+
+            $note = $query->latest()->first();
+
+            if (! $note) {
+                return [
+                    'success' => false,
+                    'message' => 'Catatan tidak ditemukan',
+                    'data' => null,
+                ];
+            }
+
+            $updateData = [];
+            if (isset($payload['new_title'])) {
+                $updateData['title'] = $payload['new_title'];
+            }
+            if (isset($payload['content'])) {
+                $updateData['content'] = $payload['content'];
+            }
+            if (isset($payload['tags'])) {
+                $updateData['tags'] = $payload['tags'];
+            }
+
+            if (empty($updateData)) {
+                return [
+                    'success' => false,
+                    'message' => 'Tidak ada data yang diperbarui',
+                    'data' => null,
+                ];
+            }
+
+            $note->update($updateData);
+
+            return [
+                'success' => true,
+                'message' => "Catatan \"{$note->title}\" berhasil diperbarui!",
+                'data' => [
+                    'note_id' => $note->id,
+                    'title' => $note->title,
+                ],
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Gagal memperbarui catatan: '.$e->getMessage(),
                 'data' => null,
             ];
         }

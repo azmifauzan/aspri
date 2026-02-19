@@ -193,7 +193,7 @@ class IntentParserService
         $moduleKeywords = [
             'finance' => ['uang', 'gaji', 'pengeluaran', 'pemasukan', 'transfer', 'saldo', 'bayar', 'belanja', 'transaksi', 'keuangan', 'rupiah', 'rp'],
             'schedule' => ['jadwal', 'agenda', 'rapat', 'meeting', 'acara', 'event', 'ingatkan', 'reminder', 'besok', 'hari ini', 'minggu', 'bulan', 'tanggal', 'jam'],
-            'notes' => ['catat', 'note', 'memo', 'tulis', 'simpan catatan', 'buat catatan', 'ingat', 'ide'],
+            'notes' => ['catat', 'catatn', 'note', 'notes', 'memo', 'tulis', 'simpan catatan', 'buat catatan', 'bikin catatan', 'bikin notes', 'bikin catatn', 'bikinin catatan', 'bikinin notes', 'ingat', 'ide', 'update catatan', 'edit catatan', 'ubah catatan', 'hapus catatan', 'histori'],
             'general' => ['halo', 'hi', 'help', 'bantuan', 'apa', 'siapa', 'gimana', 'bagaimana', 'terima kasih', 'thanks'],
         ];
 
@@ -299,8 +299,8 @@ PROMPT;
             ],
         ];
 
-        // Add conversation history for context (last 4 messages only to save tokens)
-        foreach (array_slice($conversationHistory, -4) as $msg) {
+        // Add conversation history for context (last 6 messages to retain note/entity context)
+        foreach (array_slice($conversationHistory, -6) as $msg) {
             $messages[] = $msg;
         }
 
@@ -330,8 +330,8 @@ PROMPT;
             ['role' => 'system', 'content' => $systemPrompt],
         ];
 
-        // Add conversation history for context (last 4 messages only)
-        foreach (array_slice($conversationHistory, -4) as $msg) {
+        // Add conversation history for context (last 6 messages to retain note/entity context)
+        foreach (array_slice($conversationHistory, -6) as $msg) {
             $messages[] = $msg;
         }
 
@@ -403,7 +403,18 @@ Actions:
 Actions:
 - create_note: Create a new note
   entities: {title?: string, content: string, tags?: array}
-  examples: "catat ide bisnis baru", "buat catatan meeting"
+  examples: "catat ide bisnis baru", "buat catatan meeting", "bikinin catatan untuk histori tekanan darah"
+  requires_confirmation: false
+
+- update_note: Update an existing note
+  entities: {title?: string, keyword?: string, note_id?: string, new_title?: string, content?: string, tags?: array}
+  examples: "update catatan ngaji jadi surat albaqarah", "edit catatan meeting", "ubah isi catatan X jadi Y"
+  IMPORTANT: For content, always reconstruct the COMPLETE updated content using conversation context.
+  requires_confirmation: false
+
+- delete_note: Delete an existing note
+  entities: {title?: string, note_id?: string}
+  examples: "hapus catatan meeting", "delete catatan lama"
   requires_confirmation: true
 
 - view_notes: Search or view notes
@@ -481,33 +492,19 @@ FOOTER;
     {
         $functions = [];
 
-        // If we know the module, only include relevant functions
-        if ($classification && $classification['module'] !== 'unknown') {
-            $module = $classification['module'];
+        // Always include ALL core module functions to prevent misclassification
+        // from hiding valid actions. Stage 1 only filters plugins, not core modules.
+        $functions = array_merge($functions, $this->getGeneralFunctions());
+        $functions = array_merge($functions, $this->getFinanceFunctions());
+        $functions = array_merge($functions, $this->getScheduleFunctions());
+        $functions = array_merge($functions, $this->getNotesFunctions());
 
-            // Always include general functions (confirm, cancel, help)
-            $functions = array_merge($functions, $this->getGeneralFunctions());
-
-            // Add module-specific functions
-            if ($module === 'finance' || $module === 'unknown') {
-                $functions = array_merge($functions, $this->getFinanceFunctions());
-            }
-            if ($module === 'schedule' || $module === 'unknown') {
-                $functions = array_merge($functions, $this->getScheduleFunctions());
-            }
-            if ($module === 'notes' || $module === 'unknown') {
-                $functions = array_merge($functions, $this->getNotesFunctions());
-            }
-            if ($module === 'plugin') {
-                // Only include specific plugins identified in classification
-                $functions = array_merge($functions, $this->getPluginFunctions($user, $classification['plugin_slugs'] ?? []));
-            }
-        } else {
-            // Fallback: include all (old behavior)
-            $functions = array_merge($functions, $this->getFinanceFunctions());
-            $functions = array_merge($functions, $this->getScheduleFunctions());
-            $functions = array_merge($functions, $this->getNotesFunctions());
-            $functions = array_merge($functions, $this->getGeneralFunctions());
+        // Add plugin functions based on classification
+        if ($classification && $classification['module'] === 'plugin') {
+            // Only include specific plugins identified in classification
+            $functions = array_merge($functions, $this->getPluginFunctions($user, $classification['plugin_slugs'] ?? []));
+        } elseif (! $classification || $classification['module'] === 'unknown') {
+            // Fallback: include all plugins
             $functions = array_merge($functions, $this->getPluginFunctions($user));
         }
 
@@ -648,6 +645,56 @@ FOOTER;
                         ],
                     ],
                     'required' => ['content'],
+                ],
+            ],
+            [
+                'name' => 'update_note',
+                'description' => 'Update an existing note content or title. IMPORTANT: Use conversation context to reconstruct the COMPLETE updated content, not just the changed part. If user says "update jadi 130", find the note and write out the full new content with 130 replacing the old value.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'title' => [
+                            'type' => 'string',
+                            'description' => 'Partial title of the note to find (case-insensitive search)',
+                        ],
+                        'keyword' => [
+                            'type' => 'string',
+                            'description' => 'Keyword to search in note title or content when title is unknown',
+                        ],
+                        'note_id' => [
+                            'type' => 'string',
+                            'description' => 'ID of the note to update',
+                        ],
+                        'new_title' => [
+                            'type' => 'string',
+                            'description' => 'New title for the note',
+                        ],
+                        'content' => [
+                            'type' => 'string',
+                            'description' => 'The COMPLETE new content for the note. Reconstruct full content from context. Example: if note had "Al-Baqarah ayat 129" and user says "update jadi 130", write "Sampai surat Al-Baqarah ayat 130".',
+                        ],
+                        'tags' => [
+                            'type' => 'array',
+                            'items' => ['type' => 'string'],
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'name' => 'delete_note',
+                'description' => 'Delete an existing note',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'title' => [
+                            'type' => 'string',
+                            'description' => 'Title of the note to delete',
+                        ],
+                        'note_id' => [
+                            'type' => 'string',
+                            'description' => 'ID of the note to delete',
+                        ],
+                    ],
                 ],
             ],
             [
@@ -1183,7 +1230,17 @@ FOOTER;
             return false;
         }
 
-        // All create/update/delete actions require confirmation
+        // Note mutations (create/update) execute directly without confirmation
+        $directExecutionActions = [
+            'create_note',
+            'update_note',
+        ];
+
+        if (in_array($functionName, $directExecutionActions)) {
+            return false;
+        }
+
+        // All other create/update/delete actions require confirmation
         $mutationActions = [
             'create_transaction',
             'update_transaction',
@@ -1191,8 +1248,6 @@ FOOTER;
             'create_schedule',
             'update_schedule',
             'delete_schedule',
-            'create_note',
-            'update_note',
             'delete_note',
         ];
 

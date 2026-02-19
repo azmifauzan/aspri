@@ -263,12 +263,32 @@ class ChatOrchestrator
                 return $this->askForMissingInfo($user, 'Apa isi catatannya?', $history);
             }
 
-            $pendingAction = $this->createPendingAction($user, $thread, $intent);
+            // Execute directly without confirmation (non-destructive operation)
+            $result = $this->actionExecutor->executeDirectNotesAction($user, 'create_note', $entities);
 
             return [
-                'response' => $this->formatNoteConfirmation($user, $entities),
-                'action_taken' => false,
-                'pending_action' => $pendingAction->toArray(),
+                'response' => $result['success']
+                    ? $this->formatSuccessResponse($user, $result)
+                    : $this->formatErrorResponse($user, $result),
+                'action_taken' => $result['success'],
+                'pending_action' => null,
+            ];
+        }
+
+        if ($action === 'update_note') {
+            if (! isset($entities['note_id']) && ! isset($entities['title'])) {
+                return $this->askForMissingInfo($user, 'Catatan mana yang ingin diperbarui?', $history);
+            }
+
+            // Execute directly without confirmation (non-destructive operation)
+            $result = $this->actionExecutor->executeDirectNotesAction($user, 'update_note', $entities);
+
+            return [
+                'response' => $result['success']
+                    ? $this->formatSuccessResponse($user, $result)
+                    : $this->formatErrorResponse($user, $result),
+                'action_taken' => $result['success'],
+                'pending_action' => null,
             ];
         }
 

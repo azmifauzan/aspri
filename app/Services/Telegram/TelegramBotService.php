@@ -4,6 +4,7 @@ namespace App\Services\Telegram;
 
 use App\Models\ChatMessage;
 use App\Models\ChatThread;
+use App\Models\ChatUsageLog;
 use App\Models\User;
 use App\Services\Admin\SettingsService;
 use App\Services\Ai\ChatOrchestrator;
@@ -260,6 +261,16 @@ class TelegramBotService
             return;
         }
 
+        // Check daily chat limit
+        if ($user->hasReachedChatLimit()) {
+            $this->sendMessage(
+                $chatId,
+                "⚠️ Kamu sudah mencapai batas chat harian ({$user->getDailyChatLimit()} pesan). Coba lagi besok ya!"
+            );
+
+            return;
+        }
+
         // Send typing indicator
         $this->sendChatAction($chatId, 'typing');
 
@@ -300,6 +311,9 @@ class TelegramBotService
 
             // Update thread timestamp
             $thread->update(['last_message_at' => now()]);
+
+            // Track chat usage (same as web chat)
+            ChatUsageLog::incrementForUser($user->id);
 
             // Send response to user
             $this->sendMessage($chatId, $result['response']);

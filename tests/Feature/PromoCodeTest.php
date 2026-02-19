@@ -191,7 +191,7 @@ class PromoCodeTest extends TestCase
     public function test_redeem_extends_subscription(): void
     {
         $user = User::factory()->create();
-        $subscription = Subscription::factory()->create([
+        $subscription = Subscription::factory()->monthly()->create([
             'user_id' => $user->id,
             'ends_at' => now()->addDays(10),
         ]);
@@ -208,6 +208,31 @@ class PromoCodeTest extends TestCase
         $subscription->refresh();
         $this->assertEquals(
             $originalEndsAt->addDays(30)->format('Y-m-d'),
+            $subscription->ends_at->format('Y-m-d')
+        );
+    }
+
+    public function test_redeem_upgrades_free_trial_to_full_member(): void
+    {
+        $user = User::factory()->create();
+        $subscription = Subscription::factory()->freeTrial()->create([
+            'user_id' => $user->id,
+            'ends_at' => now()->addDays(10),
+        ]);
+        $promoCode = PromoCode::factory()->create([
+            'duration_days' => 30,
+        ]);
+
+        $result = $this->promoCodeService->redeemPromoCode($promoCode->code, $user);
+
+        $this->assertTrue($result['success']);
+
+        $subscription->refresh();
+        // Plan should be upgraded from free_trial to monthly
+        $this->assertEquals('monthly', $subscription->plan);
+        // Ends at should be now + duration_days (not original ends_at + duration_days)
+        $this->assertEquals(
+            now()->addDays(30)->format('Y-m-d'),
             $subscription->ends_at->format('Y-m-d')
         );
     }
@@ -467,7 +492,7 @@ class PromoCodeTest extends TestCase
     public function test_user_can_redeem_valid_promo_code(): void
     {
         $user = User::factory()->create();
-        $subscription = Subscription::factory()->create([
+        $subscription = Subscription::factory()->monthly()->create([
             'user_id' => $user->id,
             'ends_at' => now()->addDays(10),
         ]);
