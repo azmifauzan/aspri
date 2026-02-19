@@ -123,6 +123,12 @@ const selectCity = (field: ConfigField, city: CityResult) => {
     }
 };
 
+const closeCitySearchDelayed = (fieldKey: string) => {
+    window.setTimeout(() => {
+        citySearchOpen.value[fieldKey] = false;
+    }, 200);
+};
+
 const props = defineProps<PluginShowProps>();
 
 const breadcrumbs = computed<BreadcrumbItem[]>(() => [
@@ -655,7 +661,7 @@ const { plugin, userPlugin, config, formFields, supportsScheduling, schedule, ex
                                                         :required="field.required"
                                                         autocomplete="off"
                                                         @input="(e: Event) => { citySearchQuery[field.key] = (e.target as HTMLInputElement).value; searchCities(field.key, field.depends_on); }"
-                                                        @blur="() => { setTimeout(() => { citySearchOpen[field.key] = false; }, 200); }"
+                                                        @blur="() => closeCitySearchDelayed(field.key)"
                                                     />
                                                     <span v-if="citySearchLoading[field.key]" class="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
                                                 </div>
