@@ -652,11 +652,11 @@ const { plugin, userPlugin, config, formFields, supportsScheduling, schedule, ex
                                                 class="relative"
                                             >
                                                 <div class="relative">
-                                                    <MapPin class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                                                    <Input
+                                                    <MapPin class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
+                                                    <input
                                                         :id="field.key"
                                                         :value="citySearchQuery[field.key] !== undefined ? citySearchQuery[field.key] : (configForm.config[field.key] as string || '')"
-                                                        class="pl-9"
+                                                        class="file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input h-9 w-full min-w-0 rounded-md border bg-transparent pl-9 pr-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
                                                         :placeholder="field.placeholder || 'Cari kota...'"
                                                         :required="field.required"
                                                         autocomplete="off"
