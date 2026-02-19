@@ -102,6 +102,10 @@ RUN a2enmod rewrite headers \
   && sed -ri -e "s!/var/www/html!${APACHE_DOCUMENT_ROOT}!g" /etc/apache2/sites-available/*.conf \
   && sed -ri -e "s!/var/www/html!${APACHE_DOCUMENT_ROOT}!g" /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
 
+# Copy security/header config for Apache
+COPY docker/apache-security.conf /etc/apache2/conf-available/security-custom.conf
+RUN a2enconf security-custom
+
 # Configure PHP upload limits
 RUN { \
         echo "upload_max_filesize = 20M"; \
