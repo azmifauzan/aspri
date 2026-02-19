@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
-import { MessageSquare } from 'lucide-vue-next';
+import { Head, router } from '@inertiajs/vue3';
+import { LogOut, MessageSquare } from 'lucide-vue-next';
 import { computed, onMounted, ref } from 'vue';
+import Swal from 'sweetalert2';
 import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -29,6 +30,47 @@ onMounted(() => {
         telegramUsername: props.telegramUsername,
     });
 });
+
+const disconnecting = ref(false);
+
+const disconnectTelegram = () => {
+    Swal.fire({
+        title: 'Putuskan Telegram?',
+        text: `Akun Telegram @${props.telegramUsername} akan diputus. Anda tidak akan menerima notifikasi dan tidak bisa chat melalui Telegram.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Ya, Putuskan',
+        cancelButtonText: 'Batal',
+    }).then((result) => {
+        if (result.isConfirmed) {
+            disconnecting.value = true;
+            router.delete('/settings/telegram', {
+                preserveScroll: true,
+                onFinish: () => {
+                    disconnecting.value = false;
+                },
+                onSuccess: () => {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil',
+                        text: 'Akun Telegram berhasil diputuskan.',
+                        timer: 2000,
+                        showConfirmButton: false,
+                    });
+                },
+                onError: () => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal',
+                        text: 'Gagal memutuskan akun Telegram. Silakan coba lagi.',
+                    });
+                },
+            });
+        }
+    });
+};
 
 const breadcrumbItems: BreadcrumbItem[] = [
     {
@@ -95,6 +137,18 @@ const copyCode = () => {
                                     You can now receive notifications and chat with your assistant via Telegram.
                                 </p>
                             </div>
+                        </div>
+                        <div class="mt-4 border-t pt-4">
+                            <Button
+                                variant="destructive"
+                                size="sm"
+                                class="gap-2"
+                                :disabled="disconnecting"
+                                @click="disconnectTelegram"
+                            >
+                                <LogOut class="h-4 w-4" />
+                                {{ disconnecting ? 'Memutuskan...' : 'Putuskan Telegram' }}
+                            </Button>
                         </div>
                     </CardContent>
                 </Card>

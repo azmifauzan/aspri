@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Models\SystemSetting;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -40,5 +41,25 @@ class TelegramController extends Controller
             'isLinked' => $isLinked,
             'telegramUsername' => $user->telegram_username ?? null,
         ]);
+    }
+
+    public function disconnect(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+
+        if (empty($user->telegram_chat_id)) {
+            return redirect()->route('telegram.index')
+                ->with('error', 'Akun Telegram belum terhubung.');
+        }
+
+        $user->update([
+            'telegram_chat_id' => null,
+            'telegram_username' => null,
+            'telegram_link_code' => null,
+            'telegram_link_expires_at' => null,
+        ]);
+
+        return redirect()->route('telegram.index')
+            ->with('success', 'Akun Telegram berhasil diputuskan.');
     }
 }

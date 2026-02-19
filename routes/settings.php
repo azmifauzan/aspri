@@ -32,4 +32,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('settings/telegram', [TelegramController::class, 'index'])
         ->name('telegram.index');
+
+    Route::delete('settings/telegram', [TelegramController::class, 'disconnect'])
+        ->name('telegram.disconnect');
 });
