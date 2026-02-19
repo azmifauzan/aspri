@@ -20,7 +20,7 @@ const emit = defineEmits<Emits>();
 </script>
 
 <template>
-    <div class="flex w-64 flex-col border-r bg-muted/30">
+    <div class="flex w-full flex-col border-r bg-muted/30">
         <!-- Header -->
         <div class="flex items-center justify-between border-b p-4">
             <h2 class="text-sm font-semibold">Percakapan</h2>

@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import ChatController from '@/actions/App/Http/Controllers/ChatController';
 import { ChatInput, ChatMessageList, ChatSidebar } from '@/components/chat';
+import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { index as chatIndex } from '@/routes/chat';
 import type { BreadcrumbItem, ChatMessage, ChatPageProps, ChatThread } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
+import { ArrowLeft } from 'lucide-vue-next';
 import { ref, watch, nextTick, computed } from 'vue';
 
 const props = defineProps<ChatPageProps>();
@@ -26,6 +28,9 @@ const currentThreadId = ref<string | null>(props.currentThread?.id ?? null);
 const threads = ref<ChatThread[]>([...props.threads]);
 const chatInputRef = ref<InstanceType<typeof ChatInput> | null>(null);
 const chatMessageListRef = ref<InstanceType<typeof ChatMessageList> | null>(null);
+
+// Mobile layout state: true = show sidebar, false = show chat
+const showMobileSidebar = ref(props.currentThread === null);
 
 // Watch for prop changes (when navigating between threads)
 watch(
@@ -232,6 +237,7 @@ const sendMessage = async (content: string) => {
 };
 
 const selectThread = (threadId: string) => {
+    showMobileSidebar.value = false;
     router.visit(`/chat/${threadId}`, {
         preserveState: true,
         preserveScroll: true,
@@ -241,6 +247,7 @@ const selectThread = (threadId: string) => {
 const startNewChat = () => {
     currentThreadId.value = null;
     messages.value = [];
+    showMobileSidebar.value = false;
     window.history.replaceState({}, '', '/chat');
 };
 
@@ -270,17 +277,29 @@ const deleteThread = async (threadId: string) => {
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-[calc(100vh-8rem)] overflow-hidden rounded-lg border bg-background">
-            <!-- Sidebar -->
-            <ChatSidebar
-                :threads="threads"
-                :current-thread-id="currentThreadId"
-                @select="selectThread"
-                @new-chat="startNewChat"
-                @delete="deleteThread"
-            />
+            <!-- Sidebar: full-screen on mobile, fixed w-64 on desktop -->
+            <div :class="showMobileSidebar ? 'flex w-full' : 'hidden md:flex md:w-64'">
+                <ChatSidebar
+                    :threads="threads"
+                    :current-thread-id="currentThreadId"
+                    @select="selectThread"
+                    @new-chat="startNewChat"
+                    @delete="deleteThread"
+                />
+            </div>
 
-            <!-- Main Chat Area -->
-            <div class="flex flex-1 flex-col overflow-hidden">
+            <!-- Main Chat Area: full-screen on mobile when active, flex-1 on desktop -->
+            <div :class="showMobileSidebar ? 'hidden md:flex md:flex-1 md:flex-col' : 'flex w-full flex-col md:flex-1'" class="overflow-hidden">
+                <!-- Mobile header with back button -->
+                <div class="flex shrink-0 items-center gap-2 border-b p-2 md:hidden">
+                    <Button variant="ghost" size="icon" @click="showMobileSidebar = true">
+                        <ArrowLeft class="h-4 w-4" />
+                    </Button>
+                    <span class="truncate text-sm font-medium">
+                        {{ currentThreadId ? (threads.find((t) => t.id === currentThreadId)?.title ?? 'Chat') : 'Chat Baru' }}
+                    </span>
+                </div>
+
                 <!-- Messages -->
                 <div class="flex-1 overflow-hidden">
                     <ChatMessageList
