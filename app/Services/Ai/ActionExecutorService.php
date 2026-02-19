@@ -98,7 +98,7 @@ class ActionExecutorService
 
             $category = $user->financeCategories()
                 ->where('tx_type', $txType)
-                ->where('name', 'like', "%{$categoryName}%")
+                ->where('name', 'ilike', "%{$categoryName}%")
                 ->first();
 
             if (! $category) {
@@ -159,7 +159,7 @@ class ActionExecutorService
             if (isset($payload['transaction_id'])) {
                 $query->where('id', $payload['transaction_id']);
             } elseif (isset($payload['description'])) {
-                $query->where('note', 'like', "%{$payload['description']}%");
+                $query->where('note', 'ilike', "%{$payload['description']}%");
             }
 
             $transaction = $query->latest()->first();
@@ -258,7 +258,7 @@ class ActionExecutorService
             if (isset($payload['schedule_id'])) {
                 $query->where('id', $payload['schedule_id']);
             } elseif (isset($payload['title'])) {
-                $query->where('title', 'like', "%{$payload['title']}%");
+                $query->where('title', 'ilike', "%{$payload['title']}%");
             }
 
             $schedule = $query->latest()->first();
@@ -299,7 +299,7 @@ class ActionExecutorService
             if (isset($payload['schedule_id'])) {
                 $query->where('id', $payload['schedule_id']);
             } elseif (isset($payload['title'])) {
-                $query->where('title', 'like', "%{$payload['title']}%");
+                $query->where('title', 'ilike', "%{$payload['title']}%");
             }
 
             $schedule = $query->latest()->first();
@@ -404,12 +404,12 @@ class ActionExecutorService
             if (isset($payload['note_id'])) {
                 $query->where('id', $payload['note_id']);
             } elseif (isset($payload['title'])) {
-                $query->where('title', 'like', "%{$payload['title']}%");
+                $query->where('title', 'ilike', "%{$payload['title']}%");
             } elseif (isset($payload['keyword'])) {
                 $keyword = $payload['keyword'];
                 $query->where(function ($q) use ($keyword) {
-                    $q->where('title', 'like', "%{$keyword}%")
-                        ->orWhere('content', 'like', "%{$keyword}%");
+                    $q->where('title', 'ilike', "%{$keyword}%")
+                        ->orWhere('content', 'ilike', "%{$keyword}%");
                 });
             }
 
@@ -472,7 +472,7 @@ class ActionExecutorService
             if (isset($payload['note_id'])) {
                 $query->where('id', $payload['note_id']);
             } elseif (isset($payload['title'])) {
-                $query->where('title', 'like', "%{$payload['title']}%");
+                $query->where('title', 'ilike', "%{$payload['title']}%");
             }
 
             $note = $query->latest()->first();
@@ -623,8 +623,8 @@ class ActionExecutorService
 
         if ($search) {
             $query->where(function ($q) use ($search) {
-                $q->where('title', 'like', "%{$search}%")
-                    ->orWhere('content', 'like', "%{$search}%");
+                $q->where('title', 'ilike', "%{$search}%")
+                    ->orWhere('content', 'ilike', "%{$search}%");
             });
         }
 
