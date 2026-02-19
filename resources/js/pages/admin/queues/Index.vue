@@ -8,6 +8,7 @@ import type { BreadcrumbItem, QueueMonitorPageProps } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
 import { AlertTriangle, Database, Play, RefreshCw, RotateCcw, Trash2, Zap } from 'lucide-vue-next';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
+import Swal from 'sweetalert2';
 
 const props = defineProps<QueueMonitorPageProps>();
 
@@ -46,31 +47,133 @@ onUnmounted(() => {
 });
 
 const retryJob = (id: number) => {
-    router.post(admin.queues.retry({ id }).url, {}, { preserveScroll: true });
+    router.post(admin.queues.retry({ id }).url, {}, {
+        preserveScroll: true,
+        onSuccess: () => {
+            Swal.fire({
+                icon: 'success',
+                title: 'Job dijalankan ulang',
+                text: 'Job berhasil dikembalikan ke antrian.',
+                timer: 2000,
+                showConfirmButton: false,
+            });
+        },
+    });
 };
 
 const retryAll = () => {
-    if (confirm('Are you sure you want to retry all failed jobs?')) {
-        router.post(admin.queues.retryAll().url, {}, { preserveScroll: true });
-    }
+    Swal.fire({
+        title: 'Retry Semua Job Gagal?',
+        text: 'Semua failed job akan dikembalikan ke antrian untuk dijalankan ulang.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Ya, Retry Semua!',
+        cancelButtonText: 'Batal',
+    }).then((result) => {
+        if (result.isConfirmed) {
+            router.post(admin.queues.retryAll().url, {}, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Semua job dijalankan ulang',
+                        timer: 2000,
+                        showConfirmButton: false,
+                    });
+                },
+            });
+        }
+    });
 };
 
 const deleteJob = (id: number) => {
-    if (confirm('Are you sure you want to delete this failed job?')) {
-        router.delete(admin.queues.delete({ id }).url, { preserveScroll: true });
-    }
+    Swal.fire({
+        title: 'Hapus Job?',
+        text: 'Failed job ini akan dihapus permanen.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Ya, Hapus!',
+        cancelButtonText: 'Batal',
+    }).then((result) => {
+        if (result.isConfirmed) {
+            router.delete(admin.queues.delete({ id }).url, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Job dihapus',
+                        timer: 2000,
+                        showConfirmButton: false,
+                    });
+                },
+            });
+        }
+    });
 };
 
 const flushFailed = () => {
-    if (confirm('Are you sure you want to delete ALL failed jobs? This cannot be undone.')) {
-        router.post(admin.queues.flush().url, {}, { preserveScroll: true });
-    }
+    Swal.fire({
+        title: 'Hapus Semua Failed Job?',
+        text: 'Seluruh failed job akan dihapus permanen dan tidak dapat dikembalikan.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Ya, Hapus Semua!',
+        cancelButtonText: 'Batal',
+    }).then((result) => {
+        if (result.isConfirmed) {
+            router.post(admin.queues.flush().url, {}, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Semua failed job dihapus',
+                        timer: 2000,
+                        showConfirmButton: false,
+                    });
+                },
+            });
+        }
+    });
 };
 
 const clearPending = () => {
-    if (confirm('WARNING: This will delete ALL pending jobs. Are you absolutely sure?')) {
-        router.post(admin.queues.clear().url, {}, { preserveScroll: true });
-    }
+    Swal.fire({
+        title: 'Hapus Semua Pending Job?',
+        text: 'PERINGATAN: Seluruh pending job akan dihapus. Tindakan ini tidak dapat dibatalkan.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Ya, Hapus Semua!',
+        cancelButtonText: 'Batal',
+        input: 'text',
+        inputPlaceholder: 'Ketik "HAPUS" untuk konfirmasi',
+        preConfirm: (value) => {
+            if (value !== 'HAPUS') {
+                Swal.showValidationMessage('Ketik "HAPUS" untuk mengkonfirmasi');
+            }
+        },
+    }).then((result) => {
+        if (result.isConfirmed) {
+            router.post(admin.queues.clear().url, {}, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Semua pending job dihapus',
+                        timer: 2000,
+                        showConfirmButton: false,
+                    });
+                },
+            });
+        }
+    });
 };
 
 const queueHealth = computed(() => {

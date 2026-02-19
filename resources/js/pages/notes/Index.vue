@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-vue-next';
 import { index as notesIndex, destroy, update } from '@/routes/notes';
 import type { BreadcrumbItem } from '@/types';
+import Swal from 'sweetalert2';
 
 const props = defineProps<{
     notes: any[];
@@ -34,9 +35,38 @@ const openEditModal = (note: any) => {
 };
 
 const deleteNote = (note: any) => {
-    if (confirm('Are you sure you want to delete this note?')) {
-        router.delete(destroy(note.id).url);
-    }
+    Swal.fire({
+        title: 'Hapus Catatan?',
+        text: `Catatan "${note.title}" akan dihapus permanen.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Ya, Hapus!',
+        cancelButtonText: 'Batal',
+    }).then((result) => {
+        if (result.isConfirmed) {
+            router.delete(destroy(note.id).url, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Catatan dihapus',
+                        text: 'Catatan berhasil dihapus.',
+                        timer: 2000,
+                        showConfirmButton: false,
+                    });
+                },
+                onError: () => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal menghapus',
+                        text: 'Terjadi kesalahan saat menghapus catatan.',
+                    });
+                },
+            });
+        }
+    });
 };
 
 const togglePin = (note: any) => {
@@ -44,7 +74,23 @@ const togglePin = (note: any) => {
         ...note,
         is_pinned: !note.is_pinned
     }, {
-        preserveScroll: true
+        preserveScroll: true,
+        onSuccess: () => {
+            Swal.fire({
+                icon: 'success',
+                title: note.is_pinned ? 'Catatan di-unpin' : 'Catatan di-pin',
+                text: note.is_pinned ? 'Catatan berhasil di-unpin.' : 'Catatan berhasil di-pin.',
+                timer: 1500,
+                showConfirmButton: false,
+            });
+        },
+        onError: () => {
+            Swal.fire({
+                icon: 'error',
+                title: 'Gagal',
+                text: 'Terjadi kesalahan saat memperbarui catatan.',
+            });
+        },
     });
 };
 </script>

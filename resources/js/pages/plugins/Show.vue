@@ -16,9 +16,112 @@ import { index as pluginsIndex, activate, deactivate, test } from '@/routes/plug
 import { update as configUpdate, reset as configReset } from '@/routes/plugins/config';
 import { update as scheduleUpdate } from '@/routes/plugins/schedule';
 import { store as ratingsStore, update as ratingsUpdate, destroy as ratingsDestroy } from '@/routes/plugins/ratings';
-import { ArrowLeft, Calendar, CheckCircle, Clock, Play, RotateCcw, Save, Settings, Star, Trash2, XCircle, FileText, History } from 'lucide-vue-next';
+import { ArrowLeft, Calendar, CheckCircle, Clock, Play, RotateCcw, Save, Settings, Star, Trash2, XCircle, FileText, History, MapPin } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import Swal from 'sweetalert2';
+
+// Country list (ISO 3166-1 alpha-2: name)
+const COUNTRIES: Record<string, string> = {
+    AF: 'Afghanistan', AL: 'Albania', DZ: 'Algeria', AD: 'Andorra', AO: 'Angola',
+    AR: 'Argentina', AU: 'Australia', AT: 'Austria', AZ: 'Azerbaijan', BH: 'Bahrain',
+    BD: 'Bangladesh', BE: 'Belgium', BJ: 'Benin', BT: 'Bhutan', BO: 'Bolivia',
+    BA: 'Bosnia and Herzegovina', BW: 'Botswana', BR: 'Brazil', BN: 'Brunei', BG: 'Bulgaria',
+    BF: 'Burkina Faso', BI: 'Burundi', CV: 'Cabo Verde', KH: 'Cambodia', CM: 'Cameroon',
+    CA: 'Canada', CF: 'Central African Republic', TD: 'Chad', CL: 'Chile', CN: 'China',
+    CO: 'Colombia', KM: 'Comoros', CD: 'Congo (DRC)', CG: 'Congo', CR: 'Costa Rica',
+    CI: "Côte d'Ivoire", HR: 'Croatia', CY: 'Cyprus', CZ: 'Czech Republic',
+    DK: 'Denmark', DJ: 'Djibouti', DO: 'Dominican Republic', EC: 'Ecuador', EG: 'Egypt',
+    SV: 'El Salvador', GQ: 'Equatorial Guinea', ER: 'Eritrea', EE: 'Estonia', SZ: 'Eswatini',
+    ET: 'Ethiopia', FJ: 'Fiji', FI: 'Finland', FR: 'France', GA: 'Gabon',
+    GM: 'Gambia', GE: 'Georgia', DE: 'Germany', GH: 'Ghana', GR: 'Greece',
+    GT: 'Guatemala', GN: 'Guinea', GW: 'Guinea-Bissau', GY: 'Guyana', HT: 'Haiti',
+    HN: 'Honduras', HU: 'Hungary', IS: 'Iceland', IN: 'India', ID: 'Indonesia',
+    IR: 'Iran', IQ: 'Iraq', IE: 'Ireland', IL: 'Israel', IT: 'Italy',
+    JM: 'Jamaica', JP: 'Japan', JO: 'Jordan', KZ: 'Kazakhstan', KE: 'Kenya',
+    KI: 'Kiribati', KW: 'Kuwait', KG: 'Kyrgyzstan', LA: 'Laos', LV: 'Latvia',
+    LB: 'Lebanon', LS: 'Lesotho', LR: 'Liberia', LY: 'Libya', LI: 'Liechtenstein',
+    LT: 'Lithuania', LU: 'Luxembourg', MG: 'Madagascar', MW: 'Malawi', MY: 'Malaysia',
+    MV: 'Maldives', ML: 'Mali', MT: 'Malta', MR: 'Mauritania', MU: 'Mauritius',
+    MX: 'Mexico', FM: 'Micronesia', MD: 'Moldova', MC: 'Monaco', MN: 'Mongolia',
+    ME: 'Montenegro', MA: 'Morocco', MZ: 'Mozambique', MM: 'Myanmar', NA: 'Namibia',
+    NP: 'Nepal', NL: 'Netherlands', NZ: 'New Zealand', NI: 'Nicaragua', NE: 'Niger',
+    NG: 'Nigeria', MK: 'North Macedonia', NO: 'Norway', OM: 'Oman', PK: 'Pakistan',
+    PW: 'Palau', PA: 'Panama', PG: 'Papua New Guinea', PY: 'Paraguay', PE: 'Peru',
+    PH: 'Philippines', PL: 'Poland', PT: 'Portugal', QA: 'Qatar', RO: 'Romania',
+    RU: 'Russia', RW: 'Rwanda', SA: 'Saudi Arabia', SN: 'Senegal', RS: 'Serbia',
+    SL: 'Sierra Leone', SG: 'Singapore', SK: 'Slovakia', SI: 'Slovenia', SO: 'Somalia',
+    ZA: 'South Africa', SS: 'South Sudan', ES: 'Spain', LK: 'Sri Lanka', SD: 'Sudan',
+    SR: 'Suriname', SE: 'Sweden', CH: 'Switzerland', SY: 'Syria', TW: 'Taiwan',
+    TJ: 'Tajikistan', TZ: 'Tanzania', TH: 'Thailand', TL: 'Timor-Leste', TG: 'Togo',
+    TT: 'Trinidad and Tobago', TN: 'Tunisia', TR: 'Turkey', TM: 'Turkmenistan',
+    UG: 'Uganda', UA: 'Ukraine', AE: 'United Arab Emirates', GB: 'United Kingdom',
+    US: 'United States', UY: 'Uruguay', UZ: 'Uzbekistan', VE: 'Venezuela', VN: 'Vietnam',
+    YE: 'Yemen', ZM: 'Zambia', ZW: 'Zimbabwe',
+};
+
+// City search state (keyed by field key to support multiple city_search fields)
+interface CityResult {
+    name: string;
+    admin1: string;
+    country: string;
+    latitude: number;
+    longitude: number;
+}
+
+const citySearchQuery = ref<Record<string, string>>({});
+const citySearchResults = ref<Record<string, CityResult[]>>({});
+const citySearchLoading = ref<Record<string, boolean>>({});
+const citySearchOpen = ref<Record<string, boolean>>({});
+let citySearchTimers: Record<string, ReturnType<typeof setTimeout>> = {};
+
+const searchCities = (fieldKey: string, dependsOnKey: string | null | undefined) => {
+    const query = citySearchQuery.value[fieldKey];
+    if (!query || query.length < 2) {
+        citySearchResults.value[fieldKey] = [];
+        citySearchOpen.value[fieldKey] = false;
+        return;
+    }
+
+    clearTimeout(citySearchTimers[fieldKey]);
+    citySearchTimers[fieldKey] = setTimeout(async () => {
+        citySearchLoading.value[fieldKey] = true;
+        try {
+            const countryCode = dependsOnKey ? (configForm.config[dependsOnKey] as string) : '';
+            let url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=8&language=id&format=json`;
+            if (countryCode) {
+                url += `&countryCode=${countryCode}`;
+            }
+            const resp = await fetch(url);
+            const data = await resp.json();
+            citySearchResults.value[fieldKey] = (data.results || []) as CityResult[];
+            citySearchOpen.value[fieldKey] = citySearchResults.value[fieldKey].length > 0;
+        } catch {
+            citySearchResults.value[fieldKey] = [];
+        } finally {
+            citySearchLoading.value[fieldKey] = false;
+        }
+    }, 350);
+};
+
+const selectCity = (field: ConfigField, city: CityResult) => {
+    // Set the city name value
+    configForm.config[field.key] = city.name;
+    citySearchQuery.value[field.key] = city.name;
+    citySearchOpen.value[field.key] = false;
+
+    // Auto-fill related fields based on 'fills'
+    if (field.fills) {
+        for (const fillKey of field.fills) {
+            if (fillKey === 'latitude') {
+                configForm.config[fillKey] = city.latitude;
+            } else if (fillKey === 'longitude') {
+                configForm.config[fillKey] = city.longitude;
+            } else if (fillKey === 'location') {
+                configForm.config[fillKey] = `${city.name}, ${city.country}`;
+            }
+        }
+    }
+};
 
 const props = defineProps<PluginShowProps>();
 
@@ -454,7 +557,7 @@ const { plugin, userPlugin, config, formFields, supportsScheduling, schedule, ex
                             <CardContent>
                                 <form class="space-y-6" @submit.prevent="saveConfig">
                                     <template v-for="field in formFields" :key="field.key">
-                                        <div v-if="shouldShowField(field)" class="space-y-2">
+                                        <div v-if="shouldShowField(field) && field.type !== 'hidden'" class="space-y-2">
                                             <Label :for="field.key">
                                                 {{ field.label }}
                                                 <span v-if="field.required" class="text-destructive">*</span>
@@ -477,6 +580,9 @@ const { plugin, userPlugin, config, formFields, supportsScheduling, schedule, ex
                                                 type="number"
                                                 :min="field.min"
                                                 :max="field.max"
+                                                :step="field.step ?? (field.type === 'integer' ? 1 : 'any')"
+                                                :readonly="field.readonly"
+                                                :class="field.readonly ? 'bg-muted text-muted-foreground cursor-not-allowed' : ''"
                                                 :required="field.required"
                                             />
 
@@ -513,6 +619,67 @@ const { plugin, userPlugin, config, formFields, supportsScheduling, schedule, ex
                                                 <Label :for="field.key" class="font-normal cursor-pointer">
                                                     {{ field.description || field.label }}
                                                 </Label>
+                                            </div>
+
+                                            <!-- Country select -->
+                                            <Select
+                                                v-else-if="field.type === 'country_select'"
+                                                v-model="configForm.config[field.key]"
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue :placeholder="`Pilih ${field.label}`" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem
+                                                        v-for="(countryName, code) in COUNTRIES"
+                                                        :key="code"
+                                                        :value="code"
+                                                    >
+                                                        {{ countryName }}
+                                                    </SelectItem>
+                                                </SelectContent>
+                                            </Select>
+
+                                            <!-- City search with autocomplete -->
+                                            <div
+                                                v-else-if="field.type === 'city_search'"
+                                                class="relative"
+                                            >
+                                                <div class="relative">
+                                                    <MapPin class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                                                    <Input
+                                                        :id="field.key"
+                                                        :value="citySearchQuery[field.key] !== undefined ? citySearchQuery[field.key] : (configForm.config[field.key] as string || '')"
+                                                        class="pl-9"
+                                                        :placeholder="field.placeholder || 'Cari kota...'"
+                                                        :required="field.required"
+                                                        autocomplete="off"
+                                                        @input="(e: Event) => { citySearchQuery[field.key] = (e.target as HTMLInputElement).value; searchCities(field.key, field.depends_on); }"
+                                                        @blur="() => { setTimeout(() => { citySearchOpen[field.key] = false; }, 200); }"
+                                                    />
+                                                    <span v-if="citySearchLoading[field.key]" class="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+                                                </div>
+
+                                                <!-- Dropdown results -->
+                                                <div
+                                                    v-if="citySearchOpen[field.key] && citySearchResults[field.key]?.length"
+                                                    class="absolute z-50 mt-1 w-full rounded-md border bg-popover text-popover-foreground shadow-md"
+                                                >
+                                                    <ul class="max-h-60 overflow-auto py-1">
+                                                        <li
+                                                            v-for="(city, idx) in citySearchResults[field.key]"
+                                                            :key="idx"
+                                                            class="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
+                                                            @mousedown.prevent="selectCity(field, city)"
+                                                        >
+                                                            <MapPin class="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                                                            <span>
+                                                                <span class="font-medium">{{ city.name }}</span>
+                                                                <span class="text-muted-foreground">, {{ city.admin1 ? city.admin1 + ', ' : '' }}{{ city.country }}</span>
+                                                            </span>
+                                                        </li>
+                                                    </ul>
+                                                </div>
                                             </div>
 
                                             <!-- Select -->

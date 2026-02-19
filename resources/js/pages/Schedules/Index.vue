@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { ref, computed } from 'vue';
 import { Plus, Pencil, Trash, List, Calendar as CalendarIcon, ChevronLeft, ChevronRight, MapPin, Clock } from 'lucide-vue-next';
 import * as scheduleRoutes from '@/routes/schedules';
+import Swal from 'sweetalert2';
 
 interface Schedule {
     id: number;
@@ -149,6 +150,20 @@ const submit = () => {
             onSuccess: () => {
                 isDialogOpen.value = false;
                 form.reset();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Jadwal diperbarui',
+                    text: 'Jadwal berhasil diperbarui.',
+                    timer: 2000,
+                    showConfirmButton: false,
+                });
+            },
+            onError: () => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal memperbarui',
+                    text: 'Terjadi kesalahan saat memperbarui jadwal.',
+                });
             },
         });
     } else {
@@ -156,15 +171,61 @@ const submit = () => {
             onSuccess: () => {
                 isDialogOpen.value = false;
                 form.reset();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Jadwal dibuat',
+                    text: 'Jadwal baru berhasil disimpan.',
+                    timer: 2000,
+                    showConfirmButton: false,
+                });
+            },
+            onError: () => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal membuat jadwal',
+                    text: 'Terjadi kesalahan saat menyimpan jadwal.',
+                });
             },
         });
     }
 };
 
 const deleteSchedule = (id: number) => {
-    if (confirm('Are you sure you want to delete this schedule?')) {
-        router.delete(scheduleRoutes.destroy(id).url);
-    }
+    isDialogOpen.value = false;
+    setTimeout(() => {
+        Swal.fire({
+            title: 'Hapus Jadwal?',
+            text: 'Jadwal ini akan dihapus permanen.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Ya, Hapus!',
+            cancelButtonText: 'Batal',
+        }).then((result) => {
+            if (result.isConfirmed) {
+                router.delete(scheduleRoutes.destroy(id).url, {
+                    preserveScroll: true,
+                    onSuccess: () => {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Jadwal dihapus',
+                            text: 'Jadwal berhasil dihapus.',
+                            timer: 2000,
+                            showConfirmButton: false,
+                        });
+                    },
+                    onError: () => {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal menghapus',
+                            text: 'Terjadi kesalahan saat menghapus jadwal.',
+                        });
+                    },
+                });
+            }
+        });
+    }, 200);
 };
 
 const breadcrumbs = [

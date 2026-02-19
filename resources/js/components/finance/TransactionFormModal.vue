@@ -14,6 +14,7 @@ import { categories as financeCategories, transactions as financeTransactions } 
 import type { FinanceAccount, FinanceCategory } from '@/types';
 import { Link, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import Swal from 'sweetalert2';
 
 const props = withDefaults(defineProps<{
     open: boolean;
@@ -50,6 +51,20 @@ const submitTransaction = () => {
             emit('update:open', false);
             form.reset();
             emit('success');
+            Swal.fire({
+                icon: 'success',
+                title: 'Transaksi dicatat',
+                text: 'Transaksi baru berhasil disimpan.',
+                timer: 2000,
+                showConfirmButton: false,
+            });
+        },
+        onError: () => {
+            Swal.fire({
+                icon: 'error',
+                title: 'Gagal mencatat transaksi',
+                text: 'Terjadi kesalahan saat menyimpan transaksi.',
+            });
         },
     });
 };

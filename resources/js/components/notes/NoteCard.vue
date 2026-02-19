@@ -22,6 +22,23 @@ const formatDate = (dateString: string) => {
         year: 'numeric'
     });
 };
+
+/** Extract readable text from JSON block content */
+const contentPreview = (content: string | null): string => {
+    if (!content) { return ''; }
+    try {
+        const blocks = JSON.parse(content);
+        if (!Array.isArray(blocks)) { return content; }
+        return blocks.map((block: any) => {
+            if (block.type === 'list' && Array.isArray(block.items)) {
+                return block.items.join(' ');
+            }
+            return block.content ?? '';
+        }).join(' ').trim();
+    } catch {
+        return content;
+    }
+};
 </script>
 
 <template>
@@ -42,7 +59,7 @@ const formatDate = (dateString: string) => {
             </div>
             
             <p class="mb-4 text-sm text-zinc-600 dark:text-zinc-400 line-clamp-3 min-h-[3rem]">
-                {{ note.content || 'Start writing...' }}
+                {{ contentPreview(note.content) || 'Start writing...' }}
             </p>
             
             <div class="flex items-center text-xs text-zinc-400">

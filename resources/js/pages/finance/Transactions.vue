@@ -2,14 +2,6 @@
 import TransactionFormModal from '@/components/finance/TransactionFormModal.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { categories as financeCategories, transactions as financeTransactions } from '@/routes/finance';
@@ -18,6 +10,7 @@ import type { BreadcrumbItem, FinanceTransactionsProps, FinanceTransaction } fro
 import { Head, Link, router } from '@inertiajs/vue3';
 import { Filter, Plus, Search, Tag, Trash2 } from 'lucide-vue-next';
 import { ref, watch } from 'vue';
+import Swal from 'sweetalert2';
 
 const props = defineProps<FinanceTransactionsProps>();
 
@@ -28,8 +21,6 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const showAddModal = ref(false);
-const showDeleteModal = ref(false);
-const transactionToDelete = ref<FinanceTransaction | null>(null);
 const searchQuery = ref(props.filters?.search || '');
 const filterType = ref(props.filters?.type || '');
 
@@ -66,17 +57,37 @@ const getTransactionColor = (tx: FinanceTransaction) => {
 };
 
 const confirmDelete = (tx: FinanceTransaction) => {
-    transactionToDelete.value = tx;
-    showDeleteModal.value = true;
-};
-
-const deleteTransaction = () => {
-    if (!transactionToDelete.value) return;
-    
-    router.delete(financeTransactions.destroy(transactionToDelete.value.id).url, {
-        onSuccess: () => {
-            showDeleteModal.value = false;
-        },
+    Swal.fire({
+        title: 'Hapus Transaksi?',
+        text: 'Transaksi ini akan dihapus permanen dan tidak dapat dikembalikan.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Ya, Hapus!',
+        cancelButtonText: 'Batal',
+    }).then((result) => {
+        if (result.isConfirmed) {
+            router.delete(financeTransactions.destroy(tx.id).url, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Transaksi dihapus',
+                        text: 'Transaksi berhasil dihapus.',
+                        timer: 2000,
+                        showConfirmButton: false,
+                    });
+                },
+                onError: () => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal menghapus',
+                        text: 'Terjadi kesalahan saat menghapus transaksi.',
+                    });
+                },
+            });
+        }
     });
 };
 </script>
@@ -216,24 +227,5 @@ const deleteTransaction = () => {
             </Card>
         </div>
 
-        <!-- Delete Confirmation Modal -->
-        <Dialog v-model:open="showDeleteModal">
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Hapus Transaksi</DialogTitle>
-                    <DialogDescription>
-                        Apakah Anda yakin ingin menghapus transaksi ini? Tindakan ini tidak dapat dibatalkan.
-                    </DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                    <Button variant="outline" @click="showDeleteModal = false">
-                        Batal
-                    </Button>
-                    <Button variant="destructive" @click="deleteTransaction">
-                        Hapus
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
     </AppLayout>
 </template>

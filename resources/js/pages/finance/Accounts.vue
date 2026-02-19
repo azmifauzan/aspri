@@ -20,6 +20,7 @@ import type { BreadcrumbItem, FinanceAccountsProps } from '@/types';
 import { Head, useForm } from '@inertiajs/vue3';
 import { Banknote, CreditCard, Plus, Wallet } from 'lucide-vue-next';
 import { ref } from 'vue';
+import Swal from 'sweetalert2';
 
 const props = defineProps<FinanceAccountsProps>();
 
@@ -72,6 +73,20 @@ const submitAccount = () => {
         onSuccess: () => {
             showAddModal.value = false;
             form.reset();
+            Swal.fire({
+                icon: 'success',
+                title: 'Akun dibuat',
+                text: 'Akun keuangan baru berhasil disimpan.',
+                timer: 2000,
+                showConfirmButton: false,
+            });
+        },
+        onError: () => {
+            Swal.fire({
+                icon: 'error',
+                title: 'Gagal membuat akun',
+                text: 'Terjadi kesalahan saat menyimpan akun.',
+            });
         },
     });
 };

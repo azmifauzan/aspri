@@ -13,6 +13,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import InputError from '@/components/InputError.vue';
 import { Pin } from 'lucide-vue-next';
+import { store, update } from '@/routes/notes';
+import Swal from 'sweetalert2';
 
 const props = defineProps<{
     show: boolean;
@@ -20,6 +22,28 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits(['close']);
+
+/** Extract plain text from JSON block content for display in the textarea */
+const blocksToText = (content: string | null): string => {
+    if (!content) { return ''; }
+    try {
+        const blocks = JSON.parse(content);
+        if (!Array.isArray(blocks)) { return content; }
+        return blocks.map((block: any) => {
+            if (block.type === 'list' && Array.isArray(block.items)) {
+                return block.items.join('\n');
+            }
+            return block.content ?? '';
+        }).join('\n\n').trim();
+    } catch {
+        return content;
+    }
+};
+
+/** Wrap plain text into a single paragraph block for storage */
+const textToBlocks = (text: string): string => {
+    return JSON.stringify([{ type: 'paragraph', content: text }]);
+};
 
 const form = useForm({
     title: '',
@@ -31,7 +55,7 @@ const form = useForm({
 watch(() => props.note, (newNote) => {
     if (newNote) {
         form.title = newNote.title;
-        form.content = newNote.content;
+        form.content = blocksToText(newNote.content);
         form.is_pinned = newNote.is_pinned;
         form.color = newNote.color;
     } else {
@@ -40,18 +64,47 @@ watch(() => props.note, (newNote) => {
 }, { immediate: true });
 
 const submit = () => {
+    const payload = { ...form.data(), content: form.content ? textToBlocks(form.content) : null };
     if (props.note) {
-        form.put(route('notes.update', props.note.id), {
+        form.transform(() => payload).put(update(props.note!.id).url, {
             onSuccess: () => {
                 form.reset();
                 emit('close');
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Catatan diperbarui',
+                    text: 'Catatan berhasil diperbarui.',
+                    timer: 2000,
+                    showConfirmButton: false,
+                });
+            },
+            onError: () => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal memperbarui',
+                    text: 'Terjadi kesalahan saat memperbarui catatan.',
+                });
             },
         });
     } else {
-        form.post(route('notes.store'), {
+        form.transform(() => payload).post(store().url, {
             onSuccess: () => {
                 form.reset();
                 emit('close');
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Catatan dibuat',
+                    text: 'Catatan baru berhasil disimpan.',
+                    timer: 2000,
+                    showConfirmButton: false,
+                });
+            },
+            onError: () => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal membuat catatan',
+                    text: 'Terjadi kesalahan saat menyimpan catatan.',
+                });
             },
         });
     }

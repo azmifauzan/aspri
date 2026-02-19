@@ -45,17 +45,32 @@ class PrayerTimesPlugin extends BasePlugin
     public function getConfigSchema(): array
     {
         return [
-            'location' => [
-                'type' => 'text',
-                'label' => 'Lokasi',
-                'placeholder' => 'Jakarta, Indonesia',
+            'country' => [
+                'type' => 'country_select',
+                'label' => 'Negara',
+                'default' => 'ID',
                 'required' => true,
+            ],
+            'city_name' => [
+                'type' => 'city_search',
+                'label' => 'Kota',
+                'default' => 'Jakarta',
+                'placeholder' => 'Cari kota...',
+                'depends_on' => 'country',
+                'fills' => ['latitude', 'longitude', 'location'],
+                'required' => true,
+            ],
+            'location' => [
+                'type' => 'hidden',
+                'label' => 'Lokasi',
+                'default' => 'Jakarta, Indonesia',
             ],
             'latitude' => [
                 'type' => 'number',
                 'label' => 'Latitude',
                 'default' => -6.2088,
                 'step' => 0.0001,
+                'readonly' => true,
                 'required' => true,
             ],
             'longitude' => [
@@ -63,6 +78,7 @@ class PrayerTimesPlugin extends BasePlugin
                 'label' => 'Longitude',
                 'default' => 106.8456,
                 'step' => 0.0001,
+                'readonly' => true,
                 'required' => true,
             ],
             'calculation_method' => [
@@ -132,6 +148,8 @@ class PrayerTimesPlugin extends BasePlugin
     public function getDefaultConfig(): array
     {
         return [
+            'country' => 'ID',
+            'city_name' => 'Jakarta',
             'location' => 'Jakarta, Indonesia',
             'latitude' => -6.2088,
             'longitude' => 106.8456,

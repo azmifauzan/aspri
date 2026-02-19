@@ -11,6 +11,7 @@ import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { debounce } from 'lodash-es';
 import { Check, ChevronLeft, ChevronRight, Edit, Key, Search, Trash2, UserX, X } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
+import Swal from 'sweetalert2';
 
 const props = defineProps<UserManagementProps>();
 
@@ -44,15 +45,59 @@ const toggleActive = (userId: number) => {
 };
 
 const resetPassword = (userId: number) => {
-    if (confirm('Are you sure you want to reset this user\'s password?')) {
-        router.post(admin.users.resetPassword({ user: userId }).url, {}, { preserveScroll: true });
-    }
+    Swal.fire({
+        title: 'Reset Password?',
+        text: 'Password user akan direset. User akan menerima email dengan password baru.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Ya, Reset!',
+        cancelButtonText: 'Batal',
+    }).then((result) => {
+        if (result.isConfirmed) {
+            router.post(admin.users.resetPassword({ user: userId }).url, {}, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Password direset',
+                        text: 'Password user berhasil direset.',
+                        timer: 2000,
+                        showConfirmButton: false,
+                    });
+                },
+            });
+        }
+    });
 };
 
 const deleteUser = (userId: number) => {
-    if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-        router.delete(admin.users.destroy({ user: userId }).url, { preserveScroll: true });
-    }
+    Swal.fire({
+        title: 'Hapus User?',
+        text: 'User ini akan dihapus permanen beserta seluruh datanya.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Ya, Hapus!',
+        cancelButtonText: 'Batal',
+    }).then((result) => {
+        if (result.isConfirmed) {
+            router.delete(admin.users.destroy({ user: userId }).url, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'User dihapus',
+                        text: 'User berhasil dihapus.',
+                        timer: 2000,
+                        showConfirmButton: false,
+                    });
+                },
+            });
+        }
+    });
 };
 
 const roleColors: Record<string, string> = {

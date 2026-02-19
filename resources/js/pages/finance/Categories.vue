@@ -20,6 +20,7 @@ import type { BreadcrumbItem, FinanceCategoriesProps, FinanceCategory } from '@/
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { Pencil, Plus, Tag, Trash2, TrendingDown, TrendingUp } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
+import Swal from 'sweetalert2';
 
 const props = defineProps<FinanceCategoriesProps>();
 
@@ -29,10 +30,8 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const showAddModal = ref(false);
-const showDeleteModal = ref(false);
 const isEditing = ref(false);
 const editingCategory = ref<FinanceCategory | null>(null);
-const categoryToDelete = ref<FinanceCategory | null>(null);
 
 const form = useForm({
     name: '',
@@ -80,6 +79,20 @@ const submitCategory = () => {
                 form.reset();
                 isEditing.value = false;
                 editingCategory.value = null;
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Kategori diperbarui',
+                    text: 'Kategori berhasil diperbarui.',
+                    timer: 2000,
+                    showConfirmButton: false,
+                });
+            },
+            onError: () => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal memperbarui',
+                    text: 'Terjadi kesalahan saat memperbarui kategori.',
+                });
             },
         });
     } else {
@@ -88,26 +101,58 @@ const submitCategory = () => {
             onSuccess: () => {
                 showAddModal.value = false;
                 form.reset();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Kategori dibuat',
+                    text: 'Kategori baru berhasil disimpan.',
+                    timer: 2000,
+                    showConfirmButton: false,
+                });
+            },
+            onError: () => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal membuat kategori',
+                    text: 'Terjadi kesalahan saat menyimpan kategori.',
+                });
             },
         });
     }
 };
 
 const confirmDelete = (cat: FinanceCategory) => {
-    categoryToDelete.value = cat;
-    showDeleteModal.value = true;
-};
-
-const deleteCategory = () => {
-    if (categoryToDelete.value) {
-        router.delete(`/finance/categories/${categoryToDelete.value.id}`, {
-            preserveScroll: true,
-            onSuccess: () => {
-                showDeleteModal.value = false;
-                categoryToDelete.value = null;
-            },
-        });
-    }
+    Swal.fire({
+        title: 'Hapus Kategori?',
+        text: `Kategori "${cat.name}" akan dihapus. Transaksi terkait tidak akan terhapus.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Ya, Hapus!',
+        cancelButtonText: 'Batal',
+    }).then((result) => {
+        if (result.isConfirmed) {
+            router.delete(`/finance/categories/${cat.id}`, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Kategori dihapus',
+                        text: 'Kategori berhasil dihapus.',
+                        timer: 2000,
+                        showConfirmButton: false,
+                    });
+                },
+                onError: () => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal menghapus',
+                        text: 'Terjadi kesalahan saat menghapus kategori.',
+                    });
+                },
+            });
+        }
+    });
 };
 
 const colorOptions = [
@@ -323,27 +368,6 @@ const colorOptions = [
             </Card>
         </div>
 
-        <!-- Delete Confirmation Modal -->
-        <Dialog v-model:open="showDeleteModal">
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Hapus Kategori</DialogTitle>
-                    <DialogDescription>
-                        Apakah Anda yakin ingin menghapus kategori ini? 
-                        <br>
-                        Transaksi yang menggunakan kategori ini tidak akan dihapus, tetapi kategorinya akan menjadi kosong.
-                    </DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                    <Button variant="outline" @click="showDeleteModal = false">
-                        Batal
-                    </Button>
-                    <Button variant="destructive" @click="deleteCategory">
-                        Hapus
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
     </AppLayout>
 
 </template>

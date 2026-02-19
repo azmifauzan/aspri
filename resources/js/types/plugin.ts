@@ -82,7 +82,7 @@ export interface PluginRating {
 
 export interface ConfigField {
     key: string;
-    type: 'text' | 'textarea' | 'number' | 'integer' | 'boolean' | 'select' | 'multiselect' | 'time' | 'email';
+    type: 'text' | 'textarea' | 'number' | 'integer' | 'boolean' | 'select' | 'multiselect' | 'time' | 'email' | 'country_select' | 'city_search' | 'hidden';
     label: string;
     description?: string | null;
     required?: boolean;
@@ -92,6 +92,11 @@ export interface ConfigField {
     condition?: string | null;
     min?: number | null;
     max?: number | null;
+    step?: number | null;
+    readonly?: boolean;
+    placeholder?: string | null;
+    depends_on?: string | null;
+    fills?: string[] | null;
 }
 
 export interface ConfigSchema {

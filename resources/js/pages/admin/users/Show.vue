@@ -11,6 +11,7 @@ import admin from '@/routes/admin';
 import type { BreadcrumbItem, UserWithProfile } from '@/types';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { ArrowLeft, Key, Save, Trash2, UserX } from 'lucide-vue-next';
+import Swal from 'sweetalert2';
 
 const props = defineProps<{
     user: UserWithProfile;
@@ -41,7 +42,24 @@ const form = useForm({
 });
 
 const submit = () => {
-    form.put(admin.users.update({ user: props.user.id }).url);
+    form.put(admin.users.update({ user: props.user.id }).url, {
+        onSuccess: () => {
+            Swal.fire({
+                icon: 'success',
+                title: 'User diperbarui',
+                text: 'Data user berhasil disimpan.',
+                timer: 2000,
+                showConfirmButton: false,
+            });
+        },
+        onError: () => {
+            Swal.fire({
+                icon: 'error',
+                title: 'Gagal memperbarui',
+                text: 'Terjadi kesalahan saat menyimpan data user.',
+            });
+        },
+    });
 };
 
 const toggleActive = () => {
@@ -49,15 +67,48 @@ const toggleActive = () => {
 };
 
 const resetPassword = () => {
-    if (confirm("Are you sure you want to reset this user's password?")) {
-        router.post(admin.users.resetPassword({ user: props.user.id }).url, {}, { preserveScroll: true });
-    }
+    Swal.fire({
+        title: 'Reset Password?',
+        text: 'Password user akan direset. User akan menerima email dengan password baru.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Ya, Reset!',
+        cancelButtonText: 'Batal',
+    }).then((result) => {
+        if (result.isConfirmed) {
+            router.post(admin.users.resetPassword({ user: props.user.id }).url, {}, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Password direset',
+                        text: 'Password user berhasil direset.',
+                        timer: 2000,
+                        showConfirmButton: false,
+                    });
+                },
+            });
+        }
+    });
 };
 
 const deleteUser = () => {
-    if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-        router.delete(admin.users.destroy({ user: props.user.id }).url);
-    }
+    Swal.fire({
+        title: 'Hapus User?',
+        text: `User "${props.user.name}" akan dihapus permanen beserta seluruh datanya.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Ya, Hapus!',
+        cancelButtonText: 'Batal',
+    }).then((result) => {
+        if (result.isConfirmed) {
+            router.delete(admin.users.destroy({ user: props.user.id }).url);
+        }
+    });
 };
 
 const roleColors: Record<string, string> = {

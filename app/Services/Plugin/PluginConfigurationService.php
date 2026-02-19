@@ -256,6 +256,11 @@ class PluginConfigurationService
                 'condition' => $field['condition'] ?? null,
                 'min' => $field['min'] ?? null,
                 'max' => $field['max'] ?? null,
+                'step' => $field['step'] ?? null,
+                'readonly' => $field['readonly'] ?? false,
+                'placeholder' => $field['placeholder'] ?? null,
+                'depends_on' => $field['depends_on'] ?? null,
+                'fills' => $field['fills'] ?? null,
             ];
         }
 
