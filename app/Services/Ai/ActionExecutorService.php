@@ -48,6 +48,7 @@ class ActionExecutorService
     {
         return match ($action) {
             'create_schedule' => $this->createSchedule($user, $payload),
+            'update_schedule' => $this->updateSchedule($user, $payload),
             'delete_schedule' => $this->deleteSchedule($user, $payload),
             default => ['success' => false, 'message' => 'Aksi jadwal tidak dikenali', 'data' => null],
         };
@@ -282,6 +283,77 @@ class ActionExecutorService
             return [
                 'success' => false,
                 'message' => 'Gagal menghapus jadwal: '.$e->getMessage(),
+                'data' => null,
+            ];
+        }
+    }
+
+    /**
+     * Update an existing schedule.
+     */
+    protected function updateSchedule(User $user, array $payload): array
+    {
+        try {
+            $query = Schedule::where('user_id', $user->id);
+
+            if (isset($payload['schedule_id'])) {
+                $query->where('id', $payload['schedule_id']);
+            } elseif (isset($payload['title'])) {
+                $query->where('title', 'like', "%{$payload['title']}%");
+            }
+
+            $schedule = $query->latest()->first();
+
+            if (! $schedule) {
+                return [
+                    'success' => false,
+                    'message' => 'Jadwal tidak ditemukan',
+                    'data' => null,
+                ];
+            }
+
+            $updateData = [];
+            if (isset($payload['new_title'])) {
+                $updateData['title'] = $payload['new_title'];
+            }
+            if (isset($payload['start_time'])) {
+                $updateData['start_time'] = Carbon::parse($payload['start_time']);
+            }
+            if (isset($payload['end_time'])) {
+                $updateData['end_time'] = Carbon::parse($payload['end_time']);
+            }
+            if (isset($payload['location'])) {
+                $updateData['location'] = $payload['location'];
+            }
+            if (isset($payload['description'])) {
+                $updateData['description'] = $payload['description'];
+            }
+
+            if (empty($updateData)) {
+                return [
+                    'success' => false,
+                    'message' => 'Tidak ada data yang diperbarui',
+                    'data' => null,
+                ];
+            }
+
+            $schedule->update($updateData);
+
+            return [
+                'success' => true,
+                'message' => "Jadwal \"{$schedule->title}\" berhasil diperbarui!",
+                'data' => [
+                    'schedule_id' => $schedule->id,
+                    'title' => $schedule->title,
+                    'start_time' => $schedule->start_time->format('d M Y H:i'),
+                    'end_time' => $schedule->end_time?->format('d M Y H:i'),
+                    'location' => $schedule->location,
+                ],
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Gagal memperbarui jadwal: '.$e->getMessage(),
                 'data' => null,
             ];
         }

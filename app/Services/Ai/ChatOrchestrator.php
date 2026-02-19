@@ -222,6 +222,20 @@ class ChatOrchestrator
             ];
         }
 
+        if ($action === 'update_schedule') {
+            if (! isset($entities['schedule_id']) && ! isset($entities['title'])) {
+                return $this->askForMissingInfo($user, 'Jadwal mana yang ingin diubah?', $history);
+            }
+
+            $pendingAction = $this->createPendingAction($user, $thread, $intent);
+
+            return [
+                'response' => $this->formatScheduleUpdateConfirmation($user, $entities),
+                'action_taken' => false,
+                'pending_action' => $pendingAction->toArray(),
+            ];
+        }
+
         if ($action === 'delete_schedule') {
             $pendingAction = $this->createPendingAction($user, $thread, $intent);
 
@@ -667,6 +681,7 @@ PROMPT;
             'notes_list' => $this->buildNotesContext($data),
             'transaction_confirmation' => $this->buildTransactionConfirmationContext($data),
             'schedule_confirmation' => $this->buildScheduleConfirmationContext($data),
+            'schedule_update_confirmation' => $this->buildScheduleUpdateConfirmationContext($data),
             'note_confirmation' => $this->buildNoteConfirmationContext($data),
             'delete_confirmation' => $this->buildDeleteConfirmationContext($data),
             'success' => "Aksi berhasil: {$data['message']}",
@@ -779,6 +794,34 @@ PROMPT;
             ."- Waktu: {$startTime}\n"
             ."- Lokasi: {$location}\n\n"
             .'User harus balas "ya" untuk menyimpan atau "batal" untuk membatalkan.';
+    }
+
+    protected function buildScheduleUpdateConfirmationContext(array $data): string
+    {
+        $identifier = $data['title'] ?? $data['schedule_id'] ?? 'jadwal tersebut';
+
+        $changes = [];
+        if (isset($data['new_title'])) {
+            $changes[] = "- Judul baru: {$data['new_title']}";
+        }
+        if (isset($data['start_time'])) {
+            $changes[] = "- Waktu mulai baru: {$data['start_time']}";
+        }
+        if (isset($data['end_time'])) {
+            $changes[] = "- Waktu selesai baru: {$data['end_time']}";
+        }
+        if (isset($data['location'])) {
+            $changes[] = "- Lokasi baru: {$data['location']}";
+        }
+        if (isset($data['description'])) {
+            $changes[] = "- Deskripsi baru: {$data['description']}";
+        }
+
+        $changesText = ! empty($changes) ? implode("\n", $changes) : '- Tidak ada detail perubahan';
+
+        return "Minta konfirmasi untuk mengubah jadwal: \"{$identifier}\"\n"
+            ."Perubahan:\n{$changesText}\n\n"
+            .'User harus balas "ya" untuk menyimpan perubahan atau "batal" untuk membatalkan.';
     }
 
     protected function buildNoteConfirmationContext(array $data): string
@@ -941,6 +984,14 @@ PROMPT;
     protected function formatScheduleConfirmation(User $user, array $entities): string
     {
         return $this->personalizeResponse($user, 'schedule_confirmation', $entities);
+    }
+
+    /**
+     * Format schedule update confirmation.
+     */
+    protected function formatScheduleUpdateConfirmation(User $user, array $entities): string
+    {
+        return $this->personalizeResponse($user, 'schedule_update_confirmation', $entities);
     }
 
     /**

@@ -6,7 +6,7 @@ import NoteCard from '@/components/notes/NoteCard.vue';
 import NoteModal from '@/components/notes/NoteModal.vue';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-vue-next';
-import { index as notesIndex } from '@/routes/notes';
+import { index as notesIndex, destroy, update } from '@/routes/notes';
 import type { BreadcrumbItem } from '@/types';
 
 const props = defineProps<{
@@ -35,12 +35,12 @@ const openEditModal = (note: any) => {
 
 const deleteNote = (note: any) => {
     if (confirm('Are you sure you want to delete this note?')) {
-        router.delete(route('notes.destroy', note.id));
+        router.delete(destroy(note.id).url);
     }
 };
 
 const togglePin = (note: any) => {
-    router.put(route('notes.update', note.id), {
+    router.put(update(note.id).url, {
         ...note,
         is_pinned: !note.is_pinned
     }, {

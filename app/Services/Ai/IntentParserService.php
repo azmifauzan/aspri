@@ -192,7 +192,7 @@ class IntentParserService
         // Then check core modules (less specific than plugins)
         $moduleKeywords = [
             'finance' => ['uang', 'gaji', 'pengeluaran', 'pemasukan', 'transfer', 'saldo', 'bayar', 'belanja', 'transaksi', 'keuangan', 'rupiah', 'rp'],
-            'schedule' => ['jadwal', 'agenda', 'rapat', 'meeting', 'acara', 'event', 'ingatkan', 'reminder', 'besok', 'hari ini', 'minggu', 'bulan', 'tanggal', 'jam'],
+            'schedule' => ['jadwal', 'agenda', 'rapat', 'meeting', 'acara', 'event', 'ingatkan', 'reminder', 'besok', 'hari ini', 'minggu', 'bulan', 'tanggal', 'jam', 'ubah jadwal', 'pindah jadwal', 'hapus jadwal', 'ganti jadwal', 'batalkan jadwal', 'reschedule'],
             'notes' => ['catat', 'catatn', 'note', 'notes', 'memo', 'tulis', 'simpan catatan', 'buat catatan', 'bikin catatan', 'bikin notes', 'bikin catatn', 'bikinin catatan', 'bikinin notes', 'ingat', 'ide', 'update catatan', 'edit catatan', 'ubah catatan', 'hapus catatan', 'histori'],
             'general' => ['halo', 'hi', 'help', 'bantuan', 'apa', 'siapa', 'gimana', 'bagaimana', 'terima kasih', 'thanks'],
         ];
@@ -292,10 +292,13 @@ PROMPT;
     ): array {
         $functions = $this->buildFunctionDefinitions($user, $classification);
 
+        $currentDate = now()->format('l, d F Y');
+        $currentTime = now()->format('H:i');
+
         $messages = [
             [
                 'role' => 'system',
-                'content' => 'You are an intent classifier. Analyze the user message and call the appropriate function that matches their intent. Extract all relevant entities from the message.',
+                'content' => "You are an intent classifier. Current date: {$currentDate}, time: {$currentTime}. Analyze the user message and call the appropriate function that matches their intent. Extract all relevant entities from the message. When user mentions time-relative terms like 'hari ini' (today), 'kemarin' (yesterday), 'besok' (tomorrow), convert them to actual dates in the content.",
             ],
         ];
 
@@ -354,10 +357,19 @@ PROMPT;
      */
     protected function buildIntentPrompt(User $user, ?array $classification = null): string
     {
+        $currentDate = now()->format('l, d F Y');
+        $currentTime = now()->format('H:i');
+
         $pluginInfo = $this->getActivePluginsInfo($user, $classification);
 
-        $prompt = <<<'PROMPT'
+        $prompt = <<<PROMPT
 You are an intent classification expert for ASPRI personal assistant.
+
+Current Context:
+- Date: {$currentDate}
+- Time: {$currentTime}
+
+IMPORTANT: When user mentions time-relative terms like "hari ini" (today), "kemarin" (yesterday), "besok" (tomorrow), convert them to actual dates (e.g., "19 Feb 2026") in the content field.
 
 Your task is to analyze user messages and return ONLY a valid JSON object with this structure:
 {
@@ -394,6 +406,17 @@ Actions:
   examples: "ingatkan rapat besok jam 2", "buat jadwal meeting"
   requires_confirmation: true
 
+- update_schedule: Update an existing event/schedule
+  entities: {title?: string, schedule_id?: string, new_title?: string, start_time?: string, end_time?: string, location?: string, description?: string}
+  examples: "ubah jadwal meeting jadi jam 3", "pindah rapat ke besok", "ganti lokasi meeting ke ruang B", "update jadwal"
+  IMPORTANT: Use title or schedule_id to identify the schedule. Include only the fields that need updating.
+  requires_confirmation: true
+
+- delete_schedule: Delete an existing event/schedule
+  entities: {title?: string, schedule_id?: string}
+  examples: "hapus jadwal meeting", "batalkan rapat besok", "delete agenda"
+  requires_confirmation: true
+
 - view_schedules: View upcoming events
   entities: {period?: "today|tomorrow|this_week|this_month"}
   examples: "jadwal hari ini", "agenda minggu depan"
@@ -404,12 +427,13 @@ Actions:
 - create_note: Create a new note
   entities: {title?: string, content: string, tags?: array}
   examples: "catat ide bisnis baru", "buat catatan meeting", "bikinin catatan untuk histori tekanan darah"
+  IMPORTANT: Convert time-relative terms ("hari ini", "kemarin", "besok") to actual dates in content (e.g., "hari ini" → "19 Feb 2026")
   requires_confirmation: false
 
 - update_note: Update an existing note
   entities: {title?: string, keyword?: string, note_id?: string, new_title?: string, content?: string, tags?: array}
   examples: "update catatan ngaji jadi surat albaqarah", "edit catatan meeting", "ubah isi catatan X jadi Y"
-  IMPORTANT: For content, always reconstruct the COMPLETE updated content using conversation context.
+  IMPORTANT: (1) For content, always reconstruct the COMPLETE updated content using conversation context. (2) Convert time-relative terms to actual dates.
   requires_confirmation: false
 
 - delete_note: Delete an existing note
@@ -607,6 +631,60 @@ FOOTER;
                 ],
             ],
             [
+                'name' => 'update_schedule',
+                'description' => 'Update an existing event or schedule. Use title or schedule_id to find it, then provide the fields to change.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'title' => [
+                            'type' => 'string',
+                            'description' => 'Current title of the schedule to find',
+                        ],
+                        'schedule_id' => [
+                            'type' => 'string',
+                            'description' => 'ID of the schedule to update',
+                        ],
+                        'new_title' => [
+                            'type' => 'string',
+                            'description' => 'New title for the schedule',
+                        ],
+                        'start_time' => [
+                            'type' => 'string',
+                            'description' => 'New start time in YYYY-MM-DD HH:mm format',
+                        ],
+                        'end_time' => [
+                            'type' => 'string',
+                            'description' => 'New end time in YYYY-MM-DD HH:mm format',
+                        ],
+                        'location' => [
+                            'type' => 'string',
+                            'description' => 'New location for the schedule',
+                        ],
+                        'description' => [
+                            'type' => 'string',
+                            'description' => 'New description for the schedule',
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'name' => 'delete_schedule',
+                'description' => 'Delete an existing event or schedule',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'title' => [
+                            'type' => 'string',
+                            'description' => 'Title of the schedule to delete',
+                        ],
+                        'schedule_id' => [
+                            'type' => 'string',
+                            'description' => 'ID of the schedule to delete',
+                        ],
+                    ],
+                ],
+            ],
+            [
                 'name' => 'view_schedules',
                 'description' => 'View upcoming events or schedules',
                 'parameters' => [
@@ -630,14 +708,14 @@ FOOTER;
         return [
             [
                 'name' => 'create_note',
-                'description' => 'Create a new note',
+                'description' => 'Create a new note. IMPORTANT: Convert time-relative terms ("hari ini", "kemarin", "besok", "today", "yesterday") to actual dates in the content field.',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
                         'title' => ['type' => 'string'],
                         'content' => [
                             'type' => 'string',
-                            'description' => 'Note content',
+                            'description' => 'Note content. Convert relative dates to actual dates (e.g., "hari ini" → "19 Feb 2026").',
                         ],
                         'tags' => [
                             'type' => 'array',
@@ -649,7 +727,7 @@ FOOTER;
             ],
             [
                 'name' => 'update_note',
-                'description' => 'Update an existing note content or title. IMPORTANT: Use conversation context to reconstruct the COMPLETE updated content, not just the changed part. If user says "update jadi 130", find the note and write out the full new content with 130 replacing the old value.',
+                'description' => 'Update an existing note content or title. IMPORTANT: (1) Use conversation context to reconstruct the COMPLETE updated content, not just the changed part. (2) Convert time-relative terms ("hari ini", "kemarin", "besok", "today", "yesterday") to actual dates in the content. If user says "update jadi 130", find the note and write out the full new content with 130 replacing the old value.',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
@@ -671,7 +749,7 @@ FOOTER;
                         ],
                         'content' => [
                             'type' => 'string',
-                            'description' => 'The COMPLETE new content for the note. Reconstruct full content from context. Example: if note had "Al-Baqarah ayat 129" and user says "update jadi 130", write "Sampai surat Al-Baqarah ayat 130".',
+                            'description' => 'The COMPLETE new content for the note. Reconstruct full content from context and convert relative dates to actual dates. Example: if note had "Al-Baqarah ayat 129" and user says "update jadi 130", write "Sampai surat Al-Baqarah ayat 130". If user says "hari ini", write "19 Feb 2026".',
                         ],
                         'tags' => [
                             'type' => 'array',
@@ -1187,10 +1265,14 @@ FOOTER;
 
             // Schedule module
             'create_schedule' => 'schedule',
+            'update_schedule' => 'schedule',
+            'delete_schedule' => 'schedule',
             'view_schedules' => 'schedule',
 
             // Notes module
             'create_note' => 'notes',
+            'update_note' => 'notes',
+            'delete_note' => 'notes',
             'view_notes' => 'notes',
 
             // General module
