@@ -12,6 +12,7 @@ import StarRating from '@/components/StarRating.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem, Plugin, PluginIndexProps } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { useI18n } from 'vue-i18n';
 import { index as pluginsIndex } from '@/routes/plugins';
 import { activate, deactivate, show } from '@/routes/plugins';
 import { store as storeRating } from '@/routes/plugins/ratings';
@@ -43,12 +44,14 @@ import { computed, ref, watch } from 'vue';
 
 const props = defineProps<PluginIndexProps>();
 
-const breadcrumbs: BreadcrumbItem[] = [
+const { t } = useI18n();
+
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
     {
-        title: 'Plugins',
+        title: t('plugins.title'),
         href: pluginsIndex().url,
     },
-];
+]);
 
 const searchQuery = ref('');
 const statusFilter = ref<'all' | 'active' | 'inactive'>('all');
@@ -202,15 +205,15 @@ const submitRating = () => {
 </script>
 
 <template>
-    <Head title="Plugins" />
+    <Head :title="$t('plugins.title')" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
             <!-- Header -->
             <div class="flex items-center justify-between">
                 <div>
-                    <h1 class="text-2xl font-bold">Plugins</h1>
-                    <p class="mt-1 text-sm text-muted-foreground">Kelola dan konfigurasi plugin untuk memperluas kemampuan ASPRI</p>
+                    <h1 class="text-2xl font-bold">{{ $t('plugins.title') }}</h1>
+                    <p class="mt-1 text-sm text-muted-foreground">{{ $t('plugins.subtitle') }}</p>
                 </div>
             </div>
 
@@ -221,7 +224,7 @@ const submitRating = () => {
                         <!-- Search -->
                         <div class="relative flex-1">
                             <Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input v-model="searchQuery" placeholder="Cari plugin..." class="pl-10" />
+                            <Input v-model="searchQuery" :placeholder="$t('plugins.searchPlugins')" class="pl-10" />
                         </div>
                         
                         <!-- Status Filter -->
@@ -230,9 +233,9 @@ const submitRating = () => {
                                 <SelectValue placeholder="Status" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">Semua</SelectItem>
-                                <SelectItem value="active">Aktif</SelectItem>
-                                <SelectItem value="inactive">Tidak Aktif</SelectItem>
+                                <SelectItem value="all">{{ $t('plugins.statusAll') }}</SelectItem>
+                                <SelectItem value="active">{{ $t('plugins.statusActive') }}</SelectItem>
+                                <SelectItem value="inactive">{{ $t('plugins.statusInactive') }}</SelectItem>
                             </SelectContent>
                         </Select>
                         
@@ -242,7 +245,7 @@ const submitRating = () => {
                                 <SelectValue placeholder="Rating" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem :value="0">Semua Rating</SelectItem>
+                                <SelectItem :value="0">{{ $t('plugins.allRatings') }}</SelectItem>
                                 <SelectItem :value="1">⭐ 1+</SelectItem>
                                 <SelectItem :value="2">⭐ 2+</SelectItem>
                                 <SelectItem :value="3">⭐ 3+</SelectItem>
@@ -257,9 +260,9 @@ const submitRating = () => {
                                 <SelectValue placeholder="Urutkan" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="rating">Rating Tertinggi</SelectItem>
-                                <SelectItem value="name">Nama A-Z</SelectItem>
-                                <SelectItem value="newest">Terbaru</SelectItem>
+                                <SelectItem value="rating">{{ $t('plugins.highestRating') }}</SelectItem>
+                                <SelectItem value="name">{{ $t('plugins.nameAZ') }}</SelectItem>
+                                <SelectItem value="newest">{{ $t('plugins.newest') }}</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -271,9 +274,9 @@ const submitRating = () => {
                 <div class="rounded-full bg-gray-100 p-4 dark:bg-gray-800">
                     <Puzzle :size="32" class="text-gray-400" />
                 </div>
-                <h3 class="mt-4 text-lg font-medium text-gray-900 dark:text-gray-100">Tidak ada plugin</h3>
+                <h3 class="mt-4 text-lg font-medium text-gray-900 dark:text-gray-100">{{ $t('plugins.noPlugins') }}</h3>
                 <p class="mt-1 text-gray-500 dark:text-gray-400">
-                    {{ searchQuery || statusFilter !== 'all' ? 'Tidak ada plugin yang sesuai dengan filter.' : 'Belum ada plugin yang tersedia.' }}
+                    {{ searchQuery || statusFilter !== 'all' ? $t('plugins.noPluginsFilter') : $t('plugins.noPluginsAvailable') }}
                 </p>
             </div>
 
@@ -293,13 +296,13 @@ const submitRating = () => {
                             </div>
                             <Badge :variant="plugin.user_is_active ? 'default' : 'secondary'">
                                 <component :is="plugin.user_is_active ? CheckCircle : XCircle" class="mr-1 h-3 w-3" />
-                                {{ plugin.user_is_active ? 'Aktif' : 'Tidak Aktif' }}
+                                {{ plugin.user_is_active ? $t('plugins.active') : $t('plugins.inactive') }}
                             </Badge>
                         </div>
                     </CardHeader>
                     <CardContent class="flex-1">
                         <CardDescription class="line-clamp-3">
-                            {{ plugin.description || 'Tidak ada deskripsi.' }}
+                            {{ plugin.description || $t('plugins.noDescription') }}
                         </CardDescription>
 
                         <!-- Rating Display -->
@@ -311,7 +314,7 @@ const submitRating = () => {
                         </div>
 
                         <div class="mt-3 flex flex-wrap gap-2">
-                            <Badge v-if="plugin.is_system" variant="outline">Sistem</Badge>
+                            <Badge v-if="plugin.is_system" variant="outline">{{ $t('plugins.system') }}</Badge>
                             <Badge v-if="plugin.author" variant="outline">{{ plugin.author }}</Badge>
                         </div>
                     </CardContent>
@@ -324,14 +327,14 @@ const submitRating = () => {
                             @click="togglePlugin(plugin)"
                         >
                             <Spinner v-if="togglingPluginId === plugin.id" class="mr-2" />
-                            {{ plugin.user_is_active ? 'Nonaktifkan' : 'Aktifkan' }}
+                            {{ plugin.user_is_active ? $t('plugins.deactivate') : $t('plugins.activate') }}
                         </Button>
                         <Button v-if="plugin.user_is_active" variant="outline" size="sm" as-child>
                             <Link :href="show.url(plugin.id)">
                                 <Cog class="h-4 w-4" />
                             </Link>
                         </Button>
-                        <Button variant="outline" size="sm" @click="openRatingDialog(plugin)" title="Beri Rating">
+                        <Button variant="outline" size="sm" @click="openRatingDialog(plugin)" :title="$t('plugins.ratePlugin')">
                             <Star class="h-4 w-4" />
                         </Button>
                     </CardFooter>
@@ -341,12 +344,12 @@ const submitRating = () => {
             <!-- Pagination -->
             <div v-if="totalPages > 1" class="mt-6 flex items-center justify-between">
                 <div class="text-sm text-muted-foreground">
-                    Showing {{ paginationInfo.start }} to {{ paginationInfo.end }} of {{ paginationInfo.total }} plugins
+                    {{ $t('plugins.showingPagination', { start: paginationInfo.start, end: paginationInfo.end, total: paginationInfo.total }) }}
                 </div>
                 <div class="flex items-center gap-2">
-                    <Button variant="outline" size="sm" :disabled="currentPage === 1" @click="prevPage">Previous</Button>
-                    <div class="text-sm text-muted-foreground">Page {{ currentPage }} of {{ totalPages }}</div>
-                    <Button variant="outline" size="sm" :disabled="currentPage === totalPages" @click="nextPage">Next</Button>
+                    <Button variant="outline" size="sm" :disabled="currentPage === 1" @click="prevPage">{{ $t('common.previous') }}</Button>
+                    <div class="text-sm text-muted-foreground">{{ $t('plugins.pageOf', { current: currentPage, total: totalPages }) }}</div>
+                    <Button variant="outline" size="sm" :disabled="currentPage === totalPages" @click="nextPage">{{ $t('common.next') }}</Button>
                 </div>
             </div>
         </div>
@@ -355,16 +358,16 @@ const submitRating = () => {
         <Dialog v-model:open="showRatingDialog">
             <DialogContent class="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle>Beri Rating untuk {{ selectedPlugin?.name }}</DialogTitle>
+                    <DialogTitle>{{ $t('plugins.ratePluginTitle', { name: selectedPlugin?.name }) }}</DialogTitle>
                     <DialogDescription>
-                        Bagikan pengalaman Anda menggunakan plugin ini
+                        {{ $t('plugins.ratePluginDesc') }}
                     </DialogDescription>
                 </DialogHeader>
 
                 <div class="space-y-4 py-4">
                     <!-- Star Rating -->
                     <div class="flex flex-col items-center gap-2">
-                        <Label>Rating</Label>
+                        <Label>{{ $t('plugins.rating') }}</Label>
                         <div class="flex gap-1">
                             <button
                                 v-for="star in 5"
@@ -390,11 +393,11 @@ const submitRating = () => {
 
                     <!-- Review Text -->
                     <div class="space-y-2">
-                        <Label for="review">Review (Opsional)</Label>
+                        <Label for="review">{{ $t('plugins.reviewOptional') }}</Label>
                         <Textarea
                             id="review"
                             v-model="ratingForm.review"
-                            placeholder="Tulis review Anda tentang plugin ini..."
+                            :placeholder="$t('plugins.reviewPlaceholder')"
                             rows="4"
                         />
                         <p v-if="ratingForm.errors.review" class="text-sm text-red-500">{{ ratingForm.errors.review }}</p>
@@ -403,10 +406,10 @@ const submitRating = () => {
 
                 <DialogFooter>
                     <Button variant="outline" @click="showRatingDialog = false" :disabled="ratingForm.processing">
-                        Batal
+                        {{ $t('common.cancel') }}
                     </Button>
                     <Button @click="submitRating" :disabled="ratingForm.processing || ratingForm.rating === 0">
-                        {{ ratingForm.processing ? 'Mengirim...' : 'Kirim Rating' }}
+                        {{ ratingForm.processing ? $t('plugins.sending') : $t('plugins.submitRating') }}
                     </Button>
                 </DialogFooter>
             </DialogContent>

@@ -191,10 +191,30 @@ class IntentParserService
 
         // Then check core modules (less specific than plugins)
         $moduleKeywords = [
-            'finance' => ['uang', 'gaji', 'pengeluaran', 'pemasukan', 'transfer', 'saldo', 'bayar', 'belanja', 'transaksi', 'keuangan', 'rupiah', 'rp'],
-            'schedule' => ['jadwal', 'agenda', 'rapat', 'meeting', 'acara', 'event', 'ingatkan', 'reminder', 'besok', 'hari ini', 'minggu', 'bulan', 'tanggal', 'jam', 'ubah jadwal', 'pindah jadwal', 'hapus jadwal', 'ganti jadwal', 'batalkan jadwal', 'reschedule'],
-            'notes' => ['catat', 'catatn', 'note', 'notes', 'memo', 'tulis', 'simpan catatan', 'buat catatan', 'bikin catatan', 'bikin notes', 'bikin catatn', 'bikinin catatan', 'bikinin notes', 'ingat', 'ide', 'update catatan', 'edit catatan', 'ubah catatan', 'hapus catatan', 'histori'],
-            'general' => ['halo', 'hi', 'help', 'bantuan', 'apa', 'siapa', 'gimana', 'bagaimana', 'terima kasih', 'thanks'],
+            'finance' => [
+                // Indonesian
+                'uang', 'gaji', 'pengeluaran', 'pemasukan', 'transfer', 'saldo', 'bayar', 'belanja', 'transaksi', 'keuangan', 'rupiah', 'rp',
+                // English
+                'money', 'salary', 'expense', 'income', 'balance', 'payment', 'spend', 'transaction', 'finance', 'budget',
+            ],
+            'schedule' => [
+                // Indonesian
+                'jadwal', 'agenda', 'rapat', 'meeting', 'acara', 'event', 'ingatkan', 'reminder', 'besok', 'hari ini', 'minggu', 'bulan', 'tanggal', 'jam', 'ubah jadwal', 'pindah jadwal', 'hapus jadwal', 'ganti jadwal', 'batalkan jadwal', 'reschedule',
+                // English
+                'schedule', 'calendar', 'appointment', 'remind', 'tomorrow', 'today', 'next week', 'next month', 'date', 'time',
+            ],
+            'notes' => [
+                // Indonesian
+                'catat', 'catatn', 'note', 'notes', 'memo', 'tulis', 'simpan catatan', 'buat catatan', 'bikin catatan', 'bikin notes', 'bikin catatn', 'bikinin catatan', 'bikinin notes', 'ingat', 'ide', 'update catatan', 'edit catatan', 'ubah catatan', 'hapus catatan', 'histori',
+                // English
+                'write', 'jot down', 'remember', 'idea', 'save note', 'create note', 'edit note', 'delete note', 'history',
+            ],
+            'general' => [
+                // Indonesian
+                'halo', 'hi', 'help', 'bantuan', 'apa', 'siapa', 'gimana', 'bagaimana', 'terima kasih', 'thanks',
+                // English
+                'hello', 'hey', 'what', 'who', 'how', 'thank you', 'please',
+            ],
         ];
 
         foreach ($moduleKeywords as $module => $keywords) {

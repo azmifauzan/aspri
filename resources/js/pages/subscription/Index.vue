@@ -26,7 +26,10 @@ import {
     X,
 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import Swal from 'sweetalert2';
+
+const { t, locale } = useI18n();
 
 interface PricingInfo {
     monthly_price: number;
@@ -68,9 +71,9 @@ const props = defineProps<{
     promoRedemptions: PromoCodeRedemption[];
 }>();
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Subscription', href: subscription.index().url },
-];
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
+    { title: t('subscription.title'), href: subscription.index().url },
+]);
 
 const selectedPlan = ref<'monthly' | 'yearly'>('monthly');
 const showPaymentForm = ref(false);
@@ -88,11 +91,11 @@ const promoForm = useForm({
 });
 
 const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('id-ID').format(value);
+    return new Intl.NumberFormat(locale.value === 'id' ? 'id-ID' : 'en-US').format(value);
 };
 
 const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('id-ID', {
+    return new Date(dateStr).toLocaleDateString(locale.value === 'id' ? 'id-ID' : 'en-US', {
         day: 'numeric',
         month: 'long',
         year: 'numeric',
@@ -129,15 +132,15 @@ const submitPayment = () => {
             showPaymentForm.value = false;
             Swal.fire({
                 icon: 'success',
-                title: 'Berhasil!',
-                text: 'Bukti pembayaran berhasil dikirim. Kami akan memverifikasi dalam 1x24 jam.',
+                title: t('subscription.paymentSuccessTitle'),
+                text: t('subscription.paymentSuccessText'),
             });
         },
         onError: () => {
             Swal.fire({
                 icon: 'error',
-                title: 'Gagal',
-                text: 'Terjadi kesalahan saat mengirim bukti pembayaran',
+                title: t('subscription.paymentErrorTitle'),
+                text: t('subscription.paymentErrorText'),
             });
         },
     });
@@ -145,12 +148,12 @@ const submitPayment = () => {
 
 const cancelPayment = (paymentId: number) => {
     Swal.fire({
-        title: 'Batalkan Pembayaran?',
-        text: 'Bukti pembayaran akan dihapus dan tidak dapat dikembalikan.',
+        title: t('subscription.cancelPaymentTitle'),
+        text: t('subscription.cancelPaymentText'),
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonText: 'Ya, Batalkan',
-        cancelButtonText: 'Tidak',
+        confirmButtonText: t('subscription.cancelPaymentConfirm'),
+        cancelButtonText: t('subscription.cancelPaymentCancel'),
     }).then((result) => {
         if (result.isConfirmed) {
             router.delete(subscription.cancelPayment(paymentId).url, {
@@ -167,8 +170,8 @@ const submitPromoCode = () => {
             promoForm.reset();
             Swal.fire({
                 icon: 'success',
-                title: 'Berhasil!',
-                text: 'Kode promo berhasil digunakan. Subscription Anda telah diperpanjang.',
+                title: t('subscription.promoSuccessTitle'),
+                text: t('subscription.promoSuccessText'),
             });
         },
         onError: () => {
@@ -180,11 +183,11 @@ const submitPromoCode = () => {
 const getStatusBadge = (status: string) => {
     switch (status) {
         case 'pending':
-            return { variant: 'secondary' as const, label: 'Menunggu Verifikasi' };
+            return { variant: 'secondary' as const, label: t('subscription.pendingVerification') };
         case 'approved':
-            return { variant: 'default' as const, label: 'Disetujui' };
+            return { variant: 'default' as const, label: t('subscription.approved') };
         case 'rejected':
-            return { variant: 'destructive' as const, label: 'Ditolak' };
+            return { variant: 'destructive' as const, label: t('subscription.rejected') };
         default:
             return { variant: 'outline' as const, label: status };
     }
@@ -193,13 +196,13 @@ const getStatusBadge = (status: string) => {
 const getPlanLabel = (plan: string) => {
     switch (plan) {
         case 'free_trial':
-            return 'Free Trial';
+            return t('subscription.freeTrial');
         case 'monthly':
-            return 'Bulanan';
+            return t('subscription.planMonthly');
         case 'yearly':
-            return 'Tahunan';
+            return t('subscription.planYearly');
         case 'none':
-            return 'Free Trial';
+            return t('subscription.freeTrial');
         default:
             return plan;
     }
@@ -207,7 +210,7 @@ const getPlanLabel = (plan: string) => {
 </script>
 
 <template>
-    <Head title="Subscription" />
+    <Head :title="$t('subscription.title')" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-6 p-4 md:p-6">
@@ -216,7 +219,7 @@ const getPlanLabel = (plan: string) => {
                 <CardHeader>
                     <CardTitle class="flex items-center gap-2">
                         <CreditCard class="h-5 w-5" />
-                        Status Langganan Anda
+                        {{ $t('subscription.subscriptionStatus') }}
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -226,7 +229,7 @@ const getPlanLabel = (plan: string) => {
                                 <span class="text-lg font-semibold">{{ getPlanLabel(subscriptionInfo.plan || 'none') }}</span>
                                 <Badge v-if="subscriptionInfo.is_paid" variant="default">
                                     <Crown class="mr-1 h-3 w-3" />
-                                    Full Member
+                                    {{ $t('subscription.fullMember') }}
                                 </Badge>
                                 <Badge v-else-if="subscriptionInfo.plan === 'free_trial'" variant="secondary">
                                     <Clock class="mr-1 h-3 w-3" />
@@ -235,29 +238,29 @@ const getPlanLabel = (plan: string) => {
                             </div>
                             <div v-if="subscriptionInfo.ends_at" class="flex items-center gap-2 text-sm">
                                 <Calendar class="h-4 w-4 text-muted-foreground" />
-                                <span class="text-muted-foreground">Berlaku hingga:</span>
+                                <span class="text-muted-foreground">{{ $t('subscription.validUntilLabel') }}</span>
                                 <span class="font-medium">{{ formatDate(subscriptionInfo.ends_at) }}</span>
                                 <span v-if="subscriptionInfo.days_remaining > 0" class="text-orange-500 font-medium">
-                                    ({{ subscriptionInfo.days_remaining }} hari lagi)
+                                    ({{ $t('subscription.daysLeft', { days: subscriptionInfo.days_remaining }) }})
                                 </span>
                                 <span v-else class="text-red-500 font-medium">
-                                    (Sudah berakhir)
+                                    ({{ $t('subscription.alreadyExpired') }})
                                 </span>
                             </div>
                             <div v-else-if="subscriptionInfo.plan && subscriptionInfo.plan !== 'none'" class="flex items-center gap-2 text-sm text-muted-foreground">
                                 <Calendar class="h-4 w-4" />
-                                Tidak ada batas waktu
+                                {{ $t('subscription.noTimeLimit') }}
                             </div>
                             <div v-else class="flex items-center gap-2 text-sm text-muted-foreground">
                                 <AlertCircle class="h-4 w-4" />
-                                Masa trial gratis — upgrade ke paket premium untuk akses penuh
+                                {{ $t('subscription.freeTrialUpgradeHint') }}
                             </div>
                         </div>
                         <div class="flex items-center gap-2 text-sm">
                             <MessageSquare class="h-4 w-4" />
-                            Limit chat harian:
+                            {{ $t('subscription.dailyChatLimit') }}
                             <span class="font-semibold">
-                                {{ subscriptionInfo.is_paid ? pricing.full_member_daily_chat_limit : pricing.free_trial_daily_chat_limit }} pesan
+                                {{ subscriptionInfo.is_paid ? pricing.full_member_daily_chat_limit : pricing.free_trial_daily_chat_limit }} {{ $t('subscription.messages') }}
                             </span>
                         </div>
                     </div>
@@ -270,14 +273,13 @@ const getPlanLabel = (plan: string) => {
                     <div class="flex items-start gap-4">
                         <AlertCircle class="h-5 w-5 text-orange-500 flex-shrink-0 mt-0.5" />
                         <div class="space-y-2">
-                            <p class="font-medium">Pembayaran Menunggu Verifikasi</p>
+                            <p class="font-medium">{{ $t('subscription.pendingPaymentTitle') }}</p>
                             <p class="text-sm text-muted-foreground">
-                                Anda memiliki {{ pendingPayments.length }} bukti pembayaran yang sedang kami verifikasi. 
-                                Proses verifikasi membutuhkan waktu 1x24 jam.
+                                {{ $t('subscription.pendingPaymentDesc', { count: pendingPayments.length }) }}
                             </p>
                             <div class="flex flex-wrap gap-2 mt-2">
                                 <div v-for="payment in pendingPayments" :key="payment.id" class="flex items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm">
-                                    <span>{{ payment.plan_type === 'yearly' ? 'Tahunan' : 'Bulanan' }}</span>
+                                    <span>{{ payment.plan_type === 'yearly' ? $t('subscription.planYearly') : $t('subscription.planMonthly') }}</span>
                                     <span class="text-muted-foreground">Rp {{ formatCurrency(payment.amount) }}</span>
                                     <Button variant="ghost" size="sm" class="h-6 w-6 p-0" @click="cancelPayment(payment.id)">
                                         <X class="h-4 w-4" />
@@ -291,36 +293,36 @@ const getPlanLabel = (plan: string) => {
 
             <!-- Pricing Cards -->
             <div v-if="!showPaymentForm">
-                <h2 class="text-xl font-semibold mb-4">Pilih Paket</h2>
+                <h2 class="text-xl font-semibold mb-4">{{ $t('subscription.choosePlan') }}</h2>
                 <div class="grid gap-6 md:grid-cols-2">
                     <!-- Monthly Plan -->
                     <Card class="relative" :class="{ 'border-primary': selectedPlan === 'monthly' }">
                         <CardHeader>
-                            <CardTitle>Bulanan</CardTitle>
-                            <CardDescription>Fleksibel tanpa komitmen jangka panjang</CardDescription>
+                            <CardTitle>{{ $t('subscription.monthly') }}</CardTitle>
+                            <CardDescription>{{ $t('subscription.monthlyFlexible') }}</CardDescription>
                         </CardHeader>
                         <CardContent class="space-y-4">
                             <div class="text-3xl font-bold">
                                 Rp {{ formatCurrency(pricing.monthly_price) }}
-                                <span class="text-base font-normal text-muted-foreground">/bulan</span>
+                                <span class="text-base font-normal text-muted-foreground">{{ $t('subscription.perMonth') }}</span>
                             </div>
                             <ul class="space-y-2 text-sm">
                                 <li class="flex items-center gap-2">
                                     <Check class="h-4 w-4 text-green-500" />
-                                    {{ pricing.full_member_daily_chat_limit }} chat AI per hari
+                                    {{ $t('subscription.chatPerDay', { limit: pricing.full_member_daily_chat_limit }) }}
                                 </li>
                                 <li class="flex items-center gap-2">
                                     <Check class="h-4 w-4 text-green-500" />
-                                    Semua fitur premium
+                                    {{ $t('subscription.allPremiumFeatures') }}
                                 </li>
                                 <li class="flex items-center gap-2">
                                     <Check class="h-4 w-4 text-green-500" />
-                                    Support prioritas
+                                    {{ $t('subscription.prioritySupport') }}
                                 </li>
                             </ul>
                             <Button class="w-full" @click="startUpgrade('monthly')" :disabled="pendingPayments.length > 0">
                                 <Sparkles class="mr-2 h-4 w-4" />
-                                Pilih Bulanan
+                                {{ $t('subscription.chooseMonthly') }}
                             </Button>
                         </CardContent>
                     </Card>
@@ -329,42 +331,42 @@ const getPlanLabel = (plan: string) => {
                     <Card class="relative" :class="{ 'border-primary': selectedPlan === 'yearly' }">
                         <div class="absolute -top-3 right-4">
                             <Badge variant="default" class="bg-green-500">
-                                Hemat Rp {{ formatCurrency(yearlySavings) }}
+                                {{ $t('subscription.savingsAmount', { amount: formatCurrency(yearlySavings) }) }}
                             </Badge>
                         </div>
                         <CardHeader>
-                            <CardTitle>Tahunan</CardTitle>
-                            <CardDescription>Lebih hemat untuk pengguna setia</CardDescription>
+                            <CardTitle>{{ $t('subscription.yearly') }}</CardTitle>
+                            <CardDescription>{{ $t('subscription.yearlyMoreSaving') }}</CardDescription>
                         </CardHeader>
                         <CardContent class="space-y-4">
                             <div class="text-3xl font-bold">
                                 Rp {{ formatCurrency(pricing.yearly_price) }}
-                                <span class="text-base font-normal text-muted-foreground">/tahun</span>
+                                <span class="text-base font-normal text-muted-foreground">{{ $t('subscription.perYear') }}</span>
                             </div>
                             <p class="text-sm text-muted-foreground">
-                                Setara Rp {{ formatCurrency(Math.round(pricing.yearly_price / 12)) }}/bulan
+                                {{ $t('subscription.equivalent', { price: formatCurrency(Math.round(pricing.yearly_price / 12)) }) }}
                             </p>
                             <ul class="space-y-2 text-sm">
                                 <li class="flex items-center gap-2">
                                     <Check class="h-4 w-4 text-green-500" />
-                                    {{ pricing.full_member_daily_chat_limit }} chat AI per hari
+                                    {{ $t('subscription.chatPerDay', { limit: pricing.full_member_daily_chat_limit }) }}
                                 </li>
                                 <li class="flex items-center gap-2">
                                     <Check class="h-4 w-4 text-green-500" />
-                                    Semua fitur premium
+                                    {{ $t('subscription.allPremiumFeatures') }}
                                 </li>
                                 <li class="flex items-center gap-2">
                                     <Check class="h-4 w-4 text-green-500" />
-                                    Support prioritas
+                                    {{ $t('subscription.prioritySupport') }}
                                 </li>
                                 <li class="flex items-center gap-2">
                                     <Crown class="h-4 w-4 text-yellow-500" />
-                                    Hemat {{ Math.round((yearlySavings / (pricing.monthly_price * 12)) * 100) }}%
+                                    {{ $t('subscription.save', { percent: Math.round((yearlySavings / (pricing.monthly_price * 12)) * 100) }) }}
                                 </li>
                             </ul>
                             <Button class="w-full" variant="default" @click="startUpgrade('yearly')" :disabled="pendingPayments.length > 0">
                                 <Crown class="mr-2 h-4 w-4" />
-                                Pilih Tahunan
+                                {{ $t('subscription.chooseYearly') }}
                             </Button>
                         </CardContent>
                     </Card>
@@ -376,9 +378,9 @@ const getPlanLabel = (plan: string) => {
                 <CardHeader>
                     <div class="flex items-center justify-between">
                         <div>
-                            <CardTitle>Upload Bukti Transfer</CardTitle>
+                            <CardTitle>{{ $t('subscription.uploadTransferProof') }}</CardTitle>
                             <CardDescription>
-                                Paket {{ selectedPlan === 'yearly' ? 'Tahunan' : 'Bulanan' }} - Rp {{ formatCurrency(selectedPrice) }}
+                                {{ $t('subscription.planSummary', { plan: selectedPlan === 'yearly' ? $t('subscription.planYearly') : $t('subscription.planMonthly'), price: formatCurrency(selectedPrice) }) }}
                             </CardDescription>
                         </div>
                         <Button variant="ghost" size="sm" @click="showPaymentForm = false">
@@ -392,23 +394,23 @@ const getPlanLabel = (plan: string) => {
                         <div class="space-y-4">
                             <h4 class="font-medium flex items-center gap-2">
                                 <Banknote class="h-4 w-4" />
-                                Transfer ke Rekening
+                                {{ $t('subscription.transferToAccount') }}
                             </h4>
                             <div class="rounded-lg border bg-muted/50 p-4 space-y-2">
                                 <div class="flex justify-between">
-                                    <span class="text-muted-foreground">Bank</span>
+                                    <span class="text-muted-foreground">{{ $t('subscription.bank') }}</span>
                                     <span class="font-medium">{{ bankInfo.bank_name || '-' }}</span>
                                 </div>
                                 <div class="flex justify-between">
-                                    <span class="text-muted-foreground">No. Rekening</span>
+                                    <span class="text-muted-foreground">{{ $t('subscription.accountNumber') }}</span>
                                     <span class="font-mono font-medium">{{ bankInfo.account_number || '-' }}</span>
                                 </div>
                                 <div class="flex justify-between">
-                                    <span class="text-muted-foreground">Atas Nama</span>
+                                    <span class="text-muted-foreground">{{ $t('subscription.accountHolder') }}</span>
                                     <span class="font-medium">{{ bankInfo.account_name || '-' }}</span>
                                 </div>
                                 <div class="flex justify-between border-t pt-2 mt-2">
-                                    <span class="text-muted-foreground">Jumlah Transfer</span>
+                                    <span class="text-muted-foreground">{{ $t('subscription.transferAmount') }}</span>
                                     <span class="font-bold text-lg">Rp {{ formatCurrency(selectedPrice) }}</span>
                                 </div>
                             </div>
@@ -417,7 +419,7 @@ const getPlanLabel = (plan: string) => {
                         <!-- Upload Form -->
                         <form class="space-y-4" @submit.prevent="submitPayment">
                             <div class="space-y-2">
-                                <Label for="transfer_proof">Bukti Transfer *</Label>
+                                <Label for="transfer_proof">{{ $t('subscription.transferProofLabel') }}</Label>
                                 <div class="flex items-center gap-2">
                                     <Input 
                                         id="transfer_proof" 
@@ -427,24 +429,24 @@ const getPlanLabel = (plan: string) => {
                                         required
                                     />
                                 </div>
-                                <p class="text-xs text-muted-foreground">Format: JPG, PNG. Max 5MB</p>
+                                <p class="text-xs text-muted-foreground">{{ $t('subscription.transferProofFormat') }}</p>
                                 <InputError :message="paymentForm.errors.transfer_proof" />
                             </div>
 
                             <div class="space-y-2">
-                                <Label for="bank_name">Bank Pengirim</Label>
-                                <Input id="bank_name" v-model="paymentForm.bank_name" placeholder="BCA, Mandiri, dll" />
+                                <Label for="bank_name">{{ $t('subscription.senderBank') }}</Label>
+                                <Input id="bank_name" v-model="paymentForm.bank_name" :placeholder="$t('subscription.senderBankPlaceholder')" />
                                 <InputError :message="paymentForm.errors.bank_name" />
                             </div>
 
                             <div class="space-y-2">
-                                <Label for="account_name">Nama Pengirim</Label>
-                                <Input id="account_name" v-model="paymentForm.account_name" placeholder="Nama di rekening" />
+                                <Label for="account_name">{{ $t('subscription.senderName') }}</Label>
+                                <Input id="account_name" v-model="paymentForm.account_name" :placeholder="$t('subscription.senderNamePlaceholder')" />
                                 <InputError :message="paymentForm.errors.account_name" />
                             </div>
 
                             <div class="space-y-2">
-                                <Label for="transfer_date">Tanggal Transfer</Label>
+                                <Label for="transfer_date">{{ $t('subscription.transferDate') }}</Label>
                                 <Input id="transfer_date" v-model="paymentForm.transfer_date" type="date" />
                                 <InputError :message="paymentForm.errors.transfer_date" />
                             </div>
@@ -452,7 +454,7 @@ const getPlanLabel = (plan: string) => {
                             <Button type="submit" class="w-full" :disabled="paymentForm.processing">
                                 <Spinner v-if="paymentForm.processing" class="mr-2" />
                                 <Upload v-else class="mr-2 h-4 w-4" />
-                                Kirim Bukti Transfer
+                                {{ $t('subscription.submitTransferProof') }}
                             </Button>
                         </form>
                     </div>
@@ -464,28 +466,28 @@ const getPlanLabel = (plan: string) => {
                 <CardHeader>
                     <CardTitle class="flex items-center gap-2">
                         <Gift class="h-5 w-5" />
-                        Gunakan Kode Promo
+                        {{ $t('subscription.usePromoCode') }}
                     </CardTitle>
                     <CardDescription>
-                        Masukkan kode promo untuk memperpanjang masa langganan Anda.
+                        {{ $t('subscription.promoCodeDesc') }}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <form @submit.prevent="submitPromoCode">
                         <div class="space-y-2">
-                            <Label for="promo_code">Kode Promo</Label>
+                            <Label for="promo_code">{{ $t('subscription.promoCode') }}</Label>
                             <div class="flex gap-2">
                                 <Input
                                     id="promo_code"
                                     v-model="promoForm.code"
-                                    placeholder="Masukkan kode promo..."
+                                    :placeholder="$t('subscription.enterPromoCode')"
                                     class="flex-1 font-mono uppercase"
                                     required
                                 />
                                 <Button type="submit" :disabled="promoForm.processing || !promoForm.code">
                                     <Spinner v-if="promoForm.processing" class="mr-2" />
                                     <Gift v-else class="mr-2 h-4 w-4" />
-                                    Gunakan Kode
+                                    {{ $t('subscription.useCode') }}
                                 </Button>
                             </div>
                             <InputError :message="promoForm.errors.code" />
@@ -494,7 +496,7 @@ const getPlanLabel = (plan: string) => {
 
                     <!-- Promo Redemption History -->
                     <div v-if="promoRedemptions.length > 0" class="mt-6 space-y-3">
-                        <h4 class="text-sm font-medium text-muted-foreground">Riwayat Penggunaan Kode Promo</h4>
+                        <h4 class="text-sm font-medium text-muted-foreground">{{ $t('subscription.promoHistory') }}</h4>
                         <div
                             v-for="redemption in promoRedemptions"
                             :key="redemption.id"
@@ -505,7 +507,7 @@ const getPlanLabel = (plan: string) => {
                                     <code class="rounded bg-muted px-2 py-0.5 text-sm font-mono">
                                         {{ redemption.promo_code?.code }}
                                     </code>
-                                    <Badge variant="default">+{{ redemption.days_added }} hari</Badge>
+                                    <Badge variant="default">{{ $t('subscription.daysAdded', { days: redemption.days_added }) }}</Badge>
                                 </div>
                                 <div class="text-sm text-muted-foreground">
                                     {{ formatDate(redemption.created_at) }}
@@ -513,7 +515,7 @@ const getPlanLabel = (plan: string) => {
                             </div>
                             <div class="text-right text-sm text-muted-foreground">
                                 <div v-if="redemption.new_ends_at">
-                                    Hingga {{ formatDate(redemption.new_ends_at) }}
+                                    {{ $t('subscription.untilDate', { date: formatDate(redemption.new_ends_at) }) }}
                                 </div>
                             </div>
                         </div>
@@ -524,7 +526,7 @@ const getPlanLabel = (plan: string) => {
             <!-- Payment History -->
             <Card v-if="paymentHistory.length > 0">
                 <CardHeader>
-                    <CardTitle>Riwayat Pembayaran</CardTitle>
+                    <CardTitle>{{ $t('subscription.paymentHistory') }}</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div class="space-y-3">
@@ -535,7 +537,7 @@ const getPlanLabel = (plan: string) => {
                         >
                             <div class="space-y-1">
                                 <div class="font-medium">
-                                    Paket {{ payment.plan_type === 'yearly' ? 'Tahunan' : 'Bulanan' }}
+                                    {{ $t('subscription.planPackage', { plan: payment.plan_type === 'yearly' ? $t('subscription.planYearly') : $t('subscription.planMonthly') }) }}
                                 </div>
                                 <div class="text-sm text-muted-foreground">
                                     {{ formatDate(payment.created_at) }} • Rp {{ formatCurrency(payment.amount) }}

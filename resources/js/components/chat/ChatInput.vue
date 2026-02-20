@@ -63,7 +63,7 @@ defineExpose({
             <Input
                 ref="inputRef"
                 v-model="message"
-                placeholder="Ketik pesan..."
+                :placeholder="$t('chat.typeMessage')"
                 class="flex-1"
                 :disabled="isLoading"
                 @keydown="handleKeydown"
@@ -77,7 +77,7 @@ defineExpose({
             </Button>
         </form>
         <p class="mx-auto mt-2 max-w-3xl text-center text-xs text-muted-foreground">
-            Tekan Enter untuk mengirim pesan
+            {{ $t('chat.pressEnterToSend') }}
         </p>
     </div>
 </template>

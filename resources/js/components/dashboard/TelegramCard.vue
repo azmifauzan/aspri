@@ -2,7 +2,10 @@
 import { Link, router } from '@inertiajs/vue3';
 import { Check, Copy, ExternalLink, LogOut, MessageCircle, X } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import Swal from 'sweetalert2';
+
+const { t } = useI18n();
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,14 +41,14 @@ const copyToClipboard = async () => {
 
 const disconnectTelegram = () => {
     Swal.fire({
-        title: 'Putuskan Telegram?',
-        text: `Akun @${props.telegramInfo.username} akan diputus dari ASPRI.`,
+        title: t('dashboard.telegramDisconnectTitle'),
+        text: t('dashboard.telegramDisconnectText', { username: props.telegramInfo.username }),
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#d33',
         cancelButtonColor: '#6b7280',
-        confirmButtonText: 'Ya, Putuskan',
-        cancelButtonText: 'Batal',
+        confirmButtonText: t('dashboard.telegramDisconnectConfirm'),
+        cancelButtonText: t('common.cancel'),
     }).then((result) => {
         if (result.isConfirmed) {
             disconnecting.value = true;
@@ -55,8 +58,8 @@ const disconnectTelegram = () => {
                 onSuccess: () => {
                     Swal.fire({
                         icon: 'success',
-                        title: 'Berhasil',
-                        text: 'Akun Telegram berhasil diputuskan.',
+                        title: t('common.success'),
+                        text: t('dashboard.telegramDisconnectSuccess'),
                         timer: 2000,
                         showConfirmButton: false,
                     });
@@ -74,17 +77,17 @@ const disconnectTelegram = () => {
                 <CardTitle class="text-sm font-medium">Telegram</CardTitle>
                 <Badge v-if="telegramInfo.isLinked" variant="default" class="gap-1">
                     <Check class="h-3 w-3" />
-                    Terhubung
+                    {{ $t('dashboard.telegramConnected') }}
                 </Badge>
                 <Badge v-else variant="secondary" class="gap-1">
                     <X class="h-3 w-3" />
-                    Belum Terhubung
+                    {{ $t('dashboard.telegramNotConnected') }}
                 </Badge>
             </div>
             <CardDescription class="text-xs">
                 {{ telegramInfo.isLinked
                     ? `@${telegramInfo.username}`
-                    : 'Hubungkan akun Telegram Anda' }}
+                    : $t('dashboard.telegramLinkAccount') }}
             </CardDescription>
         </CardHeader>
 
@@ -93,7 +96,7 @@ const disconnectTelegram = () => {
             <div v-if="telegramInfo.isLinked" class="space-y-3">
                 <div class="flex items-center gap-2 text-sm text-muted-foreground">
                     <MessageCircle class="h-4 w-4 text-green-500" />
-                    <span>Notifikasi aktif via Telegram</span>
+                    <span>{{ $t('dashboard.telegramNotifActive') }}</span>
                 </div>
                 <Button
                     variant="destructive"
@@ -103,7 +106,7 @@ const disconnectTelegram = () => {
                     @click="disconnectTelegram"
                 >
                     <LogOut class="h-4 w-4" />
-                    {{ disconnecting ? 'Memutuskan...' : 'Putuskan Telegram' }}
+                    {{ disconnecting ? $t('dashboard.telegramDisconnecting') : $t('dashboard.telegramDisconnect') }}
                 </Button>
             </div>
 
@@ -111,7 +114,7 @@ const disconnectTelegram = () => {
             <div v-else class="space-y-3">
                 <!-- Step 1: Command to send -->
                 <div class="space-y-1">
-                    <p class="text-xs font-medium text-muted-foreground">Kirim perintah ini ke bot:</p>
+                    <p class="text-xs font-medium text-muted-foreground">{{ $t('dashboard.telegramSendCommand') }}</p>
                     <div class="flex items-center gap-2">
                         <div class="flex-1 rounded-md border-2 border-primary bg-primary/5 px-3 py-2">
                             <code class="text-sm font-bold tracking-wide text-foreground">
@@ -141,19 +144,19 @@ const disconnectTelegram = () => {
                 >
                     <a :href="telegramBotLink" target="_blank" rel="noopener noreferrer">
                         <ExternalLink class="h-4 w-4" />
-                        Buka Bot Telegram
+                        {{ $t('dashboard.telegramOpenBot') }}
                     </a>
                 </Button>
                 <Button v-else variant="default" size="sm" class="w-full" disabled>
                     <MessageCircle class="h-4 w-4 mr-2" />
-                    Bot belum dikonfigurasi
+                    {{ $t('dashboard.telegramBotNotConfigured') }}
                 </Button>
             </div>
 
             <!-- Settings Link -->
             <div class="border-t pt-2">
                 <Link href="/settings/telegram" class="text-xs text-primary hover:underline">
-                    {{ telegramInfo.isLinked ? 'Kelola Telegram' : 'Pengaturan Lengkap' }} →
+                    {{ telegramInfo.isLinked ? $t('dashboard.telegramManage') : $t('dashboard.telegramFullSettings') }} →
                 </Link>
             </div>
         </CardContent>

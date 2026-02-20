@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import StarRating from '@/components/StarRating.vue';
+import LanguageToggle from '@/components/LanguageToggle.vue';
 import { login, register } from '@/routes';
 import { Head, Link, router } from '@inertiajs/vue3';
 import {
@@ -93,7 +94,7 @@ const getPluginIcon = (iconName: string): Component => {
 </script>
 
 <template>
-    <Head title="Explore Plugins - ASPRI" />
+    <Head :title="$t('explorePlugins.title')" />
     <div
         class="min-h-screen bg-gradient-to-b from-background to-muted/20 dark:from-background dark:to-muted/10"
     >
@@ -108,25 +109,26 @@ const getPluginIcon = (iconName: string): Component => {
                         <span class="text-xl font-bold">ASPRI</span>
                     </div>
                     <nav class="flex items-center gap-2">
+                        <LanguageToggle />
                         <Link
                             v-if="$page.props.auth.user"
                             href="/dashboard"
                             class="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-4 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
                         >
-                            Dashboard
+                            {{ $t('common.dashboard') }}
                         </Link>
                         <template v-else>
                             <Link
                                 :href="login()"
                                 class="inline-flex h-9 items-center justify-center rounded-md px-4 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
                             >
-                                Masuk
+                                {{ $t('common.login') }}
                             </Link>
                             <Link
                                 :href="register()"
                                 class="inline-flex h-9 items-center justify-center rounded-md border border-input bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
                             >
-                                Daftar Gratis
+                                {{ $t('common.register') }}
                             </Link>
                         </template>
                     </nav>
@@ -143,7 +145,7 @@ const getPluginIcon = (iconName: string): Component => {
                     class="mb-8 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
                 >
                     <ArrowLeft class="h-4 w-4" />
-                    Kembali ke Beranda
+                    {{ $t('explorePlugins.backToHome') }}
                 </Link>
 
                 <!-- Header -->
@@ -152,17 +154,15 @@ const getPluginIcon = (iconName: string): Component => {
                         class="mb-4 inline-flex items-center gap-2 rounded-full border border-border/40 bg-muted/50 px-4 py-2 text-sm"
                     >
                         <Puzzle class="h-4 w-4 text-primary" />
-                        <span class="font-medium">Plugin Marketplace</span>
+                        <span class="font-medium">{{ $t('explorePlugins.badge') }}</span>
                     </div>
                     <h1
                         class="mb-4 text-4xl font-extrabold tracking-tight sm:text-5xl"
                     >
-                        Jelajahi Semua Plugin
+                        {{ $t('explorePlugins.heading') }}
                     </h1>
                     <p class="text-lg text-muted-foreground max-w-2xl mx-auto">
-                        Temukan plugin yang sesuai dengan kebutuhan Anda.
-                        Tingkatkan produktivitas dengan fitur-fitur tambahan
-                        yang powerful.
+                        {{ $t('explorePlugins.description') }}
                     </p>
                 </div>
 
@@ -175,7 +175,7 @@ const getPluginIcon = (iconName: string): Component => {
                         <input
                             v-model="search"
                             type="text"
-                            placeholder="Cari plugin..."
+                            :placeholder="$t('explorePlugins.searchPlaceholder')"
                             class="w-full rounded-lg border border-input bg-background pl-10 pr-4 py-2.5 text-sm transition-colors placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                         />
                     </div>
@@ -186,10 +186,9 @@ const getPluginIcon = (iconName: string): Component => {
                     v-if="plugins.data.length > 0"
                     class="mb-6 text-sm text-muted-foreground"
                 >
-                    Menampilkan {{ plugins.from }}-{{ plugins.to }} dari
-                    {{ plugins.total }} plugin
+                    {{ $t('explorePlugins.showingResults', { from: plugins.from, to: plugins.to, total: plugins.total }) }}
                     <span v-if="search">
-                        untuk pencarian "<span class="font-medium text-foreground">{{ search }}</span>"
+                        {{ $t('explorePlugins.forSearch') }} "<span class="font-medium text-foreground">{{ search }}</span>"
                     </span>
                 </div>
 
@@ -202,10 +201,10 @@ const getPluginIcon = (iconName: string): Component => {
                         class="mx-auto mb-4 h-16 w-16 text-muted-foreground/40"
                     />
                     <h3 class="text-xl font-semibold mb-2">
-                        {{ search ? 'Plugin Tidak Ditemukan' : 'Belum Ada Plugin' }}
+                        {{ search ? $t('explorePlugins.notFound') : $t('explorePlugins.noPluginsYet') }}
                     </h3>
                     <p class="text-muted-foreground mb-6">
-                        {{ search ? 'Coba kata kunci lain untuk pencarian Anda.' : 'Plugin-plugin menarik akan segera tersedia!' }}
+                        {{ search ? $t('explorePlugins.tryOtherKeyword') : $t('explorePlugins.comingSoon') }}
                     </p>
                 </div>
 
@@ -281,24 +280,23 @@ const getPluginIcon = (iconName: string): Component => {
                     <h2
                         class="mb-4 text-3xl font-bold tracking-tight sm:text-4xl"
                     >
-                        Siap Menggunakan Plugin?
+                        {{ $t('explorePlugins.ctaTitle') }}
                     </h2>
                     <p class="mb-8 text-lg text-muted-foreground">
-                        Daftar sekarang dan aktifkan plugin favorit Anda untuk
-                        meningkatkan produktivitas
+                        {{ $t('explorePlugins.ctaDesc') }}
                     </p>
                     <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
                         <Link
                             :href="register()"
                             class="inline-flex h-12 items-center justify-center rounded-md bg-primary px-8 text-base font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
                         >
-                            Daftar Gratis Sekarang
+                            {{ $t('explorePlugins.ctaButton') }}
                         </Link>
                         <Link
                             :href="login()"
                             class="inline-flex h-12 items-center justify-center rounded-md border border-input bg-background px-8 text-base font-semibold transition-colors hover:bg-accent hover:text-accent-foreground"
                         >
-                            Sudah Punya Akun?
+                            {{ $t('auth.hasAccount') }}
                         </Link>
                     </div>
                 </div>
@@ -310,7 +308,7 @@ const getPluginIcon = (iconName: string): Component => {
             class="border-t border-border/40 bg-muted/30 py-8 text-center text-sm text-muted-foreground"
         >
             <div class="container mx-auto px-4">
-                <p>&copy; 2026 ASPRI. Asisten Pribadi Berbasis AI.</p>
+                <p>{{ $t('landing.footer') }}</p>
             </div>
         </footer>
     </div>

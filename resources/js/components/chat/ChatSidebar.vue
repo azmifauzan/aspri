@@ -23,12 +23,12 @@ const emit = defineEmits<Emits>();
     <div class="flex w-full flex-col border-r bg-muted/30">
         <!-- Header -->
         <div class="flex items-center justify-between border-b p-4">
-            <h2 class="text-sm font-semibold">Percakapan</h2>
+            <h2 class="text-sm font-semibold">{{ $t('chat.conversations') }}</h2>
             <Button
                 variant="ghost"
                 size="icon"
                 @click="emit('newChat')"
-                title="Chat baru"
+                :title="$t('chat.newChat')"
             >
                 <MessageSquarePlus class="h-4 w-4" />
             </Button>
@@ -41,8 +41,8 @@ const emit = defineEmits<Emits>();
                     v-if="threads.length === 0"
                     class="px-3 py-8 text-center text-sm text-muted-foreground"
                 >
-                    Belum ada percakapan.<br />
-                    Mulai chat baru!
+                    {{ $t('chat.noThreads') }}<br />
+                    {{ $t('chat.startNewChat') }}
                 </div>
 
                 <div
@@ -68,7 +68,7 @@ const emit = defineEmits<Emits>();
                         size="icon"
                         class="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100"
                         @click.stop="emit('delete', thread.id)"
-                        title="Hapus"
+                        :title="$t('chat.deleteThread')"
                     >
                         <Trash2 class="h-3 w-3 text-destructive" />
                     </Button>

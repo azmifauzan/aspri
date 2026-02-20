@@ -3,6 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { MonthlySummary } from '@/types';
 import { TrendingDown, TrendingUp, Wallet } from 'lucide-vue-next';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { locale } = useI18n();
 
 const props = withDefaults(
     defineProps<{
@@ -20,7 +23,7 @@ const props = withDefaults(
 );
 
 const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
+    return new Intl.NumberFormat(locale.value === 'id' ? 'id-ID' : 'en-US', {
         style: 'currency',
         currency: 'IDR',
         minimumFractionDigits: 0,
@@ -40,7 +43,7 @@ const balanceColor = computed(() => {
         <CardHeader class="pb-2">
             <CardTitle class="flex items-center gap-2 text-base font-medium">
                 <Wallet class="h-4 w-4" />
-                Ringkasan Bulan Ini
+                {{ $t('dashboard.monthlySummary') }}
             </CardTitle>
         </CardHeader>
         <CardContent class="space-y-4">
@@ -54,7 +57,7 @@ const balanceColor = computed(() => {
                             class="h-4 w-4 text-emerald-600 dark:text-emerald-400"
                         />
                     </div>
-                    <span class="text-sm text-muted-foreground">Pemasukan</span>
+                    <span class="text-sm text-muted-foreground">{{ $t('dashboard.income') }}</span>
                 </div>
                 <div class="text-right">
                     <p class="font-semibold text-emerald-600 dark:text-emerald-400">
@@ -65,7 +68,7 @@ const balanceColor = computed(() => {
                         class="text-xs text-muted-foreground"
                     >
                         {{ summary.incomeChange > 0 ? '+' : ''
-                        }}{{ summary.incomeChange }}% dari bulan lalu
+                        }}{{ $t('dashboard.fromLastMonth', { change: summary.incomeChange }) }}
                     </p>
                 </div>
             </div>
@@ -81,7 +84,7 @@ const balanceColor = computed(() => {
                         />
                     </div>
                     <span class="text-sm text-muted-foreground"
-                        >Pengeluaran</span
+                        >{{ $t('dashboard.expense') }}</span
                     >
                 </div>
                 <div class="text-right">
@@ -93,7 +96,7 @@ const balanceColor = computed(() => {
                         class="text-xs text-muted-foreground"
                     >
                         {{ summary.expenseChange > 0 ? '+' : ''
-                        }}{{ summary.expenseChange }}% dari bulan lalu
+                        }}{{ $t('dashboard.fromLastMonth', { change: summary.expenseChange }) }}
                     </p>
                 </div>
             </div>
@@ -103,7 +106,7 @@ const balanceColor = computed(() => {
 
             <!-- Balance -->
             <div class="flex items-center justify-between">
-                <span class="text-sm font-medium">Selisih</span>
+                <span class="text-sm font-medium">{{ $t('dashboard.balance') }}</span>
                 <p class="text-lg font-bold" :class="balanceColor">
                     {{ formatCurrency(summary.balance) }}
                 </p>

@@ -13,6 +13,8 @@ import { edit } from '@/routes/profile';
 import { send } from '@/routes/verification';
 import { type BreadcrumbItem } from '@/types';
 import { Form, Head, Link, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 type Profile = {
     call_preference: string | null;
@@ -28,12 +30,14 @@ type Props = {
 
 const props = defineProps<Props>();
 
-const breadcrumbItems: BreadcrumbItem[] = [
+const { t } = useI18n();
+
+const breadcrumbItems = computed<BreadcrumbItem[]>(() => [
     {
-        title: 'Profile settings',
+        title: t('settings.profileSettings'),
         href: edit().url,
     },
-];
+]);
 
 const page = usePage();
 const user = page.props.auth.user;
@@ -41,16 +45,16 @@ const user = page.props.auth.user;
 
 <template>
     <AppLayout :breadcrumbs="breadcrumbItems">
-        <Head title="Profile settings" />
+        <Head :title="$t('settings.profileSettings')" />
 
-        <h1 class="sr-only">Profile Settings</h1>
+        <h1 class="sr-only">{{ $t('settings.profileSettings') }}</h1>
 
         <SettingsLayout>
             <div class="flex flex-col space-y-6">
                 <Heading
                     variant="small"
-                    title="Profile information"
-                    description="Update your name and email address"
+                    :title="$t('settings.profileInfo')"
+                    :description="$t('settings.profileInfoDescription')"
                 />
 
                 <Form
@@ -59,7 +63,7 @@ const user = page.props.auth.user;
                     v-slot="{ errors, processing, recentlySuccessful }"
                 >
                     <div class="grid gap-2">
-                        <Label for="name">Nama</Label>
+                        <Label for="name">{{ $t('settings.fullName') }}</Label>
                         <Input
                             id="name"
                             class="mt-1 block w-full"
@@ -67,13 +71,13 @@ const user = page.props.auth.user;
                             :default-value="user.name"
                             required
                             autocomplete="name"
-                            placeholder="Nama lengkap"
+                            :placeholder="$t('settings.fullNamePlaceholder')"
                         />
                         <InputError class="mt-2" :message="errors.name" />
                     </div>
 
                     <div class="grid gap-2">
-                        <Label for="email">Email</Label>
+                        <Label for="email">{{ $t('settings.email') }}</Label>
                         <Input
                             id="email"
                             type="email"
@@ -82,20 +86,20 @@ const user = page.props.auth.user;
                             :default-value="user.email"
                             required
                             autocomplete="username"
-                            placeholder="Alamat email"
+                            :placeholder="$t('settings.emailPlaceholder')"
                         />
                         <InputError class="mt-2" :message="errors.email" />
                     </div>
 
                     <div v-if="mustVerifyEmail && !user.email_verified_at">
                         <p class="-mt-4 text-sm text-muted-foreground">
-                            Email kamu belum diverifikasi.
+                            {{ $t('settings.emailNotVerified') }}
                             <Link
                                 :href="send()"
                                 as="button"
                                 class="text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500"
                             >
-                                Klik di sini untuk kirim ulang email verifikasi.
+                                {{ $t('settings.clickToVerify') }}
                             </Link>
                         </p>
 
@@ -103,7 +107,7 @@ const user = page.props.auth.user;
                             v-if="status === 'verification-link-sent'"
                             class="mt-2 text-sm font-medium text-green-600"
                         >
-                            Link verifikasi baru telah dikirim ke alamat email kamu.
+                            {{ $t('settings.verificationSent') }}
                         </div>
                     </div>
 
@@ -111,54 +115,54 @@ const user = page.props.auth.user;
 
                     <Heading
                         variant="small"
-                        title="Personalisasi Asisten"
-                        description="Sesuaikan cara asisten AI berkomunikasi denganmu"
+                        :title="$t('settings.personalizationTitle')"
+                        :description="$t('settings.personalizationDescription')"
                     />
 
                     <div class="grid gap-2">
-                        <Label for="call_preference">Panggilan</Label>
+                        <Label for="call_preference">{{ $t('settings.callPreference') }}</Label>
                         <Input
                             id="call_preference"
                             class="mt-1 block w-full"
                             name="call_preference"
                             :default-value="profile?.call_preference ?? 'Kak'"
                             required
-                            placeholder="contoh: Kak, Mas, Mbak, Bos"
+                            :placeholder="$t('settings.callPreferencePlaceholder')"
                         />
                         <p class="text-xs text-muted-foreground">
-                            Asisten akan memanggilmu dengan panggilan ini
+                            {{ $t('settings.callPreferenceHelper') }}
                         </p>
                         <InputError class="mt-2" :message="errors.call_preference" />
                     </div>
 
                     <div class="grid gap-2">
-                        <Label for="aspri_name">Nama Asisten</Label>
+                        <Label for="aspri_name">{{ $t('settings.assistantName') }}</Label>
                         <Input
                             id="aspri_name"
                             class="mt-1 block w-full"
                             name="aspri_name"
                             :default-value="profile?.aspri_name ?? 'ASPRI'"
                             required
-                            placeholder="contoh: ASPRI, Jarvis, Friday"
+                            :placeholder="$t('settings.assistantNamePlaceholder')"
                         />
                         <p class="text-xs text-muted-foreground">
-                            Berikan nama untuk asisten pribadimu
+                            {{ $t('settings.assistantNameHelper') }}
                         </p>
                         <InputError class="mt-2" :message="errors.aspri_name" />
                     </div>
 
                     <div class="grid gap-2">
-                        <Label for="aspri_persona">Persona Asisten</Label>
+                        <Label for="aspri_persona">{{ $t('settings.assistantPersona') }}</Label>
                         <Input
                             id="aspri_persona"
                             class="mt-1 block w-full"
                             name="aspri_persona"
                             :default-value="profile?.aspri_persona ?? 'pria'"
                             required
-                            placeholder="Contoh: pria, wanita, profesional, santai"
+                            :placeholder="$t('settings.assistantPersonaPlaceholder')"
                         />
                         <p class="text-xs text-muted-foreground">
-                            Kepribadian asisten (pria, wanita, kucing, anjing, atau custom)
+                            {{ $t('settings.assistantPersonaHelper') }}
                         </p>
                         <InputError class="mt-2" :message="errors.aspri_persona" />
                     </div>
@@ -167,7 +171,7 @@ const user = page.props.auth.user;
                         <Button
                             :disabled="processing"
                             data-test="update-profile-button"
-                            >Simpan</Button
+                            >{{ $t('settings.save') }}</Button
                         >
 
                         <Transition
@@ -180,7 +184,7 @@ const user = page.props.auth.user;
                                 v-show="recentlySuccessful"
                                 class="text-sm text-neutral-600"
                             >
-                                Tersimpan.
+                                {{ $t('settings.saved') }}
                             </p>
                         </Transition>
                     </div>

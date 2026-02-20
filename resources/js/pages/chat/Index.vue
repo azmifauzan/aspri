@@ -8,6 +8,9 @@ import type { BreadcrumbItem, ChatMessage, ChatPageProps, ChatThread } from '@/t
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { ArrowLeft } from 'lucide-vue-next';
 import { ref, watch, nextTick, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = defineProps<ChatPageProps>();
 
@@ -151,7 +154,7 @@ const sendMessage = async (content: string) => {
                             threads.value.unshift({
                                 id: data.id,
                                 title: data.title,
-                                lastMessageAt: 'Baru saja',
+                                lastMessageAt: t('common.justNow'),
                             });
 
                             // Update URL without full page reload
@@ -201,7 +204,7 @@ const sendMessage = async (content: string) => {
                         await nextTick();
                         setTimeout(() => chatMessageListRef.value?.scrollToBottom(), 100);
                     } else if (eventType === 'error') {
-                        throw new Error(data.message || 'Terjadi kesalahan');
+                        throw new Error(data.message || t('chat.errorMessage'));
                     }
                 } catch (parseError) {
                     console.error('Failed to parse SSE data:', parseError, eventData);
@@ -221,7 +224,7 @@ const sendMessage = async (content: string) => {
         messages.value.push({
             id: `error-${Date.now()}`,
             role: 'assistant',
-            content: error.message || 'Maaf, terjadi kesalahan. Silakan coba lagi.',
+            content: error.message || t('chat.errorMessage'),
             createdAt: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
         });
         
@@ -273,7 +276,7 @@ const deleteThread = async (threadId: string) => {
 </script>
 
 <template>
-    <Head title="Chat" />
+    <Head :title="$t('chat.title')" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-[calc(100vh-8rem)] overflow-hidden rounded-lg border bg-background">
@@ -296,7 +299,7 @@ const deleteThread = async (threadId: string) => {
                         <ArrowLeft class="h-4 w-4" />
                     </Button>
                     <span class="truncate text-sm font-medium">
-                        {{ currentThreadId ? (threads.find((t) => t.id === currentThreadId)?.title ?? 'Chat') : 'Chat Baru' }}
+                        {{ currentThreadId ? (threads.find((t) => t.id === currentThreadId)?.title ?? $t('chat.title')) : $t('chat.newChat') }}
                     </span>
                 </div>
 

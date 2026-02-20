@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { defineProps, defineEmits } from 'vue';
 import { Trash2, Pin, Pencil } from 'lucide-vue-next';
+import { useI18n } from 'vue-i18n';
+
+const { t, locale } = useI18n();
 
 const props = defineProps<{
     note: {
@@ -16,7 +19,7 @@ const props = defineProps<{
 const emit = defineEmits(['edit', 'delete', 'toggle-pin']);
 
 const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('id-ID', {
+    return new Date(dateString).toLocaleDateString(locale.value === 'id' ? 'id-ID' : 'en-US', {
         day: 'numeric',
         month: 'short',
         year: 'numeric'
@@ -59,7 +62,7 @@ const contentPreview = (content: string | null): string => {
             </div>
             
             <p class="mb-4 text-sm text-zinc-600 dark:text-zinc-400 line-clamp-3 min-h-[3rem]">
-                {{ contentPreview(note.content) || 'Start writing...' }}
+                {{ contentPreview(note.content) || $t('notes.startWriting') }}
             </p>
             
             <div class="flex items-center text-xs text-zinc-400">
@@ -72,21 +75,21 @@ const contentPreview = (content: string | null): string => {
             <button 
                 @click.stop="$emit('toggle-pin', note)"
                 class="rounded-full p-1.5 text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-primary transition-colors"
-                :title="note.is_pinned ? 'Unpin' : 'Pin'"
+                :title="note.is_pinned ? $t('notes.unpin') : $t('notes.pin')"
             >
                 <Pin :size="14" />
             </button>
             <button 
                 @click.stop="$emit('edit', note)"
                 class="rounded-full p-1.5 text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-blue-500 transition-colors"
-                title="Edit"
+                :title="$t('notes.edit')"
             >
                 <Pencil :size="14" />
             </button>
             <button 
                 @click.stop="$emit('delete', note)"
                 class="rounded-full p-1.5 text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-red-500 transition-colors"
-                title="Delete"
+                :title="$t('notes.delete')"
             >
                 <Trash2 :size="14" />
             </button>

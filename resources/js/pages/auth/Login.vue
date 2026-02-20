@@ -25,10 +25,10 @@ const showPassword = ref(false);
 
 <template>
     <AuthBase
-        title="Masuk ke ASPRI"
-        description="Masukkan email dan password Anda untuk melanjutkan"
+        :title="$t('auth.loginTitle')"
+        :description="$t('auth.loginDescription')"
     >
-        <Head title="Masuk" />
+        <Head :title="$t('auth.loginPageTitle')" />
 
         <div
             v-if="status"
@@ -68,7 +68,7 @@ const showPassword = ref(false);
                             class="text-sm"
                             :tabindex="5"
                         >
-                            Lupa password?
+                            {{ $t('auth.forgotPassword') }}
                         </TextLink>
                     </div>
                     <div class="relative">
@@ -79,7 +79,7 @@ const showPassword = ref(false);
                             required
                             :tabindex="2"
                             autocomplete="current-password"
-                            placeholder="Masukkan password"
+                            :placeholder="$t('auth.enterPassword')"
                             class="pr-10"
                         />
                         <button
@@ -98,7 +98,7 @@ const showPassword = ref(false);
                 <div class="flex items-center justify-between">
                     <Label for="remember" class="flex items-center space-x-3">
                         <Checkbox id="remember" name="remember" :tabindex="3" />
-                        <span>Ingat saya</span>
+                        <span>{{ $t('auth.rememberMe') }}</span>
                     </Label>
                 </div>
 
@@ -110,7 +110,7 @@ const showPassword = ref(false);
                     data-test="login-button"
                 >
                     <Spinner v-if="processing" />
-                    Masuk
+                    {{ $t('auth.loginButton') }}
                 </Button>
             </div>
 
@@ -118,12 +118,12 @@ const showPassword = ref(false);
                 v-if="canRegister"
                 class="text-center text-sm text-muted-foreground"
             >
-                Belum punya akun?
+                {{ $t('auth.noAccount') }}
                 <TextLink
                     :href="register()"
                     class="underline underline-offset-4"
                     :tabindex="6"
-                    >Daftar sekarang</TextLink
+                    >{{ $t('auth.registerNow') }}</TextLink
                 >
             </div>
         </Form>

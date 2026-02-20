@@ -29,6 +29,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import LanguageToggle from '@/components/LanguageToggle.vue';
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { getInitials } from '@/composables/useInitials';
@@ -40,6 +41,7 @@ import type { BreadcrumbItem, NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { BookOpen, Crown, Folder, LayoutGrid, Menu, MessageSquare, Search } from 'lucide-vue-next';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 type Props = {
     breadcrumbs?: BreadcrumbItem[];
@@ -49,6 +51,7 @@ const props = withDefaults(defineProps<Props>(), {
     breadcrumbs: () => [],
 });
 
+const { t } = useI18n();
 const page = usePage();
 const auth = computed(() => page.props.auth);
 const subscriptionInfo = computed(() => page.props.auth.subscriptionInfo);
@@ -58,18 +61,18 @@ const { isCurrentUrl, whenCurrentUrl } = useCurrentUrl();
 const activeItemStyles =
     'text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100';
 
-const mainNavItems: NavItem[] = [
+const mainNavItems = computed<NavItem[]>(() => [
     {
-        title: 'Dashboard',
+        title: t('common.dashboard'),
         href: dashboard(),
         icon: LayoutGrid,
     },
     {
-        title: 'Chat',
+        title: t('common.navChat'),
         href: chatIndex(),
         icon: MessageSquare,
     },
-];
+]);
 
 const rightNavItems: NavItem[] = [
     {
@@ -260,7 +263,7 @@ const rightNavItems: NavItem[] = [
                                     </div>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                    <p>Chat tersisa hari ini</p>
+                                    <p>{{ $t('common.chatRemainingToday') }}</p>
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
@@ -289,6 +292,8 @@ const rightNavItems: NavItem[] = [
                             </Link>
                         </Button>
                     </div>
+
+                    <LanguageToggle />
 
                     <DropdownMenu>
                         <DropdownMenuTrigger :as-child="true">

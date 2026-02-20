@@ -100,10 +100,9 @@ const isNewMessage = (messageId: string) => {
                 <div class="mb-4 rounded-full bg-primary/10 p-4">
                     <Bot class="h-8 w-8 text-primary" />
                 </div>
-                <h3 class="mb-2 text-lg font-semibold">Halo! 👋</h3>
+                <h3 class="mb-2 text-lg font-semibold">{{ $t('chat.emptyHello') }}</h3>
                 <p class="max-w-sm text-muted-foreground">
-                    Saya asisten pribadi kamu. Tanyakan apa saja tentang jadwal,
-                    keuangan, atau hal lainnya!
+                    {{ $t('chat.emptyDescription') }}
                 </p>
             </div>
 

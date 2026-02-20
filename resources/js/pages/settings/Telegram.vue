@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
 import { type BreadcrumbItem } from '@/types';
+import { useI18n } from 'vue-i18n';
 
 type Props = {
     botUsername?: string;
@@ -20,6 +21,8 @@ type Props = {
 };
 
 const props = defineProps<Props>();
+
+const { t } = useI18n();
 
 // Debug logging
 onMounted(() => {
@@ -35,14 +38,14 @@ const disconnecting = ref(false);
 
 const disconnectTelegram = () => {
     Swal.fire({
-        title: 'Putuskan Telegram?',
-        text: `Akun Telegram @${props.telegramUsername} akan diputus. Anda tidak akan menerima notifikasi dan tidak bisa chat melalui Telegram.`,
+        title: t('settings.disconnectTelegramTitle'),
+        text: t('settings.disconnectTelegramText', { username: props.telegramUsername }),
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#d33',
         cancelButtonColor: '#6b7280',
-        confirmButtonText: 'Ya, Putuskan',
-        cancelButtonText: 'Batal',
+        confirmButtonText: t('settings.disconnectConfirm'),
+        cancelButtonText: t('settings.cancel'),
     }).then((result) => {
         if (result.isConfirmed) {
             disconnecting.value = true;
@@ -54,8 +57,8 @@ const disconnectTelegram = () => {
                 onSuccess: () => {
                     Swal.fire({
                         icon: 'success',
-                        title: 'Berhasil',
-                        text: 'Akun Telegram berhasil diputuskan.',
+                        title: t('settings.successTitle'),
+                        text: t('settings.disconnectSuccess'),
                         timer: 2000,
                         showConfirmButton: false,
                     });
@@ -63,8 +66,8 @@ const disconnectTelegram = () => {
                 onError: () => {
                     Swal.fire({
                         icon: 'error',
-                        title: 'Gagal',
-                        text: 'Gagal memutuskan akun Telegram. Silakan coba lagi.',
+                        title: t('settings.failedTitle'),
+                        text: t('settings.disconnectFailed'),
                     });
                 },
             });
@@ -72,16 +75,16 @@ const disconnectTelegram = () => {
     });
 };
 
-const breadcrumbItems: BreadcrumbItem[] = [
+const breadcrumbItems = computed<BreadcrumbItem[]>(() => [
     {
-        title: 'Settings',
+        title: t('settings.title'),
         href: '/settings',
     },
     {
-        title: 'Telegram Integration',
+        title: t('settings.telegramIntegration'),
         href: '/settings/telegram',
     },
-];
+]);
 
 const telegramBotLink = computed(() => {
     if (props.botUsername && props.linkCode) {
@@ -105,16 +108,16 @@ const copyCode = () => {
 
 <template>
     <AppLayout :breadcrumbs="breadcrumbItems">
-        <Head title="Telegram Integration" />
+        <Head :title="$t('settings.telegramIntegration')" />
 
-        <h1 class="sr-only">Telegram Integration</h1>
+        <h1 class="sr-only">{{ $t('settings.telegramIntegration') }}</h1>
 
         <SettingsLayout>
             <div class="flex flex-col space-y-6">
                 <Heading
                     variant="small"
-                    title="Telegram Integration"
-                    description="Connect your Telegram account to receive notifications and interact with your assistant via Telegram"
+                    :title="$t('settings.telegramIntegration')"
+                    :description="$t('settings.telegramIntegrationDescription')"
                 />
 
                 <Separator />
@@ -128,13 +131,13 @@ const copyCode = () => {
                             </div>
                             <div class="flex-1 space-y-1">
                                 <p class="font-medium text-green-600 dark:text-green-400">
-                                    Telegram Connected
+                                    {{ $t('settings.telegramConnectedStatus') }}
                                 </p>
                                 <p class="text-sm text-muted-foreground">
-                                    Your account is connected to <strong>@{{ telegramUsername }}</strong>
+                                    {{ $t('settings.connectedTo') }} <strong>@{{ telegramUsername }}</strong>
                                 </p>
                                 <p class="text-sm text-muted-foreground">
-                                    You can now receive notifications and chat with your assistant via Telegram.
+                                    {{ $t('settings.connectedHelp') }}
                                 </p>
                             </div>
                         </div>
@@ -147,7 +150,7 @@ const copyCode = () => {
                                 @click="disconnectTelegram"
                             >
                                 <LogOut class="h-4 w-4" />
-                                {{ disconnecting ? 'Memutuskan...' : 'Putuskan Telegram' }}
+                                {{ disconnecting ? $t('settings.disconnecting') : $t('settings.disconnectTelegram') }}
                             </Button>
                         </div>
                     </CardContent>
@@ -159,7 +162,7 @@ const copyCode = () => {
                     <Card v-if="!botUsername" class="border-yellow-500/20 bg-yellow-500/5">
                         <CardContent class="pt-6">
                             <p class="text-sm text-yellow-800 dark:text-yellow-200">
-                                <strong>Configuration Missing:</strong> Telegram bot username is not configured. Please set <code class="rounded bg-yellow-100 px-1 py-0.5 dark:bg-yellow-900">TELEGRAM_BOT_USERNAME</code> in your .env file.
+                                <strong>{{ $t('settings.configMissing') }}</strong> {{ $t('settings.configMissingDescBefore') }} <code class="rounded bg-yellow-100 px-1 py-0.5 dark:bg-yellow-900">TELEGRAM_BOT_USERNAME</code> {{ $t('settings.configMissingDescAfter') }}
                             </p>
                         </CardContent>
                     </Card>
@@ -173,17 +176,17 @@ const copyCode = () => {
                                     </div>
                                     <div class="flex-1 space-y-3">
                                         <div>
-                                            <p class="font-medium">Connect to Telegram</p>
+                                            <p class="font-medium">{{ $t('settings.connectToTelegram') }}</p>
                                             <p class="text-sm text-muted-foreground">
-                                                Follow these steps to connect your Telegram account
+                                                {{ $t('settings.connectSteps') }}
                                             </p>
                                         </div>
 
                                         <div class="space-y-3">
                                             <div class="rounded-lg border-2 border-primary/30 bg-primary/5 p-4">
-                                                <h4 class="mb-2 font-semibold text-primary">Step 1: Your Link Code</h4>
+                                                <h4 class="mb-2 font-semibold text-primary">{{ $t('settings.step1Title') }}</h4>
                                                 <p class="mb-3 text-sm text-muted-foreground">
-                                                    Send this command to the bot:
+                                                    {{ $t('settings.step1Desc') }}
                                                 </p>
                                                 <div class="flex items-center gap-2">
                                                     <div v-if="linkCode" class="flex-1 rounded-lg border-2 border-primary bg-white px-4 py-3 dark:bg-neutral-900">
@@ -193,7 +196,7 @@ const copyCode = () => {
                                                     </div>
                                                     <div v-else class="flex-1 rounded-lg border-2 border-red-500 bg-red-50 px-4 py-3 dark:bg-red-950">
                                                         <code class="text-sm font-semibold text-red-600 dark:text-red-400">
-                                                            Error: Code not generated
+                                                            {{ $t('settings.codeNotGenerated') }}
                                                         </code>
                                                     </div>
                                                     <Button
@@ -203,19 +206,19 @@ const copyCode = () => {
                                                         class="min-w-20"
                                                         :disabled="!linkCode"
                                                     >
-                                                        {{ copied ? 'Copied!' : 'Copy' }}
+                                                        {{ copied ? $t('settings.copied') : $t('settings.copy') }}
                                                     </Button>
                                                 </div>
                                             </div>
 
                                             <div class="rounded-lg border bg-muted/40 p-4">
-                                                <h4 class="mb-2 font-medium">Step 2: Open Telegram Bot</h4>
+                                                <h4 class="mb-2 font-medium">{{ $t('settings.step2Title') }}</h4>
                                                 <p class="mb-3 text-sm text-muted-foreground">
                                                     <template v-if="botUsername">
-                                                        Click the button below or search for <strong class="text-foreground">{{ botUsername.startsWith('@') ? botUsername : '@' + botUsername }}</strong> in Telegram
+                                                        {{ $t('settings.step2DescBefore') }} <strong class="text-foreground">{{ botUsername.startsWith('@') ? botUsername : '@' + botUsername }}</strong> {{ $t('settings.step2DescAfter') }}
                                                     </template>
                                                     <template v-else>
-                                                        <span class="text-red-600 dark:text-red-400">Bot username not configured. Please check your .env file.</span>
+                                                        <span class="text-red-600 dark:text-red-400">{{ $t('settings.botNotConfiguredError') }}</span>
                                                     </template>
                                                 </p>
                                                 <Button
@@ -230,7 +233,7 @@ const copyCode = () => {
                                                         rel="noopener noreferrer"
                                                     >
                                                         <MessageSquare class="h-4 w-4" />
-                                                        Open Telegram Bot
+                                                        {{ $t('settings.openTelegramBot') }}
                                                     </a>
                                                 </Button>
                                                 <Button
@@ -240,21 +243,21 @@ const copyCode = () => {
                                                     size="lg"
                                                 >
                                                     <MessageSquare class="h-4 w-4" />
-                                                    Bot Not Configured
+                                                    {{ $t('settings.botNotConfigured') }}
                                                 </Button>
                                             </div>
 
                                             <div class="rounded-lg border bg-muted/40 p-4">
-                                                <h4 class="mb-2 font-medium">Step 3: Send the Code</h4>
+                                                <h4 class="mb-2 font-medium">{{ $t('settings.step3Title') }}</h4>
                                                 <p class="text-sm text-muted-foreground">
-                                                    Send the command <code class="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">connect YOURCODE</code> to the bot, or simply click the button in Step 2 which will automatically include the code.
+                                                    {{ $t('settings.step3DescBefore') }} <code class="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">connect YOURCODE</code> {{ $t('settings.step3DescAfter') }}
                                                 </p>
                                             </div>
 
                                             <div class="rounded-lg border bg-muted/40 p-4">
-                                                <h4 class="mb-2 font-medium">Step 4: Start Chatting!</h4>
+                                                <h4 class="mb-2 font-medium">{{ $t('settings.step4Title') }}</h4>
                                                 <p class="text-sm text-muted-foreground">
-                                                    Once connected, you can chat with your assistant and receive notifications directly in Telegram.
+                                                    {{ $t('settings.step4Desc') }}
                                                 </p>
                                             </div>
                                         </div>
@@ -267,7 +270,7 @@ const copyCode = () => {
                     <Card class="border-yellow-500/20 bg-yellow-500/5">
                         <CardContent class="pt-6">
                             <p class="text-sm text-yellow-800 dark:text-yellow-200">
-                                <strong>Note:</strong> The link code expires after 24 hours or once used. If you need a new code, simply refresh this page.
+                                <strong>{{ $t('settings.note') }}</strong> {{ $t('settings.linkCodeNote') }}
                             </p>
                         </CardContent>
                     </Card>

@@ -17,6 +17,8 @@ import { ref, computed } from 'vue';
 import { Plus, Pencil, Trash, List, Calendar as CalendarIcon, ChevronLeft, ChevronRight, MapPin, Clock } from 'lucide-vue-next';
 import * as scheduleRoutes from '@/routes/schedules';
 import Swal from 'sweetalert2';
+import { useI18n } from 'vue-i18n';
+import type { BreadcrumbItem } from '@/types';
 
 interface Schedule {
     id: number;
@@ -30,6 +32,8 @@ interface Schedule {
 const props = defineProps<{
     schedules: Schedule[];
 }>();
+
+const { t, locale, tm, rt } = useI18n();
 
 const isDialogOpen = ref(false);
 const isEditing = ref(false);
@@ -46,7 +50,10 @@ const form = useForm({
 });
 
 // Calendar Logic
-const weekDays = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+const weekDays = computed(() => {
+    const msgs = tm('schedules.weekDays');
+    return Array.isArray(msgs) ? msgs.map((m) => rt(m)) : [];
+});
 
 const calendarDays = computed(() => {
     const year = currentMonth.value.getFullYear();
@@ -98,7 +105,7 @@ const calendarDays = computed(() => {
 });
 
 const monthName = computed(() => {
-    return currentMonth.value.toLocaleString('id-ID', { month: 'long', year: 'numeric' });
+    return currentMonth.value.toLocaleString(locale.value === 'id' ? 'id-ID' : 'en-US', { month: 'long', year: 'numeric' });
 });
 
 const prevMonth = () => {
@@ -152,8 +159,8 @@ const submit = () => {
                 form.reset();
                 Swal.fire({
                     icon: 'success',
-                    title: 'Jadwal diperbarui',
-                    text: 'Jadwal berhasil diperbarui.',
+                    title: t('schedules.scheduleUpdated'),
+                    text: t('schedules.scheduleUpdatedDesc'),
                     timer: 2000,
                     showConfirmButton: false,
                 });
@@ -161,8 +168,8 @@ const submit = () => {
             onError: () => {
                 Swal.fire({
                     icon: 'error',
-                    title: 'Gagal memperbarui',
-                    text: 'Terjadi kesalahan saat memperbarui jadwal.',
+                    title: t('schedules.updateFailed'),
+                    text: t('schedules.updateError'),
                 });
             },
         });
@@ -173,8 +180,8 @@ const submit = () => {
                 form.reset();
                 Swal.fire({
                     icon: 'success',
-                    title: 'Jadwal dibuat',
-                    text: 'Jadwal baru berhasil disimpan.',
+                    title: t('schedules.scheduleCreated'),
+                    text: t('schedules.scheduleCreatedDesc'),
                     timer: 2000,
                     showConfirmButton: false,
                 });
@@ -182,8 +189,8 @@ const submit = () => {
             onError: () => {
                 Swal.fire({
                     icon: 'error',
-                    title: 'Gagal membuat jadwal',
-                    text: 'Terjadi kesalahan saat menyimpan jadwal.',
+                    title: t('schedules.createFailed'),
+                    text: t('schedules.createError'),
                 });
             },
         });
@@ -194,14 +201,14 @@ const deleteSchedule = (id: number) => {
     isDialogOpen.value = false;
     setTimeout(() => {
         Swal.fire({
-            title: 'Hapus Jadwal?',
-            text: 'Jadwal ini akan dihapus permanen.',
+            title: t('schedules.deleteSchedule'),
+            text: t('schedules.deleteScheduleDesc'),
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#d33',
             cancelButtonColor: '#6b7280',
-            confirmButtonText: 'Ya, Hapus!',
-            cancelButtonText: 'Batal',
+            confirmButtonText: t('schedules.yesDelete'),
+            cancelButtonText: t('common.cancel'),
         }).then((result) => {
             if (result.isConfirmed) {
                 router.delete(scheduleRoutes.destroy(id).url, {
@@ -209,8 +216,8 @@ const deleteSchedule = (id: number) => {
                     onSuccess: () => {
                         Swal.fire({
                             icon: 'success',
-                            title: 'Jadwal dihapus',
-                            text: 'Jadwal berhasil dihapus.',
+                            title: t('schedules.scheduleDeleted'),
+                            text: t('schedules.scheduleDeletedDesc'),
                             timer: 2000,
                             showConfirmButton: false,
                         });
@@ -218,8 +225,8 @@ const deleteSchedule = (id: number) => {
                     onError: () => {
                         Swal.fire({
                             icon: 'error',
-                            title: 'Gagal menghapus',
-                            text: 'Terjadi kesalahan saat menghapus jadwal.',
+                            title: t('schedules.deleteFailed'),
+                            text: t('schedules.deleteError'),
                         });
                     },
                 });
@@ -228,23 +235,23 @@ const deleteSchedule = (id: number) => {
     }, 200);
 };
 
-const breadcrumbs = [
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
     {
-        title: 'Jadwal',
+        title: t('schedules.title'),
         href: scheduleRoutes.index().url,
     },
-];
+]);
 </script>
 
 <template>
-    <Head title="Jadwal" />
+    <Head :title="t('schedules.title')" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
             <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div class="flex items-center gap-2">
                     <h2 class="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">
-                        Daftar Jadwal
+                        {{ $t('schedules.scheduleList') }}
                     </h2>
                      <div class="flex items-center rounded-md border bg-muted p-1">
                         <Button 
@@ -279,7 +286,7 @@ const breadcrumbs = [
 
                     <Button @click="openCreateDialog()">
                         <Plus class="mr-2 h-4 w-4" />
-                        Tambah Jadwal
+                        {{ $t('schedules.addSchedule') }}
                     </Button>
                 </div>
             </div>
@@ -308,8 +315,8 @@ const breadcrumbs = [
                     </div>
                     <div class="flex items-center gap-2 text-sm text-muted-foreground">
                         <Clock class="h-3 w-3" />
-                        {{ new Date(schedule.start_time).toLocaleString() }} - 
-                        {{ new Date(schedule.end_time).toLocaleString() }}
+                        {{ new Date(schedule.start_time).toLocaleString(locale === 'id' ? 'id-ID' : 'en-US') }} - 
+                        {{ new Date(schedule.end_time).toLocaleString(locale === 'id' ? 'id-ID' : 'en-US') }}
                     </div>
                     <p class="text-sm mt-2 whitespace-pre-wrap" v-if="schedule.description">
                         {{ schedule.description }}
@@ -317,7 +324,7 @@ const breadcrumbs = [
                 </div>
                 
                 <div v-if="schedules.length === 0" class="col-span-full text-center text-muted-foreground py-10">
-                    Belum ada jadwal.
+                    {{ $t('schedules.noSchedule') }}
                 </div>
             </div>
 
@@ -371,39 +378,39 @@ const breadcrumbs = [
             <Dialog :open="isDialogOpen" @update:open="isDialogOpen = $event">
                 <DialogContent class="sm:max-w-[425px]">
                     <DialogHeader>
-                        <DialogTitle>{{ isEditing ? 'Edit Jadwal' : 'Tambah Jadwal' }}</DialogTitle>
+                        <DialogTitle>{{ isEditing ? $t('schedules.editSchedule') : $t('schedules.addSchedule') }}</DialogTitle>
                         <DialogDescription>
-                            Isi formulir di bawah ini untuk {{ isEditing ? 'mengubah' : 'membuat' }} jadwal.
+                            {{ isEditing ? $t('schedules.editScheduleDesc') : $t('schedules.createScheduleDesc') }}
                         </DialogDescription>
                     </DialogHeader>
                     
                     <form @submit.prevent="submit" class="grid gap-4 py-4">
                         <div class="grid gap-2">
-                            <Label htmlFor="title">Judul</Label>
+                            <Label htmlFor="title">{{ $t('schedules.eventTitle') }}</Label>
                             <Input id="title" v-model="form.title" required />
                             <p v-if="form.errors.title" class="text-sm text-red-500">{{ form.errors.title }}</p>
                         </div>
                         
                         <div class="grid gap-2">
-                            <Label htmlFor="start_time">Waktu Mulai</Label>
+                            <Label htmlFor="start_time">{{ $t('schedules.startTime') }}</Label>
                             <Input id="start_time" type="datetime-local" v-model="form.start_time" required />
                             <p v-if="form.errors.start_time" class="text-sm text-red-500">{{ form.errors.start_time }}</p>
                         </div>
 
                         <div class="grid gap-2">
-                            <Label htmlFor="end_time">Waktu Selesai</Label>
+                            <Label htmlFor="end_time">{{ $t('schedules.endTime') }}</Label>
                             <Input id="end_time" type="datetime-local" v-model="form.end_time" required />
                             <p v-if="form.errors.end_time" class="text-sm text-red-500">{{ form.errors.end_time }}</p>
                         </div>
 
                         <div class="grid gap-2">
-                            <Label htmlFor="location">Lokasi</Label>
+                            <Label htmlFor="location">{{ $t('schedules.location') }}</Label>
                             <Input id="location" v-model="form.location" />
                             <p v-if="form.errors.location" class="text-sm text-red-500">{{ form.errors.location }}</p>
                         </div>
 
                         <div class="grid gap-2">
-                            <Label htmlFor="description">Deskripsi</Label>
+                            <Label htmlFor="description">{{ $t('schedules.description') }}</Label>
                             <textarea
                                 id="description"
                                 v-model="form.description"
@@ -416,14 +423,14 @@ const breadcrumbs = [
                     <DialogFooter>
                         <div class="flex justify-between w-full" v-if="isEditing">
                              <Button type="button" variant="destructive" @click="deleteSchedule(editingId!)">
-                                Hapus
+                                {{ $t('schedules.delete') }}
                             </Button>
                             <Button type="submit" @click="submit" :disabled="form.processing">
-                                Simpan Perubahan
+                                {{ $t('schedules.saveChanges') }}
                             </Button>
                         </div>
                          <Button type="submit" @click="submit" :disabled="form.processing" v-else>
-                            Buat Jadwal
+                            {{ $t('schedules.createSchedule') }}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

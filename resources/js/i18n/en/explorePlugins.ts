@@ -1,0 +1,17 @@
+export default {
+    title: 'Explore Plugins - ASPRI',
+    badge: 'Plugin Marketplace',
+    heading: 'Explore All Plugins',
+    description: 'Find plugins that match your needs. Boost your productivity with powerful additional features.',
+    searchPlaceholder: 'Search plugins...',
+    showingResults: 'Showing {from}-{to} of {total} plugins',
+    forSearch: 'for search',
+    notFound: 'Plugin Not Found',
+    noPluginsYet: 'No Plugins Yet',
+    tryOtherKeyword: 'Try another keyword for your search.',
+    comingSoon: 'Exciting plugins will be available soon!',
+    backToHome: 'Back to Home',
+    ctaTitle: 'Want to Use These Plugins?',
+    ctaDesc: 'Register for free and start using plugins to boost your productivity with ASPRI.',
+    ctaButton: 'Register Free',
+};

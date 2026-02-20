@@ -19,15 +19,18 @@ import type { BreadcrumbItem, FinanceAccountsProps } from '@/types';
 
 import { Head, useForm } from '@inertiajs/vue3';
 import { Banknote, CreditCard, Plus, Wallet } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import Swal from 'sweetalert2';
+
+const { t, locale } = useI18n();
 
 const props = defineProps<FinanceAccountsProps>();
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Keuangan', href: finance().url },
-    { title: 'Akun', href: financeAccounts().url },
-];
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
+    { title: t('finance.title'), href: finance().url },
+    { title: t('finance.accounts'), href: financeAccounts().url },
+]);
 
 const showAddModal = ref(false);
 
@@ -38,7 +41,7 @@ const form = useForm({
 });
 
 const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
+    return new Intl.NumberFormat(locale.value === 'id' ? 'id-ID' : 'en-US', {
         style: 'currency',
         currency: 'IDR',
         minimumFractionDigits: 0,
@@ -59,11 +62,11 @@ const getAccountIcon = (type: string) => {
 const getAccountTypeName = (type: string) => {
     switch (type) {
         case 'bank':
-            return 'Rekening Bank';
+            return t('finance.bankAccount');
         case 'e-wallet':
-            return 'E-Wallet';
+            return t('finance.eWallet');
         default:
-            return 'Tunai';
+            return t('finance.cash');
     }
 };
 
@@ -75,8 +78,8 @@ const submitAccount = () => {
             form.reset();
             Swal.fire({
                 icon: 'success',
-                title: 'Akun dibuat',
-                text: 'Akun keuangan baru berhasil disimpan.',
+                title: t('finance.accountCreated'),
+                text: t('finance.accountCreatedDesc'),
                 timer: 2000,
                 showConfirmButton: false,
             });
@@ -84,8 +87,8 @@ const submitAccount = () => {
         onError: () => {
             Swal.fire({
                 icon: 'error',
-                title: 'Gagal membuat akun',
-                text: 'Terjadi kesalahan saat menyimpan akun.',
+                title: t('finance.accountCreateFailed'),
+                text: t('finance.accountCreateError'),
             });
         },
     });
@@ -97,32 +100,32 @@ const totalBalance = () => {
 </script>
 
 <template>
-    <Head title="Akun Keuangan" />
+    <Head :title="$t('finance.accountTitle')" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
             <!-- Header -->
             <div class="flex items-center justify-between">
-                <h1 class="text-2xl font-bold">Akun Keuangan</h1>
+                <h1 class="text-2xl font-bold">{{ $t('finance.accountTitle') }}</h1>
                 
                 <Dialog v-model:open="showAddModal">
                     <DialogTrigger as-child>
                         <Button>
                             <Plus class="mr-2 h-4 w-4" />
-                            Tambah Akun
+                            {{ $t('finance.addAccount') }}
                         </Button>
                     </DialogTrigger>
                     <DialogContent class="sm:max-w-md">
                         <DialogHeader>
-                            <DialogTitle>Tambah Akun</DialogTitle>
+                            <DialogTitle>{{ $t('finance.addAccountTitle') }}</DialogTitle>
                             <DialogDescription>
-                                Buat akun keuangan baru
+                                {{ $t('finance.addAccountDesc') }}
                             </DialogDescription>
                         </DialogHeader>
                         <form @submit.prevent="submitAccount" class="space-y-4">
                             <!-- Account Type -->
                             <div class="space-y-2">
-                                <Label>Tipe Akun</Label>
+                                <Label>{{ $t('finance.accountType') }}</Label>
                                 <div class="grid grid-cols-3 gap-2">
                                     <Button
                                         type="button"
@@ -131,7 +134,7 @@ const totalBalance = () => {
                                         @click="form.type = 'cash'"
                                     >
                                         <Wallet class="h-5 w-5" />
-                                        <span class="text-xs">Tunai</span>
+                                        <span class="text-xs">{{ $t('finance.cash') }}</span>
                                     </Button>
                                     <Button
                                         type="button"
@@ -140,7 +143,7 @@ const totalBalance = () => {
                                         @click="form.type = 'bank'"
                                     >
                                         <Banknote class="h-5 w-5" />
-                                        <span class="text-xs">Bank</span>
+                                        <span class="text-xs">{{ $t('finance.bank') }}</span>
                                     </Button>
                                     <Button
                                         type="button"
@@ -149,26 +152,26 @@ const totalBalance = () => {
                                         @click="form.type = 'e-wallet'"
                                     >
                                         <CreditCard class="h-5 w-5" />
-                                        <span class="text-xs">E-Wallet</span>
+                                        <span class="text-xs">{{ $t('finance.eWallet') }}</span>
                                     </Button>
                                 </div>
                             </div>
 
                             <!-- Name -->
                             <div class="space-y-2">
-                                <Label for="name">Nama Akun</Label>
+                                <Label for="name">{{ $t('finance.accountName') }}</Label>
                                 <Input
                                     id="name"
                                     v-model="form.name"
                                     type="text"
-                                    placeholder="Contoh: BCA, GoPay"
+                                    :placeholder="$t('finance.accountNamePlaceholder')"
                                     required
                                 />
                             </div>
 
                             <!-- Initial Balance -->
                             <div class="space-y-2">
-                                <Label for="balance">Saldo Awal</Label>
+                                <Label for="balance">{{ $t('finance.initialBalance') }}</Label>
                                 <Input
                                     id="balance"
                                     v-model="form.initial_balance"
@@ -179,7 +182,7 @@ const totalBalance = () => {
 
                             <DialogFooter>
                                 <Button type="submit" :disabled="form.processing">
-                                    Simpan
+                                    {{ $t('common.save') }}
                                 </Button>
                             </DialogFooter>
                         </form>
@@ -190,12 +193,12 @@ const totalBalance = () => {
             <!-- Total Balance Card -->
             <Card class="bg-gradient-to-br from-primary/90 to-primary text-primary-foreground">
                 <CardContent class="p-6">
-                    <p class="text-sm opacity-90">Total Saldo</p>
+                    <p class="text-sm opacity-90">{{ $t('finance.totalBalance') }}</p>
                     <p class="mt-1 text-3xl font-bold">
                         {{ formatCurrency(totalBalance()) }}
                     </p>
                     <p class="mt-2 text-sm opacity-80">
-                        {{ props.accounts.length }} akun
+                        {{ $t('finance.accountCount', { count: props.accounts.length }) }}
                     </p>
                 </CardContent>
             </Card>
@@ -204,7 +207,7 @@ const totalBalance = () => {
             <Card>
                 <CardHeader class="pb-2">
                     <CardTitle class="text-base font-medium">
-                        Daftar Akun
+                        {{ $t('finance.accountList') }}
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -212,7 +215,7 @@ const totalBalance = () => {
                         v-if="props.accounts.length === 0"
                         class="py-12 text-center text-muted-foreground"
                     >
-                        Belum ada akun keuangan
+                        {{ $t('finance.noAccounts') }}
                     </div>
                     <div v-else class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         <div

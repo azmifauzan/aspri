@@ -53,7 +53,7 @@ const getTypeStyles = (type: string) => {
         <CardHeader class="pb-2">
             <CardTitle class="flex items-center gap-2 text-base font-medium">
                 <Activity class="h-4 w-4" />
-                Aktivitas Terbaru
+                {{ $t('dashboard.recentActivity') }}
             </CardTitle>
         </CardHeader>
         <CardContent>
@@ -64,7 +64,7 @@ const getTypeStyles = (type: string) => {
             >
                 <Activity class="h-12 w-12 text-muted-foreground/50" />
                 <p class="mt-2 text-sm text-muted-foreground">
-                    Belum ada aktivitas
+                    {{ $t('dashboard.noActivity') }}
                 </p>
             </div>
 

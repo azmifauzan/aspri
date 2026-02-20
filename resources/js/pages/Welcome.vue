@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import LanguageToggle from '@/components/LanguageToggle.vue';
 import { dashboard, login, register } from '@/routes';
 import { Head, Link } from '@inertiajs/vue3';
 import {
@@ -21,6 +22,7 @@ import {
     Wallet,
 } from 'lucide-vue-next';
 import { computed, type Component } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 interface PricingInfo {
     monthly_price: number;
@@ -56,6 +58,8 @@ const props = withDefaults(
     },
 );
 
+const { t } = useI18n();
+
 const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('id-ID').format(value);
 };
@@ -80,48 +84,42 @@ const getPluginIcon = (iconName: string): Component => {
     return iconMap[iconName] || Puzzle;
 };
 
-const features = [
+const features = computed(() => [
     {
         icon: MessageSquare,
-        title: 'Chat-First Experience',
-        description:
-            'Kelola jadwal dan keuangan Anda hanya dengan berbicara menggunakan bahasa natural',
+        title: t('landing.featureChatTitle'),
+        description: t('landing.featureChatDesc'),
     },
     {
         icon: Bot,
-        title: 'AI-Powered Assistant',
-        description:
-            'Asisten pribadi cerdas yang memahami konteks dan preferensi Anda',
+        title: t('landing.featureAiTitle'),
+        description: t('landing.featureAiDesc'),
     },
     {
         icon: Calendar,
-        title: 'Smart Scheduling',
-        description:
-            'Manajemen jadwal dengan reminder otomatis via web dan Telegram',
+        title: t('landing.featureScheduleTitle'),
+        description: t('landing.featureScheduleDesc'),
     },
     {
         icon: Wallet,
-        title: 'Finance Tracking',
-        description:
-            'Catat dan analisis pengeluaran dengan visualisasi yang informatif',
+        title: t('landing.featureFinanceTitle'),
+        description: t('landing.featureFinanceDesc'),
     },
     {
         icon: Sparkles,
-        title: 'Multi-Platform',
-        description:
-            'Akses melalui web atau Telegram - data selalu tersinkronisasi',
+        title: t('landing.featureMultiTitle'),
+        description: t('landing.featureMultiDesc'),
     },
     {
         icon: TrendingUp,
-        title: 'Insights & Reports',
-        description:
-            'Laporan bulanan dan insight untuk keputusan finansial lebih baik',
+        title: t('landing.featureInsightTitle'),
+        description: t('landing.featureInsightDesc'),
     },
-];
+]);
 </script>
 
 <template>
-    <Head title="Welcome to ASPRI">
+    <Head :title="$t('landing.title')">
         <link rel="preconnect" href="https://rsms.me/" />
         <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
     </Head>
@@ -151,26 +149,27 @@ const features = [
                                 class="h-5"
                             />
                         </a>
+                        <LanguageToggle />
                         <Link
                             v-if="$page.props.auth.user"
                             :href="dashboard()"
                             class="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-4 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
                         >
-                            Dashboard
+                            {{ $t('common.dashboard') }}
                         </Link>
                         <template v-else>
                             <Link
                                 :href="login()"
                                 class="inline-flex h-9 items-center justify-center rounded-md px-4 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
                             >
-                                Masuk
+                                {{ $t('common.login') }}
                             </Link>
                             <Link
                                 v-if="canRegister"
                                 :href="register()"
                                 class="inline-flex h-9 items-center justify-center rounded-md border border-input bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
                             >
-                                Daftar Gratis
+                                {{ $t('common.register') }}
                             </Link>
                         </template>
                     </nav>
@@ -186,21 +185,19 @@ const features = [
                 >
                     <Sparkles class="h-4 w-4 text-primary" />
                     <span class="font-medium"
-                        >Asisten Pribadi Berbasis AI</span
+                        >{{ $t('landing.badge') }}</span
                     >
                 </div>
                 <h1
                     class="mb-6 text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl"
                 >
-                    Kelola Jadwal dan Keuangan
-                    <span class="text-primary">dengan Mudah</span>
+                    {{ $t('landing.heroTitle') }}
+                    <span class="text-primary">{{ $t('landing.heroHighlight') }}</span>
                 </h1>
                 <p
                     class="mb-8 text-xl text-muted-foreground sm:text-2xl lg:mb-12"
                 >
-                    ASPRI membantu Anda mengelola aktivitas harian melalui
-                    percakapan natural. Cukup chat, dan biarkan AI mengurus
-                    sisanya.
+                    {{ $t('landing.heroDescription') }}
                 </p>
                 <div
                     class="flex flex-col items-center justify-center gap-4 sm:flex-row"
@@ -210,13 +207,13 @@ const features = [
                         :href="register()"
                         class="inline-flex h-12 items-center justify-center rounded-md bg-primary px-8 text-base font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
                     >
-                        Mulai Sekarang
+                        {{ $t('landing.heroCtaPrimary') }}
                     </Link>
                     <Link
                         :href="login()"
                         class="inline-flex h-12 items-center justify-center rounded-md border border-input bg-background px-8 text-base font-semibold transition-colors hover:bg-accent hover:text-accent-foreground"
                     >
-                        Sudah Punya Akun?
+                        {{ $t('landing.heroCtaSecondary') }}
                     </Link>
                 </div>
             </div>
@@ -229,10 +226,10 @@ const features = [
                     <h2
                         class="mb-4 text-3xl font-bold tracking-tight sm:text-4xl"
                     >
-                        Fitur Unggulan
+                        {{ $t('landing.featuresTitle') }}
                     </h2>
                     <p class="text-lg text-muted-foreground">
-                        Semua yang Anda butuhkan untuk produktivitas harian
+                        {{ $t('landing.featuresSubtitle') }}
                     </p>
                 </div>
                 <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -268,15 +265,15 @@ const features = [
                         class="mb-4 inline-flex items-center gap-2 rounded-full border border-border/40 bg-muted/50 px-4 py-2 text-sm"
                     >
                         <Puzzle class="h-4 w-4 text-primary" />
-                        <span class="font-medium">Extend Your Assistant</span>
+                        <span class="font-medium">{{ $t('landing.pluginBadge') }}</span>
                     </div>
                     <h2
                         class="mb-4 text-3xl font-bold tracking-tight sm:text-4xl"
                     >
-                        Plugin untuk Kebutuhan Anda
+                        {{ $t('landing.pluginTitle') }}
                     </h2>
                     <p class="text-lg text-muted-foreground max-w-2xl mx-auto">
-                        Tambahkan kemampuan ASPRI dengan plugin-plugin yang dirancang untuk membantu rutinitas harian Anda
+                        {{ $t('landing.pluginSubtitle') }}
                     </p>
                 </div>
                 <div v-if="featuredPlugins.length > 0" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -307,7 +304,7 @@ const features = [
                 <div v-else class="text-center py-12">
                     <Puzzle class="mx-auto mb-4 h-16 w-16 text-muted-foreground/40" />
                     <p class="text-lg text-muted-foreground mb-6">
-                        Plugin-plugin menarik akan segera tersedia!
+                        {{ $t('landing.pluginEmpty') }}
                     </p>
                 </div>
                 <!-- View All Plugins Button -->
@@ -317,7 +314,7 @@ const features = [
                         class="inline-flex items-center gap-2 rounded-lg border border-input bg-background px-6 py-3 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
                     >
                         <Puzzle class="h-4 w-4" />
-                        Lihat Semua Plugin
+                        {{ $t('landing.pluginViewAll') }}
                     </Link>
                 </div>
             </div>
@@ -328,10 +325,10 @@ const features = [
             <div class="mx-auto max-w-4xl">
                 <div class="mb-12 text-center">
                     <h2 class="mb-4 text-3xl font-bold tracking-tight sm:text-4xl">
-                        Harga Terjangkau
+                        {{ $t('landing.pricingTitle') }}
                     </h2>
                     <p class="text-lg text-muted-foreground">
-                        Mulai dengan {{ pricing.free_trial_days }} hari trial gratis, lalu pilih paket yang sesuai
+                        {{ $t('landing.pricingSubtitle', { days: pricing.free_trial_days }) }}
                     </p>
                 </div>
 
@@ -339,17 +336,17 @@ const features = [
                 <div class="mb-8 rounded-xl border border-primary/20 bg-primary/5 p-6 text-center">
                     <div class="flex items-center justify-center gap-2 mb-2">
                         <Clock class="h-5 w-5 text-primary" />
-                        <span class="text-lg font-semibold">Free Trial {{ pricing.free_trial_days }} Hari</span>
+                        <span class="text-lg font-semibold">{{ $t('landing.freeTrialTitle', { days: pricing.free_trial_days }) }}</span>
                     </div>
                     <p class="text-muted-foreground mb-4">
-                        Coba semua fitur dengan {{ pricing.free_trial_daily_chat_limit }} chat AI per hari, tanpa kartu kredit
+                        {{ $t('landing.freeTrialDesc', { limit: pricing.free_trial_daily_chat_limit }) }}
                     </p>
                     <Link
                         v-if="canRegister"
                         :href="register()"
                         class="inline-flex h-10 items-center justify-center rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
                     >
-                        Mulai Trial Gratis
+                        {{ $t('landing.startFreeTrial') }}
                     </Link>
                 </div>
 
@@ -359,28 +356,28 @@ const features = [
                     <div class="rounded-xl border border-border/40 bg-card p-6">
                         <div class="mb-4 flex items-center gap-2">
                             <Crown class="h-5 w-5 text-primary" />
-                            <h3 class="text-xl font-semibold">Bulanan</h3>
+                            <h3 class="text-xl font-semibold">{{ $t('landing.monthly') }}</h3>
                         </div>
                         <div class="mb-4">
                             <span class="text-4xl font-bold">Rp {{ formatCurrency(pricing.monthly_price) }}</span>
-                            <span class="text-muted-foreground">/bulan</span>
+                            <span class="text-muted-foreground">{{ $t('landing.perMonth') }}</span>
                         </div>
                         <ul class="mb-6 space-y-3 text-sm">
                             <li class="flex items-center gap-2">
                                 <Check class="h-4 w-4 text-green-500" />
-                                {{ pricing.full_member_daily_chat_limit }} chat AI per hari
+                                {{ $t('landing.chatPerDay', { limit: pricing.full_member_daily_chat_limit }) }}
                             </li>
                             <li class="flex items-center gap-2">
                                 <Check class="h-4 w-4 text-green-500" />
-                                Semua fitur premium
+                                {{ $t('landing.allPremiumFeatures') }}
                             </li>
                             <li class="flex items-center gap-2">
                                 <Check class="h-4 w-4 text-green-500" />
-                                Support prioritas
+                                {{ $t('landing.prioritySupport') }}
                             </li>
                             <li class="flex items-center gap-2">
                                 <Check class="h-4 w-4 text-green-500" />
-                                Fleksibel tanpa komitmen
+                                {{ $t('landing.flexibleNoCom') }}
                             </li>
                         </ul>
                         <Link
@@ -388,7 +385,7 @@ const features = [
                             :href="register()"
                             class="flex h-10 w-full items-center justify-center rounded-md border border-input bg-background text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
                         >
-                            Pilih Bulanan
+                            {{ $t('landing.chooseMonthly') }}
                         </Link>
                     </div>
 
@@ -396,39 +393,39 @@ const features = [
                     <div class="relative rounded-xl border-2 border-primary bg-card p-6 shadow-lg">
                         <div class="absolute -top-3 left-1/2 -translate-x-1/2">
                             <span class="rounded-full bg-green-500 px-3 py-1 text-xs font-semibold text-white">
-                                Hemat {{ Math.round((yearlySavings / (pricing.monthly_price * 12)) * 100) }}%
+                                {{ $t('landing.save', { percent: Math.round((yearlySavings / (pricing.monthly_price * 12)) * 100) }) }}
                             </span>
                         </div>
                         <div class="mb-4 flex items-center gap-2">
                             <Crown class="h-5 w-5 text-yellow-500" />
-                            <h3 class="text-xl font-semibold">Tahunan</h3>
+                            <h3 class="text-xl font-semibold">{{ $t('landing.yearly') }}</h3>
                             <span class="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                                Best Value
+                                {{ $t('landing.bestValue') }}
                             </span>
                         </div>
                         <div class="mb-2">
                             <span class="text-4xl font-bold">Rp {{ formatCurrency(pricing.yearly_price) }}</span>
-                            <span class="text-muted-foreground">/tahun</span>
+                            <span class="text-muted-foreground">{{ $t('landing.perYear') }}</span>
                         </div>
                         <p class="mb-4 text-sm text-green-600 dark:text-green-400">
-                            Setara Rp {{ formatCurrency(Math.round(pricing.yearly_price / 12)) }}/bulan • Hemat Rp {{ formatCurrency(yearlySavings) }}
+                            {{ $t('landing.equivalentPerMonth', { price: formatCurrency(Math.round(pricing.yearly_price / 12)), savings: formatCurrency(yearlySavings) }) }}
                         </p>
                         <ul class="mb-6 space-y-3 text-sm">
                             <li class="flex items-center gap-2">
                                 <Check class="h-4 w-4 text-green-500" />
-                                {{ pricing.full_member_daily_chat_limit }} chat AI per hari
+                                {{ $t('landing.chatPerDay', { limit: pricing.full_member_daily_chat_limit }) }}
                             </li>
                             <li class="flex items-center gap-2">
                                 <Check class="h-4 w-4 text-green-500" />
-                                Semua fitur premium
+                                {{ $t('landing.allPremiumFeatures') }}
                             </li>
                             <li class="flex items-center gap-2">
                                 <Check class="h-4 w-4 text-green-500" />
-                                Support prioritas
+                                {{ $t('landing.prioritySupport') }}
                             </li>
                             <li class="flex items-center gap-2">
                                 <Check class="h-4 w-4 text-green-500" />
-                                Harga terbaik untuk pengguna setia
+                                {{ $t('landing.bestPriceLoyal') }}
                             </li>
                         </ul>
                         <Link
@@ -436,7 +433,7 @@ const features = [
                             :href="register()"
                             class="flex h-10 w-full items-center justify-center rounded-md bg-primary text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
                         >
-                            Pilih Tahunan
+                            {{ $t('landing.chooseYearly') }}
                         </Link>
                     </div>
                 </div>
@@ -449,18 +446,17 @@ const features = [
                 class="mx-auto max-w-4xl rounded-2xl border border-border/40 bg-gradient-to-br from-primary/5 to-primary/10 p-8 text-center lg:p-12"
             >
                 <h2 class="mb-4 text-3xl font-bold tracking-tight sm:text-4xl">
-                    Siap untuk Memulai?
+                    {{ $t('landing.ctaTitle') }}
                 </h2>
                 <p class="mb-8 text-lg text-muted-foreground">
-                    Daftar sekarang dan rasakan kemudahan mengelola kehidupan
-                    Anda dengan ASPRI
+                    {{ $t('landing.ctaDescription') }}
                 </p>
                 <Link
                     v-if="canRegister"
                     :href="register()"
                     class="inline-flex h-12 items-center justify-center rounded-md bg-primary px-8 text-base font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
                 >
-                    Daftar Gratis Sekarang
+                    {{ $t('landing.ctaButton') }}
                 </Link>
             </div>
         </section>
@@ -470,7 +466,7 @@ const features = [
             class="border-t border-border/40 bg-muted/30 py-8 text-center text-sm text-muted-foreground"
         >
             <div class="container mx-auto px-4">
-                <p>&copy; 2026 ASPRI. Asisten Pribadi Berbasis AI.</p>
+                <p>{{ $t('landing.footer') }}</p>
             </div>
         </footer>
     </div>

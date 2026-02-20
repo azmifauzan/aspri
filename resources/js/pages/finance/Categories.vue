@@ -20,14 +20,17 @@ import type { BreadcrumbItem, FinanceCategoriesProps, FinanceCategory } from '@/
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { Pencil, Plus, Tag, Trash2, TrendingDown, TrendingUp } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import Swal from 'sweetalert2';
+
+const { t } = useI18n();
 
 const props = defineProps<FinanceCategoriesProps>();
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Keuangan', href: finance().url },
-    { title: 'Kategori', href: financeCategories().url },
-];
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
+    { title: t('finance.title'), href: finance().url },
+    { title: t('finance.categories'), href: financeCategories().url },
+]);
 
 const showAddModal = ref(false);
 const isEditing = ref(false);
@@ -81,8 +84,8 @@ const submitCategory = () => {
                 editingCategory.value = null;
                 Swal.fire({
                     icon: 'success',
-                    title: 'Kategori diperbarui',
-                    text: 'Kategori berhasil diperbarui.',
+                    title: t('finance.categoryUpdated'),
+                    text: t('finance.categoryUpdatedDesc'),
                     timer: 2000,
                     showConfirmButton: false,
                 });
@@ -90,8 +93,8 @@ const submitCategory = () => {
             onError: () => {
                 Swal.fire({
                     icon: 'error',
-                    title: 'Gagal memperbarui',
-                    text: 'Terjadi kesalahan saat memperbarui kategori.',
+                    title: t('finance.categoryUpdateFailed'),
+                    text: t('finance.categoryUpdateError'),
                 });
             },
         });
@@ -103,8 +106,8 @@ const submitCategory = () => {
                 form.reset();
                 Swal.fire({
                     icon: 'success',
-                    title: 'Kategori dibuat',
-                    text: 'Kategori baru berhasil disimpan.',
+                    title: t('finance.categoryCreated'),
+                    text: t('finance.categoryCreatedDesc'),
                     timer: 2000,
                     showConfirmButton: false,
                 });
@@ -112,8 +115,8 @@ const submitCategory = () => {
             onError: () => {
                 Swal.fire({
                     icon: 'error',
-                    title: 'Gagal membuat kategori',
-                    text: 'Terjadi kesalahan saat menyimpan kategori.',
+                    title: t('finance.categoryCreateFailed'),
+                    text: t('finance.categoryCreateError'),
                 });
             },
         });
@@ -122,14 +125,14 @@ const submitCategory = () => {
 
 const confirmDelete = (cat: FinanceCategory) => {
     Swal.fire({
-        title: 'Hapus Kategori?',
-        text: `Kategori "${cat.name}" akan dihapus. Transaksi terkait tidak akan terhapus.`,
+        title: t('finance.deleteCategory'),
+        text: t('finance.deleteCategoryDesc', { name: cat.name }),
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#d33',
         cancelButtonColor: '#6b7280',
-        confirmButtonText: 'Ya, Hapus!',
-        cancelButtonText: 'Batal',
+        confirmButtonText: t('finance.yesDelete'),
+        cancelButtonText: t('common.cancel'),
     }).then((result) => {
         if (result.isConfirmed) {
             router.delete(`/finance/categories/${cat.id}`, {
@@ -137,8 +140,8 @@ const confirmDelete = (cat: FinanceCategory) => {
                 onSuccess: () => {
                     Swal.fire({
                         icon: 'success',
-                        title: 'Kategori dihapus',
-                        text: 'Kategori berhasil dihapus.',
+                        title: t('finance.categoryDeleted'),
+                        text: t('finance.categoryDeletedDesc'),
                         timer: 2000,
                         showConfirmButton: false,
                     });
@@ -146,8 +149,8 @@ const confirmDelete = (cat: FinanceCategory) => {
                 onError: () => {
                     Swal.fire({
                         icon: 'error',
-                        title: 'Gagal menghapus',
-                        text: 'Terjadi kesalahan saat menghapus kategori.',
+                        title: t('finance.categoryDeleteFailed'),
+                        text: t('finance.categoryDeleteError'),
                     });
                 },
             });
@@ -164,25 +167,25 @@ const colorOptions = [
 
 
 <template>
-    <Head title="Kategori Keuangan" />
+    <Head :title="$t('finance.categoryTitle')" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
             <!-- Header -->
             <div class="flex items-center justify-between">
-                <h1 class="text-2xl font-bold">Kategori</h1>
+                <h1 class="text-2xl font-bold">{{ $t('finance.categories') }}</h1>
                 
                 <Button @click="openAddModal">
                     <Plus class="mr-2 h-4 w-4" />
-                    Tambah Kategori
+                    {{ $t('finance.addCategory') }}
                 </Button>
 
                 <Dialog v-model:open="showAddModal">
                     <DialogContent class="sm:max-w-md">
                         <DialogHeader>
-                            <DialogTitle>{{ isEditing ? 'Edit Kategori' : 'Tambah Kategori' }}</DialogTitle>
+                            <DialogTitle>{{ isEditing ? $t('finance.editCategory') : $t('finance.addCategory') }}</DialogTitle>
                             <DialogDescription>
-                                {{ isEditing ? 'Ubah detail kategori' : 'Buat kategori baru untuk transaksi' }}
+                                {{ isEditing ? $t('finance.changeCategoryDetails') : $t('finance.createCategoryDesc') }}
                             </DialogDescription>
                         </DialogHeader>
                         <form @submit.prevent="submitCategory" class="space-y-4">
@@ -195,7 +198,7 @@ const colorOptions = [
                                     @click="form.tx_type = 'expense'"
                                 >
                                     <TrendingDown class="mr-2 h-4 w-4" />
-                                    Pengeluaran
+                                    {{ $t('finance.expense') }}
                                 </Button>
                                 <Button
                                     type="button"
@@ -204,25 +207,25 @@ const colorOptions = [
                                     @click="form.tx_type = 'income'"
                                 >
                                     <TrendingUp class="mr-2 h-4 w-4" />
-                                    Pemasukan
+                                    {{ $t('finance.income') }}
                                 </Button>
                             </div>
 
                             <!-- Name -->
                             <div class="space-y-2">
-                                <Label for="name">Nama Kategori</Label>
+                                <Label for="name">{{ $t('finance.categoryName') }}</Label>
                                 <Input
                                     id="name"
                                     v-model="form.name"
                                     type="text"
-                                    placeholder="Contoh: Makan Siang"
+                                    :placeholder="$t('finance.categoryNamePlaceholder')"
                                     required
                                 />
                             </div>
 
                             <!-- Color -->
                             <div class="space-y-2">
-                                <Label>Warna</Label>
+                                <Label>{{ $t('finance.color') }}</Label>
                                 <div class="flex flex-wrap gap-2">
                                     <button
                                         v-for="color in colorOptions"
@@ -238,7 +241,7 @@ const colorOptions = [
 
                             <DialogFooter>
                                 <Button type="submit" :disabled="form.processing">
-                                    Simpan
+                                    {{ $t('common.save') }}
                                 </Button>
                             </DialogFooter>
                         </form>
@@ -252,7 +255,7 @@ const colorOptions = [
                 <CardHeader class="pb-2">
                     <CardTitle class="flex items-center gap-2 text-base font-medium">
                         <TrendingDown class="h-4 w-4 text-red-500" />
-                        Kategori Pengeluaran
+                        {{ $t('finance.expenseCategories') }}
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -260,7 +263,7 @@ const colorOptions = [
                         v-if="expenseCategories.length === 0"
                         class="py-8 text-center text-muted-foreground"
                     >
-                        Belum ada kategori pengeluaran
+                        {{ $t('finance.noExpenseCategories') }}
                     </div>
                     <div v-else class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                         <div
@@ -280,7 +283,7 @@ const colorOptions = [
                             <div class="flex-1">
                                 <p class="font-medium">{{ category.name }}</p>
                                 <p class="text-xs text-muted-foreground">
-                                    {{ category.transactions_count || 0 }} transaksi
+                                    {{ $t('finance.transactionCount', { count: category.transactions_count || 0 }) }}
                                 </p>
                             </div>
                             <div class="flex items-center gap-1">
@@ -312,7 +315,7 @@ const colorOptions = [
                 <CardHeader class="pb-2">
                     <CardTitle class="flex items-center gap-2 text-base font-medium">
                         <TrendingUp class="h-4 w-4 text-emerald-500" />
-                        Kategori Pemasukan
+                        {{ $t('finance.incomeCategories') }}
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -320,7 +323,7 @@ const colorOptions = [
                         v-if="incomeCategories.length === 0"
                         class="py-8 text-center text-muted-foreground"
                     >
-                        Belum ada kategori pemasukan
+                        {{ $t('finance.noIncomeCategories') }}
                     </div>
                     <div v-else class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                         <div
@@ -340,7 +343,7 @@ const colorOptions = [
                             <div class="flex-1">
                                 <p class="font-medium">{{ category.name }}</p>
                                 <p class="text-xs text-muted-foreground">
-                                    {{ category.transactions_count || 0 }} transaksi
+                                    {{ $t('finance.transactionCount', { count: category.transactions_count || 0 }) }}
                                 </p>
                             </div>
                             <div class="flex items-center gap-1">

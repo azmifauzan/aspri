@@ -12,34 +12,38 @@ import { index as telegramIndex } from '@/routes/telegram';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
 import { KeyRound, MessageSquare, Palette, Shield, User } from 'lucide-vue-next';
+import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
-const sidebarNavItems: NavItem[] = [
+const { t } = useI18n();
+
+const sidebarNavItems = computed<NavItem[]>(() => [
     {
-        title: 'Profile',
+        title: t('settings.navProfile'),
         href: editProfile(),
         icon: User,
     },
     {
-        title: 'Password',
+        title: t('settings.navPassword'),
         href: editPassword(),
         icon: KeyRound,
     },
     {
-        title: 'Two-Factor Auth',
+        title: t('settings.navTwoFactor'),
         href: show(),
         icon: Shield,
     },
     {
-        title: 'Telegram',
+        title: t('settings.navTelegram'),
         href: telegramIndex(),
         icon: MessageSquare,
     },
     {
-        title: 'Appearance',
+        title: t('settings.navAppearance'),
         href: editAppearance(),
         icon: Palette,
     },
-];
+]);
 
 const { isCurrentUrl } = useCurrentUrl();
 </script>
@@ -47,8 +51,8 @@ const { isCurrentUrl } = useCurrentUrl();
 <template>
     <div class="px-4 py-6">
         <Heading
-            title="Settings"
-            description="Manage your profile and account settings"
+            :title="$t('settings.title')"
+            :description="$t('settings.settingsDescription')"
         />
 
         <div class="flex flex-col lg:flex-row lg:space-x-12">

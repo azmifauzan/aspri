@@ -9,16 +9,19 @@ import type { BreadcrumbItem, FinanceTransactionsProps, FinanceTransaction } fro
 
 import { Head, Link, router } from '@inertiajs/vue3';
 import { Filter, Plus, Search, Tag, Trash2 } from 'lucide-vue-next';
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import Swal from 'sweetalert2';
+
+const { t, locale } = useI18n();
 
 const props = defineProps<FinanceTransactionsProps>();
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Dashboard', href: '/' },
-    { title: 'Keuangan', href: '/finance' },
-    { title: 'Transaksi', href: '/finance/transactions' },
-];
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
+    { title: t('common.dashboard'), href: '/' },
+    { title: t('finance.title'), href: '/finance' },
+    { title: t('finance.transactions'), href: '/finance/transactions' },
+]);
 
 const showAddModal = ref(false);
 const searchQuery = ref(props.filters?.search || '');
@@ -37,7 +40,7 @@ watch([searchQuery, filterType], () => {
 });
 
 const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('id-ID', {
+    return new Date(dateString).toLocaleDateString(locale.value === 'id' ? 'id-ID' : 'en-US', {
         day: 'numeric',
         month: 'long',
         year: 'numeric',
@@ -45,7 +48,7 @@ const formatDate = (dateString: string) => {
 };
 
 const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
+    return new Intl.NumberFormat(locale.value === 'id' ? 'id-ID' : 'en-US', {
         style: 'currency',
         currency: 'IDR',
         minimumFractionDigits: 0,
@@ -58,14 +61,14 @@ const getTransactionColor = (tx: FinanceTransaction) => {
 
 const confirmDelete = (tx: FinanceTransaction) => {
     Swal.fire({
-        title: 'Hapus Transaksi?',
-        text: 'Transaksi ini akan dihapus permanen dan tidak dapat dikembalikan.',
+        title: t('finance.deleteTransaction'),
+        text: t('finance.deleteTransactionDesc'),
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#d33',
         cancelButtonColor: '#6b7280',
-        confirmButtonText: 'Ya, Hapus!',
-        cancelButtonText: 'Batal',
+        confirmButtonText: t('finance.yesDelete'),
+        cancelButtonText: t('common.cancel'),
     }).then((result) => {
         if (result.isConfirmed) {
             router.delete(financeTransactions.destroy(tx.id).url, {
@@ -73,8 +76,8 @@ const confirmDelete = (tx: FinanceTransaction) => {
                 onSuccess: () => {
                     Swal.fire({
                         icon: 'success',
-                        title: 'Transaksi dihapus',
-                        text: 'Transaksi berhasil dihapus.',
+                        title: t('finance.transactionDeleted'),
+                        text: t('finance.transactionDeletedDesc'),
                         timer: 2000,
                         showConfirmButton: false,
                     });
@@ -82,8 +85,8 @@ const confirmDelete = (tx: FinanceTransaction) => {
                 onError: () => {
                     Swal.fire({
                         icon: 'error',
-                        title: 'Gagal menghapus',
-                        text: 'Terjadi kesalahan saat menghapus transaksi.',
+                        title: t('finance.deleteFailed'),
+                        text: t('finance.deleteError'),
                     });
                 },
             });
@@ -92,24 +95,24 @@ const confirmDelete = (tx: FinanceTransaction) => {
 };
 </script>
 <template>
-    <Head title="Transaksi Keuangan" />
+    <Head :title="$t('finance.transactionTitle')" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
             <!-- Header -->
             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <h1 class="text-2xl font-bold">Transaksi</h1>
+                <h1 class="text-2xl font-bold">{{ $t('finance.transactions') }}</h1>
                 
                 <div class="flex items-center gap-2">
                     <Link :href="financeCategories().url">
                         <Button variant="outline">
                             <Tag class="mr-2 h-4 w-4" />
-                            Kelola Kategori
+                            {{ $t('finance.manageCategories') }}
                         </Button>
                     </Link>
                     <Button @click="showAddModal = true">
                         <Plus class="mr-2 h-4 w-4" />
-                        Tambah Transaksi
+                        {{ $t('finance.addTransaction') }}
                     </Button>
                 </div>
 
@@ -130,7 +133,7 @@ const confirmDelete = (tx: FinanceTransaction) => {
                             <Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
                                 v-model="searchQuery"
-                                placeholder="Cari transaksi..."
+                                :placeholder="$t('finance.searchTransactions')"
                                 class="pl-10"
                             />
                         </div>
@@ -139,9 +142,9 @@ const confirmDelete = (tx: FinanceTransaction) => {
                                 v-model="filterType"
                                 class="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                             >
-                                <option value="">Semua</option>
-                                <option value="income">Pemasukan</option>
-                                <option value="expense">Pengeluaran</option>
+                                <option value="">{{ $t('finance.allTypes') }}</option>
+                                <option value="income">{{ $t('finance.income') }}</option>
+                                <option value="expense">{{ $t('finance.expense') }}</option>
                             </select>
                         </div>
                     </div>
@@ -152,7 +155,7 @@ const confirmDelete = (tx: FinanceTransaction) => {
             <Card>
                 <CardHeader class="pb-2">
                     <CardTitle class="text-base font-medium">
-                        {{ props.transactions.total }} Transaksi
+                        {{ $t('finance.transactionCount', { count: props.transactions.total }) }}
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -160,7 +163,7 @@ const confirmDelete = (tx: FinanceTransaction) => {
                         v-if="props.transactions.data.length === 0"
                         class="py-12 text-center text-muted-foreground"
                     >
-                        Tidak ada transaksi ditemukan
+                        {{ $t('finance.noTransactionsFound') }}
                     </div>
                     <div v-else class="space-y-2">
                         <div
@@ -183,7 +186,7 @@ const confirmDelete = (tx: FinanceTransaction) => {
                                 </div>
                                 <div>
                                     <p class="font-medium">
-                                        {{ tx.category?.name || (tx.tx_type === 'income' ? 'Pemasukan' : 'Pengeluaran') }}
+                                        {{ tx.category?.name || (tx.tx_type === 'income' ? $t('finance.income') : $t('finance.expense')) }}
                                     </p>
                                     <div class="flex items-center gap-2 text-xs text-muted-foreground">
                                         <span>{{ formatDate(tx.occurred_at) }}</span>

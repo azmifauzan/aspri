@@ -15,6 +15,9 @@ import InputError from '@/components/InputError.vue';
 import { Pin } from 'lucide-vue-next';
 import { store, update } from '@/routes/notes';
 import Swal from 'sweetalert2';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = defineProps<{
     show: boolean;
@@ -72,8 +75,8 @@ const submit = () => {
                 emit('close');
                 Swal.fire({
                     icon: 'success',
-                    title: 'Catatan diperbarui',
-                    text: 'Catatan berhasil diperbarui.',
+                    title: t('notes.noteUpdated'),
+                    text: t('notes.noteUpdatedDesc'),
                     timer: 2000,
                     showConfirmButton: false,
                 });
@@ -81,8 +84,8 @@ const submit = () => {
             onError: () => {
                 Swal.fire({
                     icon: 'error',
-                    title: 'Gagal memperbarui',
-                    text: 'Terjadi kesalahan saat memperbarui catatan.',
+                    title: t('notes.updateFailed'),
+                    text: t('notes.updateError'),
                 });
             },
         });
@@ -93,8 +96,8 @@ const submit = () => {
                 emit('close');
                 Swal.fire({
                     icon: 'success',
-                    title: 'Catatan dibuat',
-                    text: 'Catatan baru berhasil disimpan.',
+                    title: t('notes.noteCreated'),
+                    text: t('notes.noteCreatedDesc'),
                     timer: 2000,
                     showConfirmButton: false,
                 });
@@ -102,8 +105,8 @@ const submit = () => {
             onError: () => {
                 Swal.fire({
                     icon: 'error',
-                    title: 'Gagal membuat catatan',
-                    text: 'Terjadi kesalahan saat menyimpan catatan.',
+                    title: t('notes.createFailed'),
+                    text: t('notes.createError'),
                 });
             },
         });
@@ -130,30 +133,30 @@ const colors = [
     <Dialog :open="show" @update:open="(val) => !val && close()">
         <DialogContent class="sm:max-w-lg">
             <DialogHeader>
-                <DialogTitle>{{ note ? 'Edit Note' : 'Create Note' }}</DialogTitle>
+                <DialogTitle>{{ note ? $t('notes.editNote') : $t('notes.createNote') }}</DialogTitle>
             </DialogHeader>
 
             <div class="space-y-4 py-4">
                 <!-- Title -->
                 <div class="space-y-2">
-                    <Label for="title">Title</Label>
+                    <Label for="title">{{ $t('notes.titleLabel') }}</Label>
                     <Input
                         id="title"
                         v-model="form.title"
                         type="text"
-                        placeholder="Note title"
+                        :placeholder="$t('notes.titlePlaceholder')"
                     />
                     <InputError :message="form.errors.title" />
                 </div>
 
                 <!-- Content -->
                 <div class="space-y-2">
-                    <Label for="content">Content</Label>
+                    <Label for="content">{{ $t('notes.contentLabel') }}</Label>
                     <textarea
                         id="content"
                         v-model="form.content"
                         class="flex min-h-32 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        placeholder="Write your note here..."
+                        :placeholder="$t('notes.contentPlaceholder')"
                     ></textarea>
                     <InputError :message="form.errors.content" />
                 </div>
@@ -168,14 +171,14 @@ const colors = [
                         :class="form.is_pinned ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'"
                     >
                         <Pin :size="16" :class="{'fill-current': form.is_pinned}" />
-                        {{ form.is_pinned ? 'Pinned' : 'Pin Note' }}
+                        {{ form.is_pinned ? $t('notes.pinned') : $t('notes.pinNote') }}
                     </button>
                 </div>
             </div>
 
             <DialogFooter class="gap-2">
-                <Button variant="outline" @click="close">Cancel</Button>
-                <Button @click="submit" :disabled="form.processing">Save</Button>
+                <Button variant="outline" @click="close">{{ $t('common.cancel') }}</Button>
+                <Button @click="submit" :disabled="form.processing">{{ $t('common.save') }}</Button>
             </DialogFooter>
         </DialogContent>
     </Dialog>

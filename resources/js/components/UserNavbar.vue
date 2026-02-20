@@ -4,6 +4,9 @@ import { Calendar, Crown, MessageSquare } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const page = usePage();
 const subscriptionInfo = computed(() => page.props.auth.subscriptionInfo);
@@ -21,14 +24,14 @@ const membershipBadgeVariant = computed(() => {
 
 const membershipLabel = computed(() => {
     if (!subscriptionInfo.value || subscriptionInfo.value.status === 'none') {
-        return 'Free Trial';
+        return t('common.freeTrial');
     }
     
     if (subscriptionInfo.value.is_paid) {
-        return 'Premium Member';
+        return t('common.premiumMember');
     }
     
-    return 'Free Trial';
+    return t('common.freeTrial');
 });
 
 const expiryText = computed(() => {
@@ -39,13 +42,13 @@ const expiryText = computed(() => {
     const daysRemaining = subscriptionInfo.value.days_remaining;
     
     if (daysRemaining === 0) {
-        return 'Expires today';
+        return t('common.expiresToday');
     } else if (daysRemaining === 1) {
-        return 'Expires in 1 day';
+        return t('common.expiresIn1Day');
     } else if (daysRemaining > 0) {
-        return `Expires in ${daysRemaining} days`;
+        return t('common.expiresInDays', { days: daysRemaining });
     } else {
-        return 'Expired';
+        return t('common.expired');
     }
 });
 
@@ -74,7 +77,7 @@ const chatUsageColor = computed(() => {
             <div class="flex items-center gap-3">
                 <div class="flex items-center gap-2">
                     <Crown class="h-4 w-4 text-muted-foreground" />
-                    <span class="text-sm font-medium">Status:</span>
+                    <span class="text-sm font-medium">{{ $t('common.statusLabel') }}</span>
                 </div>
                 <div class="flex items-center gap-2">
                     <Badge :variant="membershipBadgeVariant" class="gap-1">
@@ -91,7 +94,7 @@ const chatUsageColor = computed(() => {
             <!-- Chat Usage -->
             <div class="flex items-center gap-2">
                 <MessageSquare class="h-4 w-4 text-muted-foreground" />
-                <span class="text-sm font-medium">Chat Usage:</span>
+                <span class="text-sm font-medium">{{ $t('common.chatUsageLabel') }}</span>
                 <span :class="['text-sm font-semibold', chatUsageColor]">
                     {{ chatUsageText }}
                 </span>

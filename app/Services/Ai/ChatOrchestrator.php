@@ -10,6 +10,11 @@ use Illuminate\Support\Facades\Log;
 
 class ChatOrchestrator
 {
+    /**
+     * The current user message being processed, used for language detection.
+     */
+    protected string $currentUserMessage = '';
+
     public function __construct(
         protected ChatService $chatService,
         protected IntentParserService $intentParser,
@@ -25,6 +30,9 @@ class ChatOrchestrator
      */
     public function processMessage(User $user, string $message, ChatThread $thread, array $conversationHistory = []): array
     {
+        // Store user message for language detection in all downstream responses
+        $this->currentUserMessage = $message;
+
         // First, check if there's a pending action for this thread
         $pendingAction = PendingAction::where('thread_id', $thread->id)
             ->pending()
@@ -120,7 +128,7 @@ class ChatOrchestrator
                 $pendingAction->user,
                 'success',
                 [],
-                'Aksi dibatalkan. Tanyakan apakah ada yang bisa dibantu lainnya.'
+                'Aksi dibatalkan. / Action cancelled. Ask the user if there is anything else you can help with.'
             ),
             'action_taken' => false,
             'pending_action' => null,
@@ -165,7 +173,7 @@ class ChatOrchestrator
         if ($action === 'create_transaction') {
             // Validate required fields
             if (! isset($entities['amount']) || $entities['amount'] <= 0) {
-                return $this->askForMissingInfo($user, 'Berapa jumlah transaksinya?', $history);
+                return $this->askForMissingInfo($user, 'What is the transaction amount?', $history);
             }
 
             $pendingAction = $this->createPendingAction($user, $thread, $intent);
@@ -187,7 +195,7 @@ class ChatOrchestrator
             ];
         }
 
-        return $this->generateAiResponse($user, 'Maaf, saya tidak mengerti permintaan keuangan tersebut.', $history);
+        return $this->generateAiResponse($user, 'I did not understand this finance request.', $history);
     }
 
     /**
@@ -210,7 +218,7 @@ class ChatOrchestrator
 
         if ($action === 'create_schedule') {
             if (! isset($entities['title']) || empty($entities['title'])) {
-                return $this->askForMissingInfo($user, 'Apa judul jadwalnya?', $history);
+                return $this->askForMissingInfo($user, 'What is the schedule title?', $history);
             }
 
             $pendingAction = $this->createPendingAction($user, $thread, $intent);
@@ -224,7 +232,7 @@ class ChatOrchestrator
 
         if ($action === 'update_schedule') {
             if (! isset($entities['schedule_id']) && ! isset($entities['title'])) {
-                return $this->askForMissingInfo($user, 'Jadwal mana yang ingin diubah?', $history);
+                return $this->askForMissingInfo($user, 'Which schedule would you like to update?', $history);
             }
 
             $pendingAction = $this->createPendingAction($user, $thread, $intent);
@@ -246,7 +254,7 @@ class ChatOrchestrator
             ];
         }
 
-        return $this->generateAiResponse($user, 'Maaf, saya tidak mengerti permintaan jadwal tersebut.', $history);
+        return $this->generateAiResponse($user, 'I did not understand this schedule request.', $history);
     }
 
     /**
@@ -274,7 +282,7 @@ class ChatOrchestrator
 
         if ($action === 'create_note') {
             if (! isset($entities['content']) || empty($entities['content'])) {
-                return $this->askForMissingInfo($user, 'Apa isi catatannya?', $history);
+                return $this->askForMissingInfo($user, 'What should the note contain?', $history);
             }
 
             // Execute directly without confirmation (non-destructive operation)
@@ -291,7 +299,7 @@ class ChatOrchestrator
 
         if ($action === 'update_note') {
             if (! isset($entities['note_id']) && ! isset($entities['title'])) {
-                return $this->askForMissingInfo($user, 'Catatan mana yang ingin diperbarui?', $history);
+                return $this->askForMissingInfo($user, 'Which note would you like to update?', $history);
             }
 
             // Execute directly without confirmation (non-destructive operation)
@@ -316,7 +324,7 @@ class ChatOrchestrator
             ];
         }
 
-        return $this->generateAiResponse($user, 'Maaf, saya tidak mengerti permintaan catatan tersebut.', $history);
+        return $this->generateAiResponse($user, 'I did not understand this notes request.', $history);
     }
 
     /**
@@ -331,14 +339,14 @@ class ChatOrchestrator
         $pluginSlug = $entities['plugin_slug'] ?? null;
 
         if (! $pluginSlug) {
-            return $this->generateAiResponse($user, 'Maaf, plugin tidak ditemukan.', $history);
+            return $this->generateAiResponse($user, 'The requested plugin was not found.', $history);
         }
 
         // Get plugin instance
         $pluginInstance = $this->pluginManager->getPlugin($pluginSlug);
 
         if (! $pluginInstance) {
-            return $this->generateAiResponse($user, 'Maaf, plugin tidak tersedia.', $history);
+            return $this->generateAiResponse($user, 'The plugin is not available.', $history);
         }
 
         // Check if user has plugin activated
@@ -353,7 +361,7 @@ class ChatOrchestrator
                     $user,
                     'error',
                     [],
-                    "Plugin {$pluginName} belum diaktifkan. Infokan user untuk mengaktifkannya di halaman Plugin."
+                    "Plugin {$pluginName} is not activated. Tell the user to activate it on the Plugin page."
                 ),
                 'action_taken' => false,
                 'pending_action' => null,
@@ -383,7 +391,7 @@ class ChatOrchestrator
                     $user,
                     'error',
                     [],
-                    $result['message'] ?? 'Terjadi kesalahan saat menjalankan plugin.'
+                    $result['message'] ?? 'An error occurred while running the plugin.'
                 ),
                 'action_taken' => false,
                 'pending_action' => null,
@@ -400,7 +408,7 @@ class ChatOrchestrator
                     $user,
                     'error',
                     [],
-                    'Terjadi kesalahan saat menjalankan plugin. Minta user coba lagi.'
+                    'An error occurred while running the plugin. Please try again.'
                 ),
                 'action_taken' => false,
                 'pending_action' => null,
@@ -448,23 +456,9 @@ class ChatOrchestrator
      */
     protected function handleOutOfScopeQuestion(User $user, array $intent, array $history, string $currentMessage): array
     {
-        $topic = $intent['entities']['topic'] ?? 'pertanyaan tersebut';
-        $questionType = $intent['entities']['question_type'] ?? null;
+        $topic = $intent['entities']['topic'] ?? 'the topic';
 
-        // Build context for the LLM to answer with persona
-        $profile = $user->profile;
-        $callPref = $profile?->call_preference ?? 'Kak';
-        $userName = $user->name;
-        $aspriName = $profile?->aspri_name ?? 'ASPRI';
-        $aspriPersona = $profile?->aspri_persona ?? 'asisten yang ramah dan membantu';
-
-        $systemPrompt = <<<PROMPT
-Kamu adalah {$aspriName}, {$aspriPersona}.
-Kamu adalah asisten pribadi yang membantu user mengelola keuangan, jadwal, dan catatan.
-Kamu harus memanggil user dengan "{$callPref} {$userName}".
-
-Jawab dengan gaya komunikasimu yang khas. Tetap ramah dan membantu.
-PROMPT;
+        $systemPrompt = $this->chatService->buildSystemPrompt($user);
 
         // Get the last user message from history to get the actual question
         $lastUserMessage = trim($currentMessage);
@@ -493,7 +487,7 @@ PROMPT;
             }
         } else {
             // Fallback: use topic from intent
-            $messages[] = ['role' => 'user', 'content' => "Pertanyaan tentang: {$topic}"];
+            $messages[] = ['role' => 'user', 'content' => "Question about: {$topic}"];
         }
 
         $response = $this->aiProvider->chat($messages, [
@@ -514,29 +508,7 @@ PROMPT;
      */
     protected function handleCasualConversation(User $user, array $intent, array $history, string $currentMessage): array
     {
-        $profile = $user->profile;
-        $callPref = $profile?->call_preference ?? 'Kak';
-        $userName = $user->name;
-        $aspriName = $profile?->aspri_name ?? 'ASPRI';
-        $aspriPersona = $profile?->aspri_persona ?? 'asisten yang ramah dan membantu';
-
-        $unclearReason = $intent['entities']['unclear_reason'] ?? null;
-
-        $systemPrompt = <<<PROMPT
-Kamu adalah {$aspriName}, {$aspriPersona}.
-Kamu adalah asisten pribadi yang membantu user mengelola keuangan, jadwal, dan catatan.
-Kamu harus memanggil user dengan "{$callPref} {$userName}".
-
-KONTEKS: User mengirim pesan yang tidak termasuk perintah spesifik aplikasi.
-
-TUGAS:
-1. Jika pesan user adalah pertanyaan atau pernyataan yang bisa kamu jawab/tanggapi dengan pengetahuanmu, jawab dengan natural sesuai kepribadianmu.
-2. Jika pesan user tidak jelas atau ambigu, minta klarifikasi dengan ramah. Jelaskan bahwa kamu tidak yakin apa yang dimaksud, dan berikan contoh perintah yang bisa kamu bantu (misalnya: "catat pengeluaran", "lihat jadwal", "buat catatan").
-3. Jika user bertanya tentang data pribadi mereka (saldo, transaksi, jadwal, catatan), arahkan untuk menggunakan perintah yang tepat (misalnya: "coba tanya 'lihat saldo bulan ini'").
-4. Untuk pertanyaan umum atau casual chat, respon dengan natural dan ramah sesuai kepribadianmu.
-
-PENTING: Selalu tetap dalam karakter kepribadianmu. Jangan kaku atau terlalu formal.
-PROMPT;
+        $systemPrompt = $this->chatService->buildSystemPrompt($user);
 
         // Get the last user message from history to get the actual question
         $lastUserMessage = trim($currentMessage);
@@ -607,7 +579,7 @@ PROMPT;
     protected function askForMissingInfo(User $user, string $question, array $history): array
     {
         return [
-            'response' => $this->personalizeResponse($user, 'success', [], "Tanyakan ke user: {$question}"),
+            'response' => $this->personalizeResponse($user, 'success', [], "Ask the user: {$question}"),
             'action_taken' => false,
             'pending_action' => null,
         ];
@@ -618,7 +590,10 @@ PROMPT;
      */
     protected function generateAiResponse(User $user, string $context, array $history): array
     {
-        $response = $this->chatService->sendMessage($user, $context ?: 'Berikan respons yang membantu', $history);
+        $languageHint = $this->currentUserMessage !== ''
+            ? " (Respond in the same language as: \"{$this->currentUserMessage}\")" : '';
+
+        $response = $this->chatService->sendMessage($user, $context.$languageHint, $history);
 
         return [
             'response' => $response,
@@ -637,24 +612,29 @@ PROMPT;
         $callPref = $profile?->call_preference ?? 'Kak';
         $userName = $user->name;
         $aspriName = $profile?->aspri_name ?? 'ASPRI';
-        $aspriPersona = $profile?->aspri_persona ?? 'asisten yang ramah dan membantu';
+        $aspriPersona = $profile?->aspri_persona ?? 'friendly and helpful assistant';
 
         // Build context based on response type
         $context = $this->buildResponseContext($responseType, $data, $rawContent);
 
+        // Include user's message as a language reference so the AI matches it
+        $languageHint = $this->currentUserMessage !== ''
+            ? "IMPORTANT: The user wrote in this language (respond in the SAME language): \"{$this->currentUserMessage}\""
+            : 'IMPORTANT: Detect the language from the conversation context and respond in that same language.';
+
         $prompt = <<<PROMPT
-Kamu adalah {$aspriName}, {$aspriPersona}.
-Kamu harus memanggil user dengan "{$callPref} {$userName}".
+You are {$aspriName}, {$aspriPersona}.
+Address the user as "{$callPref} {$userName}".
 
-Tugas: Sampaikan informasi berikut dengan gaya komunikasi yang sesuai dengan kepribadianmu.
-Jangan mengubah data/angka, hanya sampaikan dengan caramu sendiri.
+Task: Convey the following information in your own natural communication style.
+Do not change any data or numbers, just present them naturally.
 
-Tipe Respons: {$responseType}
+Response type: {$responseType}
 
-Informasi yang harus disampaikan:
+Information to convey:
 {$context}
 
-Sampaikan dengan natural, sesuai kepribadianmu, dan tetap informatif.
+{$languageHint}
 PROMPT;
 
         $messages = [
@@ -684,13 +664,13 @@ PROMPT;
             'schedule_update_confirmation' => $this->buildScheduleUpdateConfirmationContext($data),
             'note_confirmation' => $this->buildNoteConfirmationContext($data),
             'delete_confirmation' => $this->buildDeleteConfirmationContext($data),
-            'success' => "Aksi berhasil: {$data['message']}",
-            'error' => "Terjadi kesalahan: {$data['message']}",
-            'greeting' => 'Sapa user dan tawarkan bantuan. User bisa mencatat transaksi keuangan, membuat jadwal, membuat catatan, atau melihat ringkasan.',
+            'success' => "Action successful: {$data['message']}",
+            'error' => "An error occurred: {$data['message']}",
+            'greeting' => 'Greet the user warmly and offer assistance. The user can: record financial transactions, manage schedule/events, create notes, and view summaries.',
             'help' => $this->buildHelpContext($data),
             'out_of_scope' => $this->buildOutOfScopeContext($data),
             'unknown' => $this->buildUnknownContext($data),
-            default => $rawContent ?? 'Berikan respons yang membantu',
+            default => $rawContent ?? 'Provide a helpful response',
         };
     }
 

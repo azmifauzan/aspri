@@ -23,8 +23,10 @@ import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { Calendar, Crown, LayoutGrid, MessageSquare, Puzzle, Settings, StickyNote, Wallet } from 'lucide-vue-next';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import AppLogo from './AppLogo.vue';
 
+const { t } = useI18n();
 const page = usePage();
 const { isCurrentUrl } = useCurrentUrl();
 
@@ -33,39 +35,39 @@ const isAdmin = computed(() => {
     return role === 'admin' || role === 'super_admin';
 });
 
-const mainNavItems: NavItem[] = [
+const mainNavItems = computed<NavItem[]>(() => [
     {
-        title: 'Dashboard',
+        title: t('common.dashboard'),
         href: dashboard(),
         icon: LayoutGrid,
     },
     {
-        title: 'Chat',
+        title: t('common.navChat'),
         href: chatIndex(),
         icon: MessageSquare,
     },
     {
-        title: 'Keuangan',
+        title: t('common.navFinance'),
         href: finance(),
         icon: Wallet,
     },
     {
-        title: 'Jadwal',
+        title: t('common.navSchedule'),
         href: schedulesRoutes.index(),
         icon: Calendar,
     },
     {
-        title: 'Notes',
+        title: t('common.navNotes'),
         href: notesRoutes.index(),
         icon: StickyNote,
     },
     {
-        title: 'Plugin',
+        title: t('common.navPlugin'),
         href: pluginsRoutes.index(),
         icon: Puzzle,
         label: 'Beta',
     },
-];
+]);
 </script>
 
 <template>
@@ -87,13 +89,13 @@ const mainNavItems: NavItem[] = [
 
             <!-- Admin Section -->
             <SidebarGroup v-if="isAdmin" class="px-2 py-0">
-                <SidebarGroupLabel>Administration</SidebarGroupLabel>
+                <SidebarGroupLabel>{{ $t('common.administration') }}</SidebarGroupLabel>
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton as-child :is-active="isCurrentUrl(adminRoutes.index())" tooltip="Admin Panel">
+                        <SidebarMenuButton as-child :is-active="isCurrentUrl(adminRoutes.index())" :tooltip="$t('common.adminPanel')">
                             <Link :href="adminRoutes.index()">
                                 <Settings />
-                                <span>Admin Panel</span>
+                                <span>{{ $t('common.adminPanel') }}</span>
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>

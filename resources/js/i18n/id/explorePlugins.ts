@@ -1,0 +1,17 @@
+export default {
+    title: 'Jelajahi Plugin - ASPRI',
+    badge: 'Plugin Marketplace',
+    heading: 'Jelajahi Semua Plugin',
+    description: 'Temukan plugin yang sesuai dengan kebutuhan Anda. Tingkatkan produktivitas dengan fitur-fitur tambahan yang powerful.',
+    searchPlaceholder: 'Cari plugin...',
+    showingResults: 'Menampilkan {from}-{to} dari {total} plugin',
+    forSearch: 'untuk pencarian',
+    notFound: 'Plugin Tidak Ditemukan',
+    noPluginsYet: 'Belum Ada Plugin',
+    tryOtherKeyword: 'Coba kata kunci lain untuk pencarian Anda.',
+    comingSoon: 'Plugin-plugin menarik akan segera tersedia!',
+    backToHome: 'Kembali ke Beranda',
+    ctaTitle: 'Ingin Menggunakan Plugin Ini?',
+    ctaDesc: 'Daftar gratis dan mulai gunakan plugin untuk meningkatkan produktivitas Anda dengan ASPRI.',
+    ctaButton: 'Daftar Gratis',
+};

@@ -12,6 +12,7 @@ import StarRating from '@/components/StarRating.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem, ConfigField, PluginShowProps } from '@/types';
 import { Head, router, useForm } from '@inertiajs/vue3';
+import { useI18n } from 'vue-i18n';
 import { index as pluginsIndex, activate, deactivate, test } from '@/routes/plugins';
 import { update as configUpdate, reset as configReset } from '@/routes/plugins/config';
 import { update as scheduleUpdate } from '@/routes/plugins/schedule';
@@ -19,6 +20,8 @@ import { store as ratingsStore, update as ratingsUpdate, destroy as ratingsDestr
 import { ArrowLeft, Calendar, CheckCircle, Clock, Play, RotateCcw, Save, Settings, Star, Trash2, XCircle, FileText, History, MapPin } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import Swal from 'sweetalert2';
+
+const { t } = useI18n();
 
 // Country list (ISO 3166-1 alpha-2: name)
 const COUNTRIES: Record<string, string> = {
@@ -133,7 +136,7 @@ const props = defineProps<PluginShowProps>();
 
 const breadcrumbs = computed<BreadcrumbItem[]>(() => [
     {
-        title: 'Plugins',
+        title: t('plugins.title'),
         href: pluginsIndex().url,
     },
     {
@@ -225,8 +228,8 @@ const saveConfig = () => {
         onSuccess: () => {
             Swal.fire({
                 icon: 'success',
-                title: 'Konfigurasi berhasil disimpan',
-                text: 'Perubahan konfigurasi telah tersimpan.',
+                title: t('plugins.configSaved'),
+                text: t('plugins.configSavedDesc'),
                 timer: 2000,
                 showConfirmButton: false,
             });
@@ -234,8 +237,8 @@ const saveConfig = () => {
         onError: () => {
             Swal.fire({
                 icon: 'error',
-                title: 'Gagal menyimpan konfigurasi',
-                text: 'Terjadi kesalahan saat menyimpan konfigurasi.',
+                title: t('plugins.configSaveFailed'),
+                text: t('plugins.configSaveError'),
             });
         },
     });
@@ -243,14 +246,14 @@ const saveConfig = () => {
 
 const resetConfig = () => {
     Swal.fire({
-        title: 'Reset Konfigurasi?',
-        text: 'Apakah Anda yakin ingin mereset konfigurasi ke default?',
+        title: t('plugins.resetConfigTitle'),
+        text: t('plugins.resetConfigConfirmDesc'),
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#3085d6',
         cancelButtonColor: '#d33',
-        confirmButtonText: 'Ya, Reset!',
-        cancelButtonText: 'Batal',
+        confirmButtonText: t('plugins.yesReset'),
+        cancelButtonText: t('common.cancel'),
     }).then((result) => {
         if (result.isConfirmed) {
             router.delete(configReset.url(props.plugin.id), {
@@ -258,8 +261,8 @@ const resetConfig = () => {
                 onSuccess: () => {
                     Swal.fire({
                         icon: 'success',
-                        title: 'Konfigurasi berhasil direset',
-                        text: 'Konfigurasi telah dikembalikan ke pengaturan default.',
+                        title: t('plugins.configReset'),
+                        text: t('plugins.configResetDesc'),
                         timer: 2000,
                         showConfirmButton: false,
                     });
@@ -275,8 +278,8 @@ const saveSchedule = () => {
         onSuccess: () => {
             Swal.fire({
                 icon: 'success',
-                title: 'Jadwal berhasil disimpan',
-                text: 'Jadwal eksekusi plugin telah diperbarui.',
+                title: t('plugins.scheduleSaved'),
+                text: t('plugins.scheduleSavedDesc'),
                 timer: 2000,
                 showConfirmButton: false,
             });
@@ -284,8 +287,8 @@ const saveSchedule = () => {
         onError: () => {
             Swal.fire({
                 icon: 'error',
-                title: 'Gagal menyimpan jadwal',
-                text: 'Terjadi kesalahan saat menyimpan jadwal.',
+                title: t('plugins.scheduleSaveFailed'),
+                text: t('plugins.scheduleSaveError'),
             });
         },
     });
@@ -300,8 +303,8 @@ const testPlugin = () => {
             onSuccess: () => {
                 Swal.fire({
                     icon: 'info',
-                    title: 'Plugin sedang ditest',
-                    text: 'Plugin akan dijalankan segera.',
+                    title: t('plugins.pluginTesting'),
+                    text: t('plugins.pluginTestingDesc'),
                     timer: 2000,
                     showConfirmButton: false,
                 });
@@ -317,8 +320,8 @@ const togglePlugin = () => {
             onSuccess: () => {
                 Swal.fire({
                     icon: 'success',
-                    title: 'Plugin dinonaktifkan',
-                    text: 'Plugin berhasil dinonaktifkan.',
+                    title: t('plugins.pluginDeactivated'),
+                    text: t('plugins.pluginDeactivatedDesc'),
                     timer: 2000,
                     showConfirmButton: false,
                 });
@@ -330,8 +333,8 @@ const togglePlugin = () => {
             onSuccess: () => {
                 Swal.fire({
                     icon: 'success',
-                    title: 'Plugin diaktifkan',
-                    text: 'Plugin berhasil diaktifkan.',
+                    title: t('plugins.pluginActivated'),
+                    text: t('plugins.pluginActivatedDesc'),
                     timer: 2000,
                     showConfirmButton: false,
                 });
@@ -351,8 +354,8 @@ const submitRating = () => {
     if (ratingForm.rating === 0) {
         Swal.fire({
             icon: 'warning',
-            title: 'Rating tidak valid',
-            text: 'Silakan pilih rating bintang terlebih dahulu.',
+            title: t('plugins.ratingInvalid'),
+            text: t('plugins.ratingInvalidDesc'),
         });
         return;
     }
@@ -365,8 +368,8 @@ const submitRating = () => {
                 isEditingRating.value = false;
                 Swal.fire({
                     icon: 'success',
-                    title: 'Rating berhasil diperbarui',
-                    text: 'Terima kasih atas feedback Anda.',
+                    title: t('plugins.ratingUpdated'),
+                    text: t('plugins.thankYouFeedback'),
                     timer: 2000,
                     showConfirmButton: false,
                 });
@@ -379,8 +382,8 @@ const submitRating = () => {
             onSuccess: () => {
                 Swal.fire({
                     icon: 'success',
-                    title: 'Rating berhasil ditambahkan',
-                    text: 'Terima kasih atas feedback Anda.',
+                    title: t('plugins.ratingAdded'),
+                    text: t('plugins.thankYouFeedback'),
                     timer: 2000,
                     showConfirmButton: false,
                 });
@@ -393,14 +396,14 @@ const deleteRating = () => {
     if (!props.userRating) return;
     
     Swal.fire({
-        title: 'Hapus Rating?',
-        text: 'Apakah Anda yakin ingin menghapus rating Anda?',
+        title: t('plugins.deleteRatingTitle'),
+        text: t('plugins.deleteRatingConfirm'),
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#3085d6',
         cancelButtonColor: '#d33',
-        confirmButtonText: 'Ya, Hapus!',
-        cancelButtonText: 'Batal',
+        confirmButtonText: t('plugins.yesDelete'),
+        cancelButtonText: t('common.cancel'),
     }).then((result) => {
         if (result.isConfirmed) {
             router.delete(ratingsDestroy.url([props.plugin.id, props.userRating.id]), {
@@ -408,7 +411,7 @@ const deleteRating = () => {
                 onSuccess: () => {
                     Swal.fire({
                         icon: 'success',
-                        title: 'Rating berhasil dihapus',
+                        title: t('plugins.ratingDeleted'),
                         timer: 2000,
                         showConfirmButton: false,
                     });
@@ -473,13 +476,13 @@ const { plugin, userPlugin, config, formFields, supportsScheduling, schedule, ex
                         </h1>
                         <Badge :variant="isActive ? 'default' : 'secondary'">
                             <component :is="isActive ? CheckCircle : XCircle" class="mr-1 h-3 w-3" />
-                            {{ isActive ? 'Aktif' : 'Tidak Aktif' }}
+                            {{ isActive ? $t('plugins.active') : $t('plugins.inactive') }}
                         </Badge>
                     </div>
                     <p class="text-sm text-muted-foreground">v{{ plugin.version }} • {{ plugin.author }}</p>
                 </div>
                 <Button :variant="isActive ? 'outline' : 'default'" @click="togglePlugin">
-                    {{ isActive ? 'Nonaktifkan' : 'Aktifkan' }}
+                    {{ isActive ? $t('plugins.deactivate') : $t('plugins.activate') }}
                 </Button>
             </div>
 
@@ -497,7 +500,7 @@ const { plugin, userPlugin, config, formFields, supportsScheduling, schedule, ex
                             @click="activeTab = 'config'"
                         >
                             <Settings class="h-4 w-4" />
-                            Konfigurasi
+                            {{ $t('plugins.pluginConfig') }}
                         </Button>
                         <Button
                             variant="ghost"
@@ -508,7 +511,7 @@ const { plugin, userPlugin, config, formFields, supportsScheduling, schedule, ex
                             @click="activeTab = 'history'"
                         >
                             <History class="h-4 w-4" />
-                            Riwayat Eksekusi
+                            {{ $t('plugins.pluginHistory') }}
                         </Button>
                         <Button
                             variant="ghost"
@@ -519,7 +522,7 @@ const { plugin, userPlugin, config, formFields, supportsScheduling, schedule, ex
                             @click="activeTab = 'about'"
                         >
                             <FileText class="h-4 w-4" />
-                            Tentang
+                            {{ $t('plugins.pluginAbout') }}
                         </Button>
                     </nav>
                 </aside>
@@ -537,9 +540,9 @@ const { plugin, userPlugin, config, formFields, supportsScheduling, schedule, ex
                             <CardContent class="py-12">
                                 <div class="flex flex-col items-center justify-center text-center">
                                     <XCircle class="h-12 w-12 text-muted-foreground" />
-                                    <h3 class="mt-4 text-lg font-medium">Plugin Tidak Aktif</h3>
-                                    <p class="mt-2 text-muted-foreground">Aktifkan plugin untuk mengakses konfigurasi dan jadwal eksekusi.</p>
-                                    <Button class="mt-4" @click="togglePlugin">Aktifkan Sekarang</Button>
+                                    <h3 class="mt-4 text-lg font-medium">{{ $t('plugins.pluginNotActive') }}</h3>
+                                    <p class="mt-2 text-muted-foreground">{{ $t('plugins.activateToAccessConfig') }}</p>
+                                    <Button class="mt-4" @click="togglePlugin">{{ $t('plugins.activateNow') }}</Button>
                                 </div>
                             </CardContent>
                         </Card>
@@ -549,13 +552,13 @@ const { plugin, userPlugin, config, formFields, supportsScheduling, schedule, ex
                             <CardHeader>
                                 <div class="flex items-center justify-between">
                                     <div>
-                                        <CardTitle>Konfigurasi</CardTitle>
-                                        <CardDescription>Atur preferensi plugin sesuai kebutuhan Anda</CardDescription>
+                                        <CardTitle>{{ $t('plugins.pluginConfig') }}</CardTitle>
+                                        <CardDescription>{{ $t('plugins.configurePreferences') }}</CardDescription>
                                     </div>
                                     <div class="flex gap-2">
                                         <Button variant="outline" size="sm" @click="resetConfig">
                                             <RotateCcw class="mr-2 h-4 w-4" />
-                                            Reset
+                                            {{ $t('plugins.reset') }}
                                         </Button>
                                     </div>
                                 </div>
@@ -633,7 +636,7 @@ const { plugin, userPlugin, config, formFields, supportsScheduling, schedule, ex
                                                 v-model="configForm.config[field.key]"
                                             >
                                                 <SelectTrigger>
-                                                    <SelectValue :placeholder="`Pilih ${field.label}`" />
+                                                    <SelectValue :placeholder="$t('plugins.selectPlaceholder', { label: field.label })" />
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                     <SelectItem
@@ -657,7 +660,7 @@ const { plugin, userPlugin, config, formFields, supportsScheduling, schedule, ex
                                                         :id="field.key"
                                                         :value="citySearchQuery[field.key] !== undefined ? citySearchQuery[field.key] : (configForm.config[field.key] as string || '')"
                                                         class="file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input h-9 w-full min-w-0 rounded-md border bg-transparent pl-9 pr-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
-                                                        :placeholder="field.placeholder || 'Cari kota...'"
+                                                        :placeholder="field.placeholder || $t('plugins.searchCity')"
                                                         :required="field.required"
                                                         autocomplete="off"
                                                         @input="(e: Event) => { citySearchQuery[field.key] = (e.target as HTMLInputElement).value; searchCities(field.key, field.depends_on); }"
@@ -691,7 +694,7 @@ const { plugin, userPlugin, config, formFields, supportsScheduling, schedule, ex
                                             <!-- Select -->
                                             <Select v-else-if="field.type === 'select'" v-model="configForm.config[field.key]">
                                                 <SelectTrigger>
-                                                    <SelectValue :placeholder="`Pilih ${field.label}`" />
+                                                    <SelectValue :placeholder="$t('plugins.selectPlaceholder', { label: field.label })" />
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                     <SelectItem v-for="option in field.options" :key="option" :value="option">
@@ -715,7 +718,7 @@ const { plugin, userPlugin, config, formFields, supportsScheduling, schedule, ex
                                     <div class="flex justify-end gap-2">
                                         <Button type="submit" :disabled="configForm.processing">
                                             <Save class="mr-2 h-4 w-4" />
-                                            Simpan Konfigurasi
+                                            {{ $t('plugins.saveConfig') }}
                                         </Button>
                                     </div>
                                 </form>
@@ -727,12 +730,12 @@ const { plugin, userPlugin, config, formFields, supportsScheduling, schedule, ex
                             <CardHeader>
                                 <div class="flex items-center justify-between">
                                     <div>
-                                        <CardTitle>Jadwal Eksekusi</CardTitle>
-                                        <CardDescription>Atur kapan plugin akan dijalankan secara otomatis</CardDescription>
+                                        <CardTitle>{{ $t('plugins.scheduleExecution') }}</CardTitle>
+                                        <CardDescription>{{ $t('plugins.scheduleAutoDesc') }}</CardDescription>
                                     </div>
                                     <Button variant="outline" size="sm" @click="testPlugin">
                                         <Play class="mr-2 h-4 w-4" />
-                                        Test Sekarang
+                                        {{ $t('plugins.testNow') }}
                                     </Button>
                                 </div>
                             </CardHeader>
@@ -740,23 +743,23 @@ const { plugin, userPlugin, config, formFields, supportsScheduling, schedule, ex
                                 <form class="space-y-4" @submit.prevent="saveSchedule">
                                     <div class="grid gap-4 sm:grid-cols-2">
                                         <div class="space-y-2">
-                                            <Label for="schedule_type">Tipe Jadwal</Label>
+                                            <Label for="schedule_type">{{ $t('plugins.scheduleType') }}</Label>
                                             <Select v-model="scheduleForm.schedule_type">
                                                 <SelectTrigger>
-                                                    <SelectValue placeholder="Pilih tipe jadwal" />
+                                                    <SelectValue :placeholder="$t('plugins.selectScheduleType')" />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="daily">Harian</SelectItem>
-                                                    <SelectItem value="interval">Interval (menit)</SelectItem>
-                                                    <SelectItem value="weekly">Mingguan</SelectItem>
-                                                    <SelectItem value="cron">Cron Expression</SelectItem>
+                                                    <SelectItem value="daily">{{ $t('plugins.daily') }}</SelectItem>
+                                                    <SelectItem value="interval">{{ $t('plugins.intervalMinutes') }}</SelectItem>
+                                                    <SelectItem value="weekly">{{ $t('plugins.weekly') }}</SelectItem>
+                                                    <SelectItem value="cron">{{ $t('plugins.cronExpression') }}</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </div>
 
                                         <div class="space-y-2">
                                             <Label for="schedule_value">
-                                                {{ scheduleForm.schedule_type === 'daily' ? 'Waktu (HH:MM)' : scheduleForm.schedule_type === 'interval' ? 'Interval (menit)' : scheduleForm.schedule_type === 'weekly' ? 'Hari:Jam:Menit (MON:09:00)' : 'Cron Expression' }}
+                                                {{ scheduleForm.schedule_type === 'daily' ? $t('plugins.timeHHMM') : scheduleForm.schedule_type === 'interval' ? $t('plugins.intervalMinutes') : scheduleForm.schedule_type === 'weekly' ? $t('plugins.dayHourMinute') : $t('plugins.cronExpression') }}
                                             </Label>
                                             <Input
                                                 id="schedule_value"
@@ -780,13 +783,13 @@ const { plugin, userPlugin, config, formFields, supportsScheduling, schedule, ex
                                         <div class="flex items-center gap-4 text-sm">
                                             <div class="flex items-center gap-2">
                                                 <Clock class="h-4 w-4 text-muted-foreground" />
-                                                <span class="text-muted-foreground">Terakhir dijalankan:</span>
+                                                <span class="text-muted-foreground">{{ $t('plugins.lastRunAt') }}</span>
                                                 <span>{{ formatDate(schedule.last_run_at) }}</span>
                                             </div>
                                             <Separator orientation="vertical" class="h-4" />
                                             <div class="flex items-center gap-2">
                                                 <Calendar class="h-4 w-4 text-muted-foreground" />
-                                                <span class="text-muted-foreground">Berikutnya:</span>
+                                                <span class="text-muted-foreground">{{ $t('plugins.nextRunAt') }}</span>
                                                 <span>{{ formatDate(schedule.next_run_at) }}</span>
                                             </div>
                                         </div>
@@ -795,7 +798,7 @@ const { plugin, userPlugin, config, formFields, supportsScheduling, schedule, ex
                                     <div class="flex justify-end">
                                         <Button type="submit" :disabled="scheduleForm.processing">
                                             <Save class="mr-2 h-4 w-4" />
-                                            Simpan Jadwal
+                                            {{ $t('plugins.saveSchedule') }}
                                         </Button>
                                     </div>
                                 </form>
@@ -812,9 +815,9 @@ const { plugin, userPlugin, config, formFields, supportsScheduling, schedule, ex
                             <CardContent class="py-12">
                                 <div class="flex flex-col items-center justify-center text-center">
                                     <XCircle class="h-12 w-12 text-muted-foreground" />
-                                    <h3 class="mt-4 text-lg font-medium">Plugin Tidak Aktif</h3>
-                                    <p class="mt-2 text-muted-foreground">Aktifkan plugin untuk melihat riwayat eksekusi.</p>
-                                    <Button class="mt-4" @click="togglePlugin">Aktifkan Sekarang</Button>
+                                    <h3 class="mt-4 text-lg font-medium">{{ $t('plugins.pluginNotActive') }}</h3>
+                                    <p class="mt-2 text-muted-foreground">{{ $t('plugins.activateToViewHistory') }}</p>
+                                    <Button class="mt-4" @click="togglePlugin">{{ $t('plugins.activateNow') }}</Button>
                                 </div>
                             </CardContent>
                         </Card>
@@ -822,8 +825,8 @@ const { plugin, userPlugin, config, formFields, supportsScheduling, schedule, ex
                         <!-- Execution History -->
                         <Card v-else-if="executionHistory.length > 0">
                             <CardHeader>
-                                <CardTitle>Riwayat Eksekusi</CardTitle>
-                                <CardDescription>Log aktivitas plugin terbaru</CardDescription>
+                                <CardTitle>{{ $t('plugins.runHistory') }}</CardTitle>
+                                <CardDescription>{{ $t('plugins.executionLogDesc') }}</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <div class="space-y-3">
@@ -851,11 +854,11 @@ const { plugin, userPlugin, config, formFields, supportsScheduling, schedule, ex
                             <CardContent class="py-12">
                                 <div class="flex flex-col items-center justify-center text-center">
                                     <History class="h-12 w-12 text-muted-foreground" />
-                                    <h3 class="mt-4 text-lg font-medium">Belum Ada Riwayat</h3>
-                                    <p class="mt-2 text-muted-foreground">Plugin belum pernah dijalankan. Jalankan test untuk melihat riwayat eksekusi.</p>
+                                    <h3 class="mt-4 text-lg font-medium">{{ $t('plugins.noHistoryYet') }}</h3>
+                                    <p class="mt-2 text-muted-foreground">{{ $t('plugins.noHistoryDesc') }}</p>
                                     <Button class="mt-4" @click="testPlugin">
                                         <Play class="mr-2 h-4 w-4" />
-                                        Test Plugin
+                                        {{ $t('plugins.testPlugin') }}
                                     </Button>
                                 </div>
                             </CardContent>
@@ -869,34 +872,34 @@ const { plugin, userPlugin, config, formFields, supportsScheduling, schedule, ex
                         <!-- Plugin Description -->
                         <Card>
                             <CardHeader>
-                                <CardTitle>Tentang Plugin</CardTitle>
+                                <CardTitle>{{ $t('plugins.aboutPlugin') }}</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <div class="space-y-4">
                                     <div>
-                                        <h4 class="mb-2 text-sm font-medium">Deskripsi</h4>
+                                        <h4 class="mb-2 text-sm font-medium">{{ $t('plugins.description') }}</h4>
                                         <p class="text-sm text-muted-foreground">{{ plugin.description }}</p>
                                     </div>
                                     <Separator />
                                     <div class="grid gap-4 sm:grid-cols-2">
                                         <div>
-                                            <h4 class="mb-1 text-sm font-medium">Versi</h4>
+                                            <h4 class="mb-1 text-sm font-medium">{{ $t('plugins.version') }}</h4>
                                             <p class="text-sm text-muted-foreground">{{ plugin.version }}</p>
                                         </div>
                                         <div>
-                                            <h4 class="mb-1 text-sm font-medium">Pembuat</h4>
+                                            <h4 class="mb-1 text-sm font-medium">{{ $t('plugins.author') }}</h4>
                                             <p class="text-sm text-muted-foreground">{{ plugin.author }}</p>
                                         </div>
                                         <div>
-                                            <h4 class="mb-1 text-sm font-medium">Kategori</h4>
+                                            <h4 class="mb-1 text-sm font-medium">{{ $t('plugins.category') }}</h4>
                                             <Badge variant="outline">{{ plugin.category }}</Badge>
                                         </div>
                                         <div>
-                                            <h4 class="mb-1 text-sm font-medium">Rating Rata-rata</h4>
+                                            <h4 class="mb-1 text-sm font-medium">{{ $t('plugins.averageRating') }}</h4>
                                             <div class="flex items-center gap-2">
                                                 <StarRating :rating="plugin.average_rating || 0" :size="16" />
                                                 <span class="text-sm text-muted-foreground">
-                                                    ({{ plugin.ratings_count || 0 }} rating)
+                                                    ({{ plugin.ratings_count || 0 }} {{ $t('plugins.totalRatings') }})
                                                 </span>
                                             </div>
                                         </div>
@@ -908,8 +911,8 @@ const { plugin, userPlugin, config, formFields, supportsScheduling, schedule, ex
                         <!-- User Rating -->
                         <Card>
                             <CardHeader>
-                                <CardTitle>Rating Anda</CardTitle>
-                                <CardDescription>Bagikan pengalaman Anda menggunakan plugin ini</CardDescription>
+                                <CardTitle>{{ $t('plugins.yourRating') }}</CardTitle>
+                                <CardDescription>{{ $t('plugins.yourRatingDesc') }}</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <!-- Existing Rating Display -->
@@ -935,7 +938,7 @@ const { plugin, userPlugin, config, formFields, supportsScheduling, schedule, ex
                                 <!-- Rating Form -->
                                 <form v-else class="space-y-4" @submit.prevent="submitRating">
                                     <div class="space-y-2">
-                                        <Label>Rating <span class="text-destructive">*</span></Label>
+                                        <Label>{{ $t('plugins.rating') }} <span class="text-destructive">*</span></Label>
                                         <StarRating
                                             v-model:rating="ratingForm.rating"
                                             :size="32"
@@ -944,16 +947,16 @@ const { plugin, userPlugin, config, formFields, supportsScheduling, schedule, ex
                                     </div>
 
                                     <div class="space-y-2">
-                                        <Label for="review">Review (Opsional)</Label>
+                                        <Label for="review">{{ $t('plugins.reviewOptional') }}</Label>
                                         <Textarea
                                             id="review"
                                             v-model="ratingForm.review"
-                                            placeholder="Tulis review Anda tentang plugin ini..."
+                                            :placeholder="$t('plugins.reviewPlaceholder')"
                                             :maxlength="500"
                                             rows="3"
                                         />
                                         <p class="text-xs text-muted-foreground">
-                                            {{ ratingForm.review?.length || 0 }}/500 karakter
+                                            {{ ratingForm.review?.length || 0 }}/500 {{ $t('plugins.characters') }}
                                         </p>
                                     </div>
 
@@ -964,11 +967,11 @@ const { plugin, userPlugin, config, formFields, supportsScheduling, schedule, ex
                                             variant="outline"
                                             @click="cancelEdit"
                                         >
-                                            Batal
+                                            {{ $t('common.cancel') }}
                                         </Button>
                                         <Button type="submit" :disabled="ratingForm.processing || ratingForm.rating === 0">
                                             <Star class="mr-2 h-4 w-4" />
-                                            {{ userRating ? 'Update Rating' : 'Kirim Rating' }}
+                                            {{ userRating ? $t('plugins.updateRating') : $t('plugins.submitRating') }}
                                         </Button>
                                     </div>
                                 </form>
@@ -978,7 +981,7 @@ const { plugin, userPlugin, config, formFields, supportsScheduling, schedule, ex
                         <!-- All Ratings -->
                         <Card v-if="ratings.data.length > 0">
                             <CardHeader>
-                                <CardTitle>Semua Rating ({{ ratings.total }})</CardTitle>
+                                <CardTitle>{{ $t('plugins.allRatingsCount', { count: ratings.total }) }}</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <div class="space-y-4">
@@ -1007,7 +1010,7 @@ const { plugin, userPlugin, config, formFields, supportsScheduling, schedule, ex
                                 <!-- Pagination -->
                                 <div v-if="ratings.last_page > 1" class="mt-4 flex items-center justify-between border-t pt-4">
                                     <div class="text-sm text-muted-foreground">
-                                        Showing {{ ratings.from }} to {{ ratings.to }} of {{ ratings.total }} ratings
+                                        {{ $t('plugins.showingRatingsPagination', { from: ratings.from, to: ratings.to, total: ratings.total }) }}
                                     </div>
                                     <div class="flex gap-2">
                                         <Button
@@ -1016,7 +1019,7 @@ const { plugin, userPlugin, config, formFields, supportsScheduling, schedule, ex
                                             :disabled="!ratings.prev_page_url"
                                             @click="router.get(ratings.prev_page_url)"
                                         >
-                                            Previous
+                                            {{ $t('common.previous') }}
                                         </Button>
                                         <Button
                                             variant="outline"
@@ -1024,7 +1027,7 @@ const { plugin, userPlugin, config, formFields, supportsScheduling, schedule, ex
                                             :disabled="!ratings.next_page_url"
                                             @click="router.get(ratings.next_page_url)"
                                         >
-                                            Next
+                                            {{ $t('common.next') }}
                                         </Button>
                                     </div>
                                 </div>
@@ -1036,8 +1039,8 @@ const { plugin, userPlugin, config, formFields, supportsScheduling, schedule, ex
                             <CardContent class="py-12">
                                 <div class="flex flex-col items-center justify-center text-center">
                                     <Star class="h-12 w-12 text-muted-foreground" />
-                                    <h3 class="mt-4 text-lg font-medium">Belum Ada Rating</h3>
-                                    <p class="mt-2 text-muted-foreground">Jadilah yang pertama memberikan rating untuk plugin ini!</p>
+                                    <h3 class="mt-4 text-lg font-medium">{{ $t('plugins.noRatingsYet') }}</h3>
+                                    <p class="mt-2 text-muted-foreground">{{ $t('plugins.noRatingsDesc') }}</p>
                                 </div>
                             </CardContent>
                         </Card>

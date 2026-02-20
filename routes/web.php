@@ -88,6 +88,17 @@ Route::get('/explore-plugins', function (Request $request) {
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
+    // Locale preference
+    Route::post('locale', function (Request $request) {
+        $request->validate(['locale' => 'required|in:en,id']);
+        $request->user()->profile()->updateOrCreate(
+            ['user_id' => $request->user()->id],
+            ['locale' => $request->validated('locale')]
+        );
+
+        return response()->json(['status' => 'ok']);
+    })->name('locale.update');
+
     // Subscription routes
     Route::get('subscription', [SubscriptionController::class, 'index'])->name('subscription.index');
     Route::post('subscription/payment', [SubscriptionController::class, 'submitPayment'])->name('subscription.submit-payment');

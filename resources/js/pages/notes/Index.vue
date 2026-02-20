@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import NoteCard from '@/components/notes/NoteCard.vue';
@@ -9,17 +9,20 @@ import { Plus } from 'lucide-vue-next';
 import { index as notesIndex, destroy, update } from '@/routes/notes';
 import type { BreadcrumbItem } from '@/types';
 import Swal from 'sweetalert2';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = defineProps<{
     notes: any[];
 }>();
 
-const breadcrumbs: BreadcrumbItem[] = [
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
     {
-        title: 'Notes',
+        title: t('notes.title'),
         href: notesIndex().url,
     },
-];
+]);
 
 const showModal = ref(false);
 const selectedNote = ref<any>(null);
@@ -36,14 +39,14 @@ const openEditModal = (note: any) => {
 
 const deleteNote = (note: any) => {
     Swal.fire({
-        title: 'Hapus Catatan?',
-        text: `Catatan "${note.title}" akan dihapus permanen.`,
+        title: t('notes.deleteNote'),
+        text: t('notes.deleteNoteDesc', { title: note.title }),
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#d33',
         cancelButtonColor: '#6b7280',
-        confirmButtonText: 'Ya, Hapus!',
-        cancelButtonText: 'Batal',
+        confirmButtonText: t('notes.yesDelete'),
+        cancelButtonText: t('common.cancel'),
     }).then((result) => {
         if (result.isConfirmed) {
             router.delete(destroy(note.id).url, {
@@ -51,8 +54,8 @@ const deleteNote = (note: any) => {
                 onSuccess: () => {
                     Swal.fire({
                         icon: 'success',
-                        title: 'Catatan dihapus',
-                        text: 'Catatan berhasil dihapus.',
+                        title: t('notes.noteDeleted'),
+                        text: t('notes.noteDeletedDesc'),
                         timer: 2000,
                         showConfirmButton: false,
                     });
@@ -60,8 +63,8 @@ const deleteNote = (note: any) => {
                 onError: () => {
                     Swal.fire({
                         icon: 'error',
-                        title: 'Gagal menghapus',
-                        text: 'Terjadi kesalahan saat menghapus catatan.',
+                        title: t('notes.deleteFailed'),
+                        text: t('notes.deleteError'),
                     });
                 },
             });
@@ -78,8 +81,8 @@ const togglePin = (note: any) => {
         onSuccess: () => {
             Swal.fire({
                 icon: 'success',
-                title: note.is_pinned ? 'Catatan di-unpin' : 'Catatan di-pin',
-                text: note.is_pinned ? 'Catatan berhasil di-unpin.' : 'Catatan berhasil di-pin.',
+                title: note.is_pinned ? t('notes.noteUnpinned') : t('notes.notePinned'),
+                text: note.is_pinned ? t('notes.noteUnpinnedDesc') : t('notes.notePinnedDesc'),
                 timer: 1500,
                 showConfirmButton: false,
             });
@@ -87,8 +90,8 @@ const togglePin = (note: any) => {
         onError: () => {
             Swal.fire({
                 icon: 'error',
-                title: 'Gagal',
-                text: 'Terjadi kesalahan saat memperbarui catatan.',
+                title: t('notes.pinFailed'),
+                text: t('notes.pinError'),
             });
         },
     });
@@ -96,16 +99,16 @@ const togglePin = (note: any) => {
 </script>
 
 <template>
-    <Head title="Notes" />
+    <Head :title="$t('notes.title')" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
             <!-- Header -->
             <div class="flex items-center justify-between">
-                <h1 class="text-2xl font-bold">Notes</h1>
+                <h1 class="text-2xl font-bold">{{ $t('notes.title') }}</h1>
                 <Button @click="openCreateModal">
                     <Plus :size="16" class="mr-2" />
-                    New Note
+                    {{ $t('notes.newNote') }}
                 </Button>
             </div>
 
@@ -113,8 +116,8 @@ const togglePin = (note: any) => {
                 <div class="rounded-full bg-gray-100 p-4 dark:bg-gray-800">
                     <Plus :size="32" class="text-gray-400" />
                 </div>
-                <h3 class="mt-4 text-lg font-medium text-gray-900 dark:text-gray-100">No notes yet</h3>
-                <p class="mt-1 text-gray-500 dark:text-gray-400">Get started by creating your first note.</p>
+                <h3 class="mt-4 text-lg font-medium text-gray-900 dark:text-gray-100">{{ $t('notes.noNotes') }}</h3>
+                <p class="mt-1 text-gray-500 dark:text-gray-400">{{ $t('notes.noNotesDesc') }}</p>
             </div>
 
             <div v-else class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

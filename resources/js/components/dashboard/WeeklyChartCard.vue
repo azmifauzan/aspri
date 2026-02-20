@@ -3,10 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { WeeklyExpense } from '@/types';
 import { BarChart3 } from 'lucide-vue-next';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{
     expenses: WeeklyExpense[];
 }>();
+
+const { locale } = useI18n();
 
 const maxAmount = computed(() => {
     return Math.max(...props.expenses.map((e) => e.amount));
@@ -17,7 +20,7 @@ const totalWeekly = computed(() => {
 });
 
 const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
+    return new Intl.NumberFormat(locale.value === 'id' ? 'id-ID' : 'en-US', {
         style: 'currency',
         currency: 'IDR',
         minimumFractionDigits: 0,
@@ -48,7 +51,7 @@ const getBarHeight = (amount: number) => {
             <div class="flex items-center justify-between">
                 <CardTitle class="flex items-center gap-2 text-base font-medium">
                     <BarChart3 class="h-4 w-4" />
-                    Pengeluaran Mingguan
+                    {{ $t('dashboard.weeklyExpenses') }}
                 </CardTitle>
                 <span class="text-sm font-semibold text-muted-foreground">
                     {{ formatCurrency(totalWeekly) }}

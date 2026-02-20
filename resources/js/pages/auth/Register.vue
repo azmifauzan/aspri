@@ -18,10 +18,10 @@ const showPasswordConfirmation = ref(false);
 
 <template>
     <AuthBase
-        title="Daftar Akun Baru"
-        description="Buat akun ASPRI Anda dan lengkapi profil persona Anda"
+        :title="$t('auth.registerTitle')"
+        :description="$t('auth.registerDescription')"
     >
-        <Head title="Daftar" />
+        <Head :title="$t('auth.registerPageTitle')" />
 
         <Form
             v-bind="store.form()"
@@ -32,7 +32,7 @@ const showPasswordConfirmation = ref(false);
             <div class="grid gap-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="grid gap-2">
-                        <Label for="name">Nama Lengkap</Label>
+                        <Label for="name">{{ $t('auth.fullName') }}</Label>
                         <Input
                             id="name"
                             type="text"
@@ -41,7 +41,7 @@ const showPasswordConfirmation = ref(false);
                             :tabindex="1"
                             autocomplete="name"
                             name="name"
-                            placeholder="Nama lengkap Anda"
+                            :placeholder="$t('auth.fullNamePlaceholder')"
                         />
                         <InputError :message="errors.name" />
                     </div>
@@ -72,7 +72,7 @@ const showPasswordConfirmation = ref(false);
                                 :tabindex="3"
                                 autocomplete="new-password"
                                 name="password"
-                                placeholder="Minimal 8 karakter"
+                                :placeholder="$t('auth.minChars')"
                                 class="pr-10"
                             />
                             <button
@@ -90,7 +90,7 @@ const showPasswordConfirmation = ref(false);
 
                     <div class="grid gap-2">
                         <Label for="password_confirmation"
-                            >Konfirmasi Password</Label
+                            >{{ $t('auth.confirmPassword') }}</Label
                         >
                         <div class="relative">
                             <Input
@@ -100,7 +100,7 @@ const showPasswordConfirmation = ref(false);
                                 :tabindex="4"
                                 autocomplete="new-password"
                                 name="password_confirmation"
-                                placeholder="Ulangi password"
+                                :placeholder="$t('auth.repeatPassword')"
                                 class="pr-10"
                             />
                             <button
@@ -119,57 +119,56 @@ const showPasswordConfirmation = ref(false);
 
                 <div class="border-t pt-6">
                     <h3 class="mb-6 text-sm font-semibold">
-                        Pengaturan Persona Asisten
+                        {{ $t('auth.personaTitle') }}
                     </h3>
 
                     <div class="grid gap-6">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div class="grid gap-2">
-                                <Label for="call_preference">Cara Panggilan</Label>
+                                <Label for="call_preference">{{ $t('auth.callPreference') }}</Label>
                                 <Input
                                     id="call_preference"
                                     type="text"
                                     required
                                     :tabindex="5"
                                     name="call_preference"
-                                    placeholder="Contoh: Kak, Bapak, Ibu, Mas, Mbak"
+                                    :placeholder="$t('auth.callPreferencePlaceholder')"
                                 />
                                 <p class="text-xs text-muted-foreground">
-                                    Bagaimana asisten memanggil Anda
+                                    {{ $t('auth.callPreferenceHelp') }}
                                 </p>
                                 <InputError :message="errors.call_preference" />
                             </div>
 
                             <div class="grid gap-2">
-                                <Label for="aspri_name">Nama Asisten</Label>
+                                <Label for="aspri_name">{{ $t('auth.assistantName') }}</Label>
                                 <Input
                                     id="aspri_name"
                                     type="text"
                                     required
                                     :tabindex="6"
                                     name="aspri_name"
-                                    placeholder="Contoh: ASPRI, Jarvis, Friday"
+                                    :placeholder="$t('auth.assistantNamePlaceholder')"
                                 />
                                 <p class="text-xs text-muted-foreground">
-                                    Nama untuk asisten pribadi Anda
+                                    {{ $t('auth.assistantNameHelp') }}
                                 </p>
                                 <InputError :message="errors.aspri_name" />
                             </div>
                         </div>
 
                         <div class="grid gap-2">
-                            <Label for="aspri_persona">Persona Asisten</Label>
+                            <Label for="aspri_persona">{{ $t('auth.assistantPersona') }}</Label>
                             <Input
                                 id="aspri_persona"
                                 type="text"
                                 required
                                 :tabindex="7"
                                 name="aspri_persona"
-                                placeholder="Contoh: pria, wanita, profesional, santai"
+                                :placeholder="$t('auth.assistantPersonaPlaceholder')"
                             />
                             <p class="text-xs text-muted-foreground">
-                                Kepribadian asisten (pria, wanita, kucing, anjing,
-                                atau custom)
+                                {{ $t('auth.assistantPersonaHelp') }}
                             </p>
                             <InputError :message="errors.aspri_persona" />
                         </div>
@@ -184,17 +183,17 @@ const showPasswordConfirmation = ref(false);
                     data-test="register-user-button"
                 >
                     <Spinner v-if="processing" />
-                    Buat Akun
+                    {{ $t('auth.createAccount') }}
                 </Button>
             </div>
 
             <div class="text-center text-sm text-muted-foreground">
-                Sudah punya akun?
+                {{ $t('auth.hasAccount') }}
                 <TextLink
                     :href="login()"
                     class="underline underline-offset-4"
                     :tabindex="9"
-                    >Masuk di sini</TextLink
+                    >{{ $t('auth.loginHere') }}</TextLink
                 >
             </div>
         </Form>

@@ -10,21 +10,24 @@ import type { BreadcrumbItem, FinanceOverviewProps, FinanceTransaction } from '@
 
 import { Head, Link } from '@inertiajs/vue3';
 import { ArrowRight, Plus, Wallet } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t, locale } = useI18n();
 
 const props = defineProps<FinanceOverviewProps>();
 
-const breadcrumbs: BreadcrumbItem[] = [
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
     {
-        title: 'Keuangan',
+        title: t('finance.title'),
         href: finance().url,
     },
-];
+]);
 
 const showAddModal = ref(false);
 
 const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
+    return new Intl.NumberFormat(locale.value === 'id' ? 'id-ID' : 'en-US', {
         style: 'currency',
         currency: 'IDR',
         minimumFractionDigits: 0,
@@ -33,7 +36,7 @@ const formatCurrency = (amount: number) => {
 };
 
 const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('id-ID', {
+    return new Date(dateString).toLocaleDateString(locale.value === 'id' ? 'id-ID' : 'en-US', {
         day: 'numeric',
         month: 'short',
     });
@@ -51,16 +54,16 @@ const getTransactionSign = (tx: FinanceTransaction) => {
 </script>
 
 <template>
-    <Head title="Keuangan" />
+    <Head :title="$t('finance.title')" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
             <!-- Header with Add Button -->
             <div class="flex items-center justify-between">
-                <h1 class="text-2xl font-bold">Keuangan</h1>
+                <h1 class="text-2xl font-bold">{{ $t('finance.title') }}</h1>
                 <Button @click="showAddModal = true">
                     <Plus class="mr-2 h-4 w-4" />
-                    Tambah Transaksi
+                    {{ $t('finance.addTransaction') }}
                 </Button>
             </div>
 
@@ -75,7 +78,7 @@ const getTransactionSign = (tx: FinanceTransaction) => {
                 <CardHeader class="pb-2">
                     <CardTitle class="flex items-center gap-2 text-base font-medium">
                         <Wallet class="h-4 w-4" />
-                        Akun Keuangan
+                        {{ $t('finance.financeAccounts') }}
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -104,13 +107,13 @@ const getTransactionSign = (tx: FinanceTransaction) => {
                 <CardHeader class="pb-2">
                     <div class="flex items-center justify-between">
                         <CardTitle class="text-base font-medium">
-                            Transaksi Terbaru
+                            {{ $t('finance.recentTransactions') }}
                         </CardTitle>
                         <Link
                             :href="financeTransactions().url"
                             class="flex items-center gap-1 text-sm text-primary hover:underline"
                         >
-                            Lihat Semua
+                            {{ $t('finance.viewAll') }}
                             <ArrowRight class="h-4 w-4" />
                         </Link>
                     </div>
@@ -120,7 +123,7 @@ const getTransactionSign = (tx: FinanceTransaction) => {
                         v-if="props.recentTransactions.length === 0"
                         class="py-8 text-center text-muted-foreground"
                     >
-                        Belum ada transaksi
+                        {{ $t('finance.noTransactions') }}
                     </div>
                     <div v-else class="space-y-3">
                         <div
@@ -143,7 +146,7 @@ const getTransactionSign = (tx: FinanceTransaction) => {
                                 </div>
                                 <div>
                                     <p class="font-medium">
-                                        {{ tx.category?.name || (tx.tx_type === 'income' ? 'Pemasukan' : 'Pengeluaran') }}
+                                        {{ tx.category?.name || (tx.tx_type === 'income' ? $t('finance.income') : $t('finance.expense')) }}
                                     </p>
                                     <p class="text-xs text-muted-foreground">
                                         {{ tx.note || formatDate(tx.occurred_at) }}

@@ -23,7 +23,7 @@ const getEventTypeColor = (type: string) => {
         <CardHeader class="pb-2">
             <CardTitle class="flex items-center gap-2 text-base font-medium">
                 <Calendar class="h-4 w-4" />
-                Jadwal Hari Ini
+                {{ $t('dashboard.todaySchedule') }}
             </CardTitle>
         </CardHeader>
         <CardContent>
@@ -34,7 +34,7 @@ const getEventTypeColor = (type: string) => {
             >
                 <Calendar class="h-12 w-12 text-muted-foreground/50" />
                 <p class="mt-2 text-sm text-muted-foreground">
-                    Tidak ada jadwal hari ini
+                    {{ $t('dashboard.noSchedule') }}
                 </p>
             </div>
 
