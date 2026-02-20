@@ -70,7 +70,7 @@ RUN cp .env.example .env \
     && touch database/database.sqlite \
     && php artisan key:generate \
     && php artisan wayfinder:generate --with-form \
-    && npm run build
+    && npm run build:ssr
 
 # ============================================
 # Stage 3: Final production image
