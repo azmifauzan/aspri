@@ -2,7 +2,8 @@ import { createI18n } from 'vue-i18n';
 import en from './en';
 import id from './id';
 
-const savedLocale = localStorage.getItem('locale') || 'en';
+// Guard localStorage for SSR environment (Node.js has no localStorage)
+const savedLocale = (typeof window !== 'undefined' ? localStorage.getItem('locale') : null) || 'en';
 
 const i18n = createI18n({
     legacy: false,
@@ -16,7 +17,9 @@ const i18n = createI18n({
 
 export function setLocale(locale: 'en' | 'id'): void {
     i18n.global.locale.value = locale;
-    localStorage.setItem('locale', locale);
+    if (typeof window !== 'undefined') {
+        localStorage.setItem('locale', locale);
+    }
     document.documentElement.setAttribute('lang', locale);
 
     // Notify backend about locale change
