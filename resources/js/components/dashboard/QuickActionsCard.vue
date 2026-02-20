@@ -5,28 +5,28 @@ import { router } from '@inertiajs/vue3';
 import {
     CalendarPlus,
     FileText,
-    TrendingDown,
-    TrendingUp,
+    MessageCircle,
+    Wallet,
     Zap,
 } from 'lucide-vue-next';
 
 const quickActions = [
     {
-        id: 'expense',
-        label: 'Pengeluaran',
-        icon: TrendingDown,
-        color: 'text-red-600 dark:text-red-400',
-        bgColor: 'bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50',
-        url: '/finance?type=expense',
+        id: 'chat',
+        label: 'Chat',
+        icon: MessageCircle,
+        color: 'text-green-600 dark:text-green-400',
+        bgColor: 'bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/50',
+        url: '/chat',
     },
     {
-        id: 'income',
-        label: 'Pemasukan',
-        icon: TrendingUp,
-        color: 'text-emerald-600 dark:text-emerald-400',
-        bgColor: 'bg-emerald-100 dark:bg-emerald-900/30 hover:bg-emerald-200 dark:hover:bg-emerald-900/50',
-        url: '/finance?type=income',
-    },
+        id: 'finance',
+        label: 'Keuangan',
+        icon: Wallet,
+        color: 'text-purple-600 dark:text-purple-400',
+        bgColor: 'bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 dark:hover:bg-purple-900/50',
+        url: '/finance',
+    },    
     {
         id: 'event',
         label: 'Event',
