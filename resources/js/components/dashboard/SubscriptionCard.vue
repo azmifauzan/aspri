@@ -2,11 +2,14 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
+import { redeemPromo } from '@/routes/subscription';
 import type { ChatLimit, SubscriptionInfo } from '@/types/dashboard';
-import { Link } from '@inertiajs/vue3';
-import { Calendar, Clock, Crown, MessageSquare, Sparkles } from 'lucide-vue-next';
-import { computed } from 'vue';
+import { Link, useForm } from '@inertiajs/vue3';
+import { Calendar, Clock, Crown, MessageSquare, Sparkles, Tag } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
+import Swal from 'sweetalert2';
 
 const props = withDefaults(
     defineProps<{
@@ -65,6 +68,30 @@ const isOutOfChats = computed(() => {
     if (!props.chatLimit) return false;
     return props.chatLimit.remaining === 0;
 });
+
+const showPromoInput = ref(false);
+
+const promoForm = useForm({
+    code: '',
+});
+
+const submitPromoCode = () => {
+    promoForm.post(redeemPromo().url, {
+        preserveScroll: true,
+        onSuccess: () => {
+            promoForm.reset();
+            showPromoInput.value = false;
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil!',
+                text: 'Kode promo berhasil digunakan. Subscription Anda telah diperpanjang.',
+            });
+        },
+        onError: () => {
+            // Errors will be shown inline
+        },
+    });
+};
 </script>
 
 <template>
@@ -132,6 +159,42 @@ const isOutOfChats = computed(() => {
                     Upgrade ke Full Member
                 </Link>
             </Button>
+
+            <!-- Promo Code -->
+            <div class="space-y-2">
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    class="w-full text-muted-foreground"
+                    @click="showPromoInput = !showPromoInput"
+                >
+                    <Tag class="mr-2 h-3.5 w-3.5" />
+                    {{ showPromoInput ? 'Tutup kode promo' : 'Punya kode promo?' }}
+                </Button>
+
+                <div v-if="showPromoInput" class="space-y-2">
+                    <div class="flex gap-2">
+                        <Input
+                            v-model="promoForm.code"
+                            placeholder="Masukkan kode promo"
+                            class="h-8 text-sm uppercase"
+                            :disabled="promoForm.processing"
+                            @keyup.enter="submitPromoCode"
+                        />
+                        <Button
+                            size="sm"
+                            class="h-8 px-3 shrink-0"
+                            :disabled="promoForm.processing || !promoForm.code"
+                            @click="submitPromoCode"
+                        >
+                            {{ promoForm.processing ? '...' : 'Pakai' }}
+                        </Button>
+                    </div>
+                    <p v-if="promoForm.errors.code" class="text-xs text-red-500">
+                        {{ promoForm.errors.code }}
+                    </p>
+                </div>
+            </div>
         </CardContent>
     </Card>
 </template>
