@@ -83,6 +83,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     cron \
     netcat-openbsd \
     tzdata \
+    nodejs \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
@@ -129,6 +130,9 @@ COPY --chown=www-data:www-data . .
 
 # Copy built assets from node-builder
 COPY --from=node-builder --chown=www-data:www-data /app/public/build ./public/build
+
+# Copy SSR bundle from node-builder
+COPY --from=node-builder --chown=www-data:www-data /app/bootstrap/ssr ./bootstrap/ssr
 
 # Copy vendor from composer-builder
 COPY --from=composer-builder --chown=www-data:www-data /app/vendor ./vendor
