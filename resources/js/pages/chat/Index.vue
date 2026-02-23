@@ -103,8 +103,13 @@ const sendMessage = async (content: string) => {
         });
 
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to connect to chat stream');
+            const contentType = response.headers.get('Content-Type') ?? '';
+            if (contentType.includes('application/json')) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to connect to chat stream');
+            } else {
+                throw new Error(`Server error: ${response.status} ${response.statusText}`);
+            }
         }
 
         const reader = response.body?.getReader();

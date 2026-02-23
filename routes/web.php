@@ -93,7 +93,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         $request->validate(['locale' => 'required|in:en,id']);
         $request->user()->profile()->updateOrCreate(
             ['user_id' => $request->user()->id],
-            ['locale' => $request->validated('locale')]
+            ['locale' => $request->input('locale')]
         );
 
         return response()->json(['status' => 'ok']);
