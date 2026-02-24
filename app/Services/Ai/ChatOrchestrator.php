@@ -45,20 +45,56 @@ class ChatOrchestrator
             'pending_action_id' => $pendingAction?->id,
         ]);
 
+        // When there's a pending action, use keyword-based detection FIRST.
+        // This prevents the AI from misclassifying short confirmations (e.g. "ya") as a
+        // new action intent based on conversation history, which would cancel the pending
+        // action and re-create it — causing an infinite confirmation loop.
+        if ($pendingAction) {
+            $messageLower = strtolower(trim($message));
+
+            $isConfirmation = (bool) preg_match(
+                '/^(ya|iya|yep|yap|yes|ok|oke|okay|oks|setuju|benar|betul|bener|lanjut|simpan|konfirmasi|confirm|y)[\s\.,!?]*$/i',
+                $messageLower
+            );
+
+            $isCancellation = (bool) preg_match(
+                '/^(tidak|gak|ngak|nggak|ga|nope|no|batal|cancel|batalkan|jangan|stop|n)[\s\.,!?]*$/i',
+                $messageLower
+            );
+
+            if ($isConfirmation) {
+                Log::info('Confirmation detected by keyword match', [
+                    'message' => $message,
+                    'pending_action_id' => $pendingAction->id,
+                ]);
+
+                return $this->handleConfirmation($user, $pendingAction);
+            }
+
+            if ($isCancellation) {
+                Log::info('Cancellation detected by keyword match', [
+                    'message' => $message,
+                    'pending_action_id' => $pendingAction->id,
+                ]);
+
+                return $this->handleCancellation($pendingAction);
+            }
+        }
+
         // Parse the intent
         $intent = $this->intentParser->parse($user, $message, $conversationHistory);
 
         Log::debug('Parsed intent', ['intent' => $intent]);
 
-        // Handle confirmation/cancellation of pending action
+        // Handle confirmation/cancellation of pending action (AI-detected)
         if ($pendingAction && $intent['action'] === 'confirm') {
-            Log::info('Confirm action detected, calling handleConfirmation');
+            Log::info('Confirm action detected by AI, calling handleConfirmation');
 
             return $this->handleConfirmation($user, $pendingAction);
         }
 
         if ($pendingAction && $intent['action'] === 'cancel') {
-            Log::info('Cancel action detected, calling handleCancellation');
+            Log::info('Cancel action detected by AI, calling handleCancellation');
 
             return $this->handleCancellation($pendingAction);
         }
