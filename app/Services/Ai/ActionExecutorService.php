@@ -640,7 +640,7 @@ class ActionExecutorService
             ->map(fn ($n) => [
                 'id' => $n->id,
                 'title' => $n->title,
-                'content_preview' => mb_substr($n->content, 0, 100).(mb_strlen($n->content) > 100 ? '...' : ''),
+                'content' => $n->content,
                 'tags' => $n->tags,
                 'created_at' => $n->created_at->format('d M Y'),
             ])

@@ -776,7 +776,7 @@ PROMPT;
         $context = "Tampilkan catatan berikut:\n";
         foreach ($data['notes'] as $n) {
             $tags = ! empty($n['tags']) ? ' dengan tags: '.implode(', ', $n['tags']) : '';
-            $context .= "- Judul: {$n['title']}{$tags}\n  Preview: {$n['content_preview']}\n";
+            $context .= "- Judul: {$n['title']}{$tags}\n  Isi Lengkap:\n{$n['content']}\n";
         }
 
         return $context;
