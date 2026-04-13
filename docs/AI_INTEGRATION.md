@@ -163,12 +163,15 @@ class OpenAiProvider implements AiProviderInterface
     public function __construct(
         private string $apiKey,
         private string $model = 'gpt-4-turbo-preview',
+        private ?string $baseUrl = null,
     ) {}
     
     public function chat(array $messages, array $options = []): string
     {
+        $url = $this->baseUrl ? rtrim($this->baseUrl, '/') . '/chat/completions' : 'https://api.openai.com/v1/chat/completions';
+        
         $response = Http::withToken($this->apiKey)
-            ->post('https://api.openai.com/v1/chat/completions', [
+            ->post($url, [
                 'model' => $this->model,
                 'messages' => $messages,
                 'temperature' => $options['temperature'] ?? 0.7,
@@ -192,12 +195,14 @@ class GeminiProvider implements AiProviderInterface
     public function __construct(
         private string $apiKey,
         private string $model = 'gemini-pro',
+        private ?string $baseUrl = null,
     ) {}
     
     public function chat(array $messages, array $options = []): string
     {
+        $baseUrl = $this->baseUrl ? rtrim($this->baseUrl, '/') : 'https://generativelanguage.googleapis.com/v1';
         $response = Http::withToken($this->apiKey)
-            ->post("https://generativelanguage.googleapis.com/v1/models/{$this->model}:generateContent", [
+            ->post("{$baseUrl}/models/{$this->model}:generateContent", [
                 'contents' => $this->formatMessages($messages),
                 'generationConfig' => [
                     'temperature' => $options['temperature'] ?? 0.7,
@@ -221,14 +226,17 @@ AI_PROVIDER=openai  # openai, gemini, anthropic
 # OpenAI
 OPENAI_API_KEY=sk-...
 OPENAI_MODEL=gpt-4-turbo-preview
+OPENAI_BASE_URL=https://api.openai.com/v1
 
 # Google Gemini
 GEMINI_API_KEY=...
 GEMINI_MODEL=gemini-pro
+GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai
 
 # Anthropic
 ANTHROPIC_API_KEY=sk-ant-...
 ANTHROPIC_MODEL=claude-3-sonnet
+ANTHROPIC_BASE_URL=https://api.anthropic.com/v1
 ```
 
 ### Config File

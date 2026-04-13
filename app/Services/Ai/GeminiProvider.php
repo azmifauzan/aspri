@@ -15,11 +15,11 @@ class GeminiProvider implements AiProviderInterface
 
     protected string $baseUrl;
 
-    public function __construct(?string $apiKey = null, ?string $model = null)
+    public function __construct(?string $apiKey = null, ?string $model = null, ?string $baseUrl = null)
     {
         $this->apiKey = $apiKey ?? config('services.gemini.api_key', '');
         $this->model = $model ?? config('services.gemini.model', 'gemini-2.5-flash');
-        $this->baseUrl = config('services.gemini.base_url', 'https://generativelanguage.googleapis.com/v1beta/openai');
+        $this->baseUrl = !empty($baseUrl) ? rtrim($baseUrl, '/') : rtrim(config('services.gemini.base_url', 'https://generativelanguage.googleapis.com/v1beta/openai'), '/');
     }
 
     /**

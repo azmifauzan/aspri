@@ -111,6 +111,9 @@ export interface AiSettings {
     gemini_model: string;
     openai_model: string;
     anthropic_model: string;
+    gemini_base_url: string | null;
+    openai_base_url: string | null;
+    anthropic_base_url: string | null;
     has_gemini_key: boolean;
     has_openai_key: boolean;
     has_anthropic_key: boolean;

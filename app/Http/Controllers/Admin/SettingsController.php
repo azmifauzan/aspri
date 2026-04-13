@@ -40,10 +40,13 @@ class SettingsController extends Controller
             'ai_provider' => ['required', 'in:gemini,openai,anthropic'],
             'gemini_api_key' => ['nullable', 'string'],
             'gemini_model' => ['nullable', 'string'],
+            'gemini_base_url' => ['nullable', 'string', 'url'],
             'openai_api_key' => ['nullable', 'string'],
             'openai_model' => ['nullable', 'string'],
+            'openai_base_url' => ['nullable', 'string', 'url'],
             'anthropic_api_key' => ['nullable', 'string'],
             'anthropic_model' => ['nullable', 'string'],
+            'anthropic_base_url' => ['nullable', 'string', 'url'],
         ]);
 
         $this->settingsService->updateAiSettings($validated);
@@ -101,6 +104,7 @@ class SettingsController extends Controller
         $provider = $config['provider'];
         $apiKey = $config['api_key'];
         $model = $config['model'];
+        $baseUrl = $config['base_url'];
 
         if (! $apiKey) {
             return back()->with('error', "No API key configured for {$provider}. Please save your API key first.");
@@ -108,9 +112,9 @@ class SettingsController extends Controller
 
         try {
             $result = match ($provider) {
-                'openai' => $this->testOpenAi($apiKey, $model),
-                'gemini' => $this->testGemini($apiKey, $model),
-                'anthropic' => $this->testAnthropic($apiKey, $model),
+                'openai' => $this->testOpenAi($apiKey, $model, $baseUrl),
+                'gemini' => $this->testGemini($apiKey, $model, $baseUrl),
+                'anthropic' => $this->testAnthropic($apiKey, $model, $baseUrl),
                 default => ['success' => false, 'message' => 'Unknown provider'],
             };
 
@@ -133,13 +137,15 @@ class SettingsController extends Controller
      *
      * @return array<string, mixed>
      */
-    private function testOpenAi(string $apiKey, ?string $model): array
+    private function testOpenAi(string $apiKey, ?string $model, ?string $baseUrl = null): array
     {
+        $url = rtrim($baseUrl ?? 'https://api.openai.com/v1', '/') . '/models';
+
         $response = Http::withHeaders([
             'Authorization' => "Bearer {$apiKey}",
         ])->withOptions([
             'verify' => app()->environment('production'),
-        ])->timeout(30)->get('https://api.openai.com/v1/models');
+        ])->timeout(30)->get($url);
 
         if ($response->successful()) {
             $models = $response->json('data', []);
@@ -161,12 +167,13 @@ class SettingsController extends Controller
      *
      * @return array<string, mixed>
      */
-    private function testGemini(string $apiKey, ?string $model): array
+    private function testGemini(string $apiKey, ?string $model, ?string $baseUrl = null): array
     {
+        $url = rtrim($baseUrl ?? 'https://generativelanguage.googleapis.com', '/') . "/v1/models?key={$apiKey}";
+
         $response = Http::withOptions([
             'verify' => app()->environment('production'),
-        ])->timeout(30)
-            ->get("https://generativelanguage.googleapis.com/v1/models?key={$apiKey}");
+        ])->timeout(30)->get($url);
 
         if ($response->successful()) {
             $models = $response->json('models', []);
@@ -188,8 +195,10 @@ class SettingsController extends Controller
      *
      * @return array<string, mixed>
      */
-    private function testAnthropic(string $apiKey, ?string $model): array
+    private function testAnthropic(string $apiKey, ?string $model, ?string $baseUrl = null): array
     {
+        $url = rtrim($baseUrl ?? 'https://api.anthropic.com', '/') . '/v1/messages';
+
         // Anthropic doesn't have a simple "list models" endpoint, so we test with a minimal message
         $response = Http::withHeaders([
             'x-api-key' => $apiKey,
@@ -197,7 +206,7 @@ class SettingsController extends Controller
             'content-type' => 'application/json',
         ])->withOptions([
             'verify' => app()->environment('production'),
-        ])->timeout(30)->post('https://api.anthropic.com/v1/messages', [
+        ])->timeout(30)->post($url, [
             'model' => $model ?? 'claude-3-haiku-20240307',
             'max_tokens' => 10,
             'messages' => [

@@ -41,18 +41,22 @@ class AppServiceProvider extends ServiceProvider
                     'gemini' => new GeminiProvider(
                         $config['api_key'],
                         $config['model'],
+                        $config['base_url']
                     ),
                     'anthropic' => new ClaudeProvider(
                         $config['api_key'],
                         $config['model'],
+                        $config['base_url']
                     ),
                     'openai' => new OpenAiProvider(
                         $config['api_key'],
                         $config['model'],
+                        $config['base_url']
                     ),
                     default => new OpenAiProvider(
                         $config['api_key'],
                         $config['model'],
+                        $config['base_url'] ?? null
                     ),
                 };
             }
@@ -61,6 +65,7 @@ class AppServiceProvider extends ServiceProvider
             return new OpenAiProvider(
                 config('services.openai.api_key'),
                 config('services.openai.model'),
+                config('services.openai.base_url')
             );
         });
 

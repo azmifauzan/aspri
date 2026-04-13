@@ -15,11 +15,11 @@ class ClaudeProvider implements AiProviderInterface
 
     protected string $baseUrl;
 
-    public function __construct(?string $apiKey = null, ?string $model = null)
+    public function __construct(?string $apiKey = null, ?string $model = null, ?string $baseUrl = null)
     {
         $this->apiKey = $apiKey ?? config('services.anthropic.api_key', '');
         $this->model = $model ?? config('services.anthropic.model', 'claude-4-5-haiku');
-        $this->baseUrl = config('services.anthropic.base_url', 'https://api.anthropic.com/v1');
+        $this->baseUrl = !empty($baseUrl) ? rtrim($baseUrl, '/') : rtrim(config('services.anthropic.base_url', 'https://api.anthropic.com/v1'), '/');
     }
 
     /**

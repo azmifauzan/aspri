@@ -15,11 +15,11 @@ class OpenAiProvider implements AiProviderInterface
 
     protected string $baseUrl;
 
-    public function __construct(?string $apiKey = null, ?string $model = null)
+    public function __construct(?string $apiKey = null, ?string $model = null, ?string $baseUrl = null)
     {
         $this->apiKey = $apiKey ?? config('services.openai.api_key', '');
         $this->model = $model ?? config('services.openai.model', 'gpt-4o-mini');
-        $this->baseUrl = config('services.openai.base_url', 'https://api.openai.com/v1');
+        $this->baseUrl = !empty($baseUrl) ? rtrim($baseUrl, '/') : rtrim(config('services.openai.base_url', 'https://api.openai.com/v1'), '/');
     }
 
     /**

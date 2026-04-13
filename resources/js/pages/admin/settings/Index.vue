@@ -10,7 +10,7 @@ import AdminLayout from '@/layouts/AdminLayout.vue';
 import admin from '@/routes/admin';
 import type { BreadcrumbItem, SettingsPageProps } from '@/types';
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { Banknote, Bot, Check, CreditCard, Globe, Loader2, Mail, Save, Sparkles, TestTube } from 'lucide-vue-next';
+import { Banknote, Bot, Check, CreditCard, Eye, EyeOff, Globe, Loader2, Mail, Save, Sparkles, TestTube } from 'lucide-vue-next';
 import { ref } from 'vue';
 import Swal from 'sweetalert2';
 
@@ -26,19 +26,42 @@ const testingAi = ref(false);
 const testingTelegram = ref(false);
 const testingEmail = ref(false);
 
+const showGeminiKey = ref(false);
+const showOpenAiKey = ref(false);
+const showAnthropicKey = ref(false);
+
 // AI Settings Form
 const aiForm = useForm({
     ai_provider: props.aiSettings.ai_provider,
     gemini_api_key: '',
     gemini_model: props.aiSettings.gemini_model,
+    gemini_base_url: props.aiSettings.gemini_base_url || '',
     openai_api_key: '',
     openai_model: props.aiSettings.openai_model,
+    openai_base_url: props.aiSettings.openai_base_url || '',
     anthropic_api_key: '',
     anthropic_model: props.aiSettings.anthropic_model,
+    anthropic_base_url: props.aiSettings.anthropic_base_url || '',
 });
 
 const submitAi = () => {
-    aiForm.post(admin.settings.updateAi().url, {
+    aiForm.transform((data) => {
+        const payload: Record<string, any> = { ai_provider: data.ai_provider };
+        if (data.ai_provider === 'gemini') {
+            payload.gemini_api_key = data.gemini_api_key;
+            payload.gemini_model = data.gemini_model;
+            payload.gemini_base_url = data.gemini_base_url;
+        } else if (data.ai_provider === 'openai') {
+            payload.openai_api_key = data.openai_api_key;
+            payload.openai_model = data.openai_model;
+            payload.openai_base_url = data.openai_base_url;
+        } else if (data.ai_provider === 'anthropic') {
+            payload.anthropic_api_key = data.anthropic_api_key;
+            payload.anthropic_model = data.anthropic_model;
+            payload.anthropic_base_url = data.anthropic_base_url;
+        }
+        return payload;
+    }).post(admin.settings.updateAi().url, {
         preserveScroll: true,
         onSuccess: () => {
             aiForm.reset('gemini_api_key', 'openai_api_key', 'anthropic_api_key');
@@ -376,52 +399,82 @@ const formatCurrency = (value: number) => {
                                     </Select>
                                 </div>
 
-                                <div class="grid gap-6 md:grid-cols-3">
+                                <div class="grid gap-6">
                                     <!-- Gemini -->
-                                    <div class="space-y-4 rounded-lg border p-4" :class="aiForm.ai_provider === 'gemini' && 'border-primary'">
+                                    <div v-if="aiForm.ai_provider === 'gemini'" class="space-y-4 rounded-lg border border-primary p-4">
                                         <div class="flex items-center justify-between">
                                             <h4 class="font-medium">Google Gemini</h4>
                                             <Check v-if="aiSettings.has_gemini_key" class="h-4 w-4 text-green-500" />
                                         </div>
                                         <div class="space-y-2">
                                             <Label>API Key</Label>
-                                            <Input v-model="aiForm.gemini_api_key" type="password" :placeholder="aiSettings.has_gemini_key ? '••••••••' : 'Enter API key'" />
+                                            <div class="relative">
+                                                <Input v-model="aiForm.gemini_api_key" :type="showGeminiKey ? 'text' : 'password'" :placeholder="aiSettings.has_gemini_key ? '••••••••' : 'Enter API key'" class="pr-10" />
+                                                <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" @click="showGeminiKey = !showGeminiKey">
+                                                    <Eye v-if="!showGeminiKey" class="h-4 w-4" />
+                                                    <EyeOff v-else class="h-4 w-4" />
+                                                </button>
+                                            </div>
                                         </div>
                                         <div class="space-y-2">
                                             <Label>Model</Label>
                                             <Input v-model="aiForm.gemini_model" placeholder="gemini-pro" />
                                         </div>
+                                        <div class="space-y-2">
+                                            <Label>Base URL (Optional)</Label>
+                                            <Input v-model="aiForm.gemini_base_url" placeholder="Provide alternate base URL if using a proxy or compatible provider" />
+                                        </div>
                                     </div>
 
                                     <!-- OpenAI -->
-                                    <div class="space-y-4 rounded-lg border p-4" :class="aiForm.ai_provider === 'openai' && 'border-primary'">
+                                    <div v-if="aiForm.ai_provider === 'openai'" class="space-y-4 rounded-lg border border-primary p-4">
                                         <div class="flex items-center justify-between">
                                             <h4 class="font-medium">OpenAI</h4>
                                             <Check v-if="aiSettings.has_openai_key" class="h-4 w-4 text-green-500" />
                                         </div>
                                         <div class="space-y-2">
                                             <Label>API Key</Label>
-                                            <Input v-model="aiForm.openai_api_key" type="password" :placeholder="aiSettings.has_openai_key ? '••••••••' : 'Enter API key'" />
+                                            <div class="relative">
+                                                <Input v-model="aiForm.openai_api_key" :type="showOpenAiKey ? 'text' : 'password'" :placeholder="aiSettings.has_openai_key ? '••••••••' : 'Enter API key'" class="pr-10" />
+                                                <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" @click="showOpenAiKey = !showOpenAiKey">
+                                                    <Eye v-if="!showOpenAiKey" class="h-4 w-4" />
+                                                    <EyeOff v-else class="h-4 w-4" />
+                                                </button>
+                                            </div>
                                         </div>
                                         <div class="space-y-2">
                                             <Label>Model</Label>
                                             <Input v-model="aiForm.openai_model" placeholder="gpt-4-turbo" />
                                         </div>
+                                        <div class="space-y-2">
+                                            <Label>Base URL (Optional)</Label>
+                                            <Input v-model="aiForm.openai_base_url" placeholder="https://api.openai.com/v1" />
+                                        </div>
                                     </div>
 
                                     <!-- Anthropic -->
-                                    <div class="space-y-4 rounded-lg border p-4" :class="aiForm.ai_provider === 'anthropic' && 'border-primary'">
+                                    <div v-if="aiForm.ai_provider === 'anthropic'" class="space-y-4 rounded-lg border border-primary p-4">
                                         <div class="flex items-center justify-between">
                                             <h4 class="font-medium">Anthropic Claude</h4>
                                             <Check v-if="aiSettings.has_anthropic_key" class="h-4 w-4 text-green-500" />
                                         </div>
                                         <div class="space-y-2">
                                             <Label>API Key</Label>
-                                            <Input v-model="aiForm.anthropic_api_key" type="password" :placeholder="aiSettings.has_anthropic_key ? '••••••••' : 'Enter API key'" />
+                                            <div class="relative">
+                                                <Input v-model="aiForm.anthropic_api_key" :type="showAnthropicKey ? 'text' : 'password'" :placeholder="aiSettings.has_anthropic_key ? '••••••••' : 'Enter API key'" class="pr-10" />
+                                                <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" @click="showAnthropicKey = !showAnthropicKey">
+                                                    <Eye v-if="!showAnthropicKey" class="h-4 w-4" />
+                                                    <EyeOff v-else class="h-4 w-4" />
+                                                </button>
+                                            </div>
                                         </div>
                                         <div class="space-y-2">
                                             <Label>Model</Label>
                                             <Input v-model="aiForm.anthropic_model" placeholder="claude-3-sonnet" />
+                                        </div>
+                                        <div class="space-y-2">
+                                            <Label>Base URL (Optional)</Label>
+                                            <Input v-model="aiForm.anthropic_base_url" placeholder="https://api.anthropic.com" />
                                         </div>
                                     </div>
                                 </div>

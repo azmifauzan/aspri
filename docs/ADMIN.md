@@ -38,10 +38,13 @@ Konfigurasi AI provider yang digunakan sistem.
 | `ai_provider` | Active provider | `gemini` |
 | `gemini_api_key` | Gemini API key | - |
 | `gemini_model` | Gemini model | `gemini-pro` |
+| `gemini_base_url` | Gemini API base URL | - |
 | `openai_api_key` | OpenAI API key | - |
 | `openai_model` | OpenAI model | `gpt-4-turbo` |
+| `openai_base_url` | OpenAI API base URL | - |
 | `anthropic_api_key` | Claude API key | - |
 | `anthropic_model` | Claude model | `claude-3-sonnet` |
+| `anthropic_base_url` | Claude API base URL | - |
 
 ```php
 // Database: system_settings table
@@ -57,10 +60,12 @@ Schema::create('system_settings', function (Blueprint $table) {
 
 **UI untuk AI Settings:**
 - Select dropdown untuk active provider
-- API key input fields (masked)
+- UI secara reaktif hanya memunculkan form untuk provider yang sedang terpilih
+- API key input fields (tersedia toggle show/hide key)
 - Model selection per provider
+- Base URL input (opsional, untuk support custom proxy endpoint)
 - Test connection button
-- Save settings
+- Save settings (hanya menyimpan data spesifik provider yang dipilih ke DB)
 
 ### 4. Telegram Bot Configuration
 - Bot token management

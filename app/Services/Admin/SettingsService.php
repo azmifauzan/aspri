@@ -32,8 +32,11 @@ class SettingsService
         return [
             'ai_provider' => $this->get('ai_provider', 'gemini'),
             'gemini_model' => $this->get('gemini_model', 'gemini-pro'),
+            'gemini_base_url' => $this->get('gemini_base_url'),
             'openai_model' => $this->get('openai_model', 'gpt-4-turbo'),
+            'openai_base_url' => $this->get('openai_base_url'),
             'anthropic_model' => $this->get('anthropic_model', 'claude-3-sonnet'),
+            'anthropic_base_url' => $this->get('anthropic_base_url'),
             'has_gemini_key' => (bool) $this->get('gemini_api_key'),
             'has_openai_key' => (bool) $this->get('openai_api_key'),
             'has_anthropic_key' => (bool) $this->get('anthropic_api_key'),
@@ -51,37 +54,49 @@ class SettingsService
             $this->set('ai_provider', $data['ai_provider'], ['group' => 'ai']);
         }
 
-        if (isset($data['gemini_api_key']) && $data['gemini_api_key']) {
+        if (array_key_exists('gemini_api_key', $data) && $data['gemini_api_key']) {
             $this->set('gemini_api_key', $data['gemini_api_key'], [
                 'encrypted' => true,
                 'group' => 'ai',
             ]);
         }
 
-        if (isset($data['gemini_model'])) {
+        if (array_key_exists('gemini_model', $data)) {
             $this->set('gemini_model', $data['gemini_model'], ['group' => 'ai']);
         }
 
-        if (isset($data['openai_api_key']) && $data['openai_api_key']) {
+        if (array_key_exists('gemini_base_url', $data)) {
+            $this->set('gemini_base_url', $data['gemini_base_url'], ['group' => 'ai']);
+        }
+
+        if (array_key_exists('openai_api_key', $data) && $data['openai_api_key']) {
             $this->set('openai_api_key', $data['openai_api_key'], [
                 'encrypted' => true,
                 'group' => 'ai',
             ]);
         }
 
-        if (isset($data['openai_model'])) {
+        if (array_key_exists('openai_model', $data)) {
             $this->set('openai_model', $data['openai_model'], ['group' => 'ai']);
         }
 
-        if (isset($data['anthropic_api_key']) && $data['anthropic_api_key']) {
+        if (array_key_exists('openai_base_url', $data)) {
+            $this->set('openai_base_url', $data['openai_base_url'], ['group' => 'ai']);
+        }
+
+        if (array_key_exists('anthropic_api_key', $data) && $data['anthropic_api_key']) {
             $this->set('anthropic_api_key', $data['anthropic_api_key'], [
                 'encrypted' => true,
                 'group' => 'ai',
             ]);
         }
 
-        if (isset($data['anthropic_model'])) {
+        if (array_key_exists('anthropic_model', $data)) {
             $this->set('anthropic_model', $data['anthropic_model'], ['group' => 'ai']);
+        }
+
+        if (array_key_exists('anthropic_base_url', $data)) {
+            $this->set('anthropic_base_url', $data['anthropic_base_url'], ['group' => 'ai']);
         }
     }
 
@@ -118,10 +133,22 @@ class SettingsService
             };
         }
 
+        $baseUrl = $this->get("{$provider}_base_url");
+
+        if (! $baseUrl) {
+            $baseUrl = match ($provider) {
+                'openai' => env('OPENAI_BASE_URL'),
+                'gemini' => env('GEMINI_BASE_URL'),
+                'anthropic' => env('ANTHROPIC_BASE_URL'),
+                default => null,
+            };
+        }
+
         return [
             'provider' => $provider,
             'api_key' => $apiKey,
             'model' => $model,
+            'base_url' => $baseUrl,
         ];
     }
 
