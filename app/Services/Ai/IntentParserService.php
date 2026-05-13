@@ -334,6 +334,13 @@ PROMPT;
             'tool_choice' => 'auto',
         ]);
 
+        // If the model returned a plain string instead of a function call, it does not
+        // support function calling. Throw an exception so the caller falls back to
+        // the prompt-based approach without logging a misleading JSON parse warning.
+        if (is_string($response)) {
+            throw new \RuntimeException('Model returned plain text instead of a function call; function calling not supported.');
+        }
+
         return $this->parseResponse($response);
     }
 
@@ -365,7 +372,7 @@ PROMPT;
 
         $response = $this->provider->chat($messages, [
             'temperature' => 0.3, // Lower temperature for more consistent JSON output
-            'max_tokens' => 500,
+            'max_tokens' => 1024,
         ]);
 
         return $this->parseResponse($response);
