@@ -49,12 +49,12 @@ Konfigurasi AI provider yang digunakan sistem.
 ```php
 // Database: system_settings table
 Schema::create('system_settings', function (Blueprint $table) {
-    $table->id();
-    $table->string('key')->unique();
-    $table->text('value')->nullable();
-    $table->string('type')->default('string'); // string, boolean, json
-    $table->boolean('is_encrypted')->default(false);
-    $table->timestamps();
+  $table->id();
+  $table->string('key')->unique();
+  $table->text('value')->nullable();
+  $table->string('type')->default('string'); // string, boolean, json
+  $table->boolean('is_encrypted')->default(false);
+  $table->timestamps();
 });
 ```
 
@@ -95,13 +95,13 @@ Untuk menyimpan konfigurasi sistem.
 
 ```php
 Schema::create('system_settings', function (Blueprint $table) {
-    $table->id();
-    $table->string('key')->unique();
-    $table->text('value')->nullable();
-    $table->string('type')->default('string');
-    $table->boolean('is_encrypted')->default(false);
-    $table->string('description')->nullable();
-    $table->timestamps();
+  $table->id();
+  $table->string('key')->unique();
+  $table->text('value')->nullable();
+  $table->string('type')->default('string');
+  $table->boolean('is_encrypted')->default(false);
+  $table->string('description')->nullable();
+  $table->timestamps();
 });
 ```
 
@@ -110,8 +110,8 @@ Tambah role field.
 
 ```php
 Schema::table('users', function (Blueprint $table) {
-    $table->string('role')->default('user'); // user, admin, super_admin
-    $table->boolean('is_active')->default(true);
+  $table->string('role')->default('user'); // user, admin, super_admin
+  $table->boolean('is_active')->default(true);
 });
 ```
 
@@ -120,18 +120,18 @@ Track admin activities.
 
 ```php
 Schema::create('activity_logs', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
-    $table->string('action');
-    $table->string('model_type')->nullable();
-    $table->unsignedBigInteger('model_id')->nullable();
-    $table->json('old_values')->nullable();
-    $table->json('new_values')->nullable();
-    $table->string('ip_address')->nullable();
-    $table->string('user_agent')->nullable();
-    $table->timestamps();
-    
-    $table->index(['model_type', 'model_id']);
+  $table->id();
+  $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
+  $table->string('action');
+  $table->string('model_type')->nullable();
+  $table->unsignedBigInteger('model_id')->nullable();
+  $table->json('old_values')->nullable();
+  $table->json('new_values')->nullable();
+  $table->string('ip_address')->nullable();
+  $table->string('user_agent')->nullable();
+  $table->timestamps();
+  
+  $table->index(['model_type', 'model_id']);
 });
 ```
 
@@ -163,31 +163,31 @@ Schema::create('activity_logs', function (Blueprint $table) {
 // app/Http/Middleware/AdminMiddleware.php
 class AdminMiddleware
 {
-    public function handle(Request $request, Closure $next)
-    {
-        if (!auth()->check()) {
-            return redirect('/login');
-        }
-        
-        if (!in_array(auth()->user()->role, ['admin', 'super_admin'])) {
-            abort(403, 'Access denied');
-        }
-        
-        return $next($request);
-    }
+  public function handle(Request $request, Closure $next)
+  {
+  if (!auth()->check()) {
+  return redirect('/login');
+  }
+  
+  if (!in_array(auth()->user()->role, ['admin', 'super_admin'])) {
+  abort(403, 'Access denied');
+  }
+  
+  return $next($request);
+  }
 }
 
 // app/Http/Middleware/SuperAdminMiddleware.php
 class SuperAdminMiddleware
 {
-    public function handle(Request $request, Closure $next)
-    {
-        if (auth()->user()->role !== 'super_admin') {
-            abort(403, 'Super admin access required');
-        }
-        
-        return $next($request);
-    }
+  public function handle(Request $request, Closure $next)
+  {
+  if (auth()->user()->role !== 'super_admin') {
+  abort(403, 'Super admin access required');
+  }
+  
+  return $next($request);
+  }
 }
 ```
 
@@ -200,65 +200,65 @@ namespace App\Services;
 
 class SettingsService
 {
-    public function get(string $key, mixed $default = null): mixed
-    {
-        $setting = SystemSetting::where('key', $key)->first();
-        
-        if (!$setting) {
-            return $default;
-        }
-        
-        $value = $setting->is_encrypted 
-            ? decrypt($setting->value) 
-            : $setting->value;
-            
-        return match($setting->type) {
-            'boolean' => (bool) $value,
-            'json' => json_decode($value, true),
-            default => $value,
-        };
-    }
-    
-    public function set(string $key, mixed $value, array $options = []): void
-    {
-        $type = $options['type'] ?? 'string';
-        $encrypted = $options['encrypted'] ?? false;
-        
-        $storeValue = match($type) {
-            'json' => json_encode($value),
-            'boolean' => $value ? '1' : '0',
-            default => (string) $value,
-        };
-        
-        if ($encrypted) {
-            $storeValue = encrypt($storeValue);
-        }
-        
-        SystemSetting::updateOrCreate(
-            ['key' => $key],
-            [
-                'value' => $storeValue,
-                'type' => $type,
-                'is_encrypted' => $encrypted,
-            ]
-        );
-    }
-    
-    public function getAiProvider(): string
-    {
-        return $this->get('ai_provider', 'gemini');
-    }
-    
-    public function getAiConfig(): array
-    {
-        $provider = $this->getAiProvider();
-        
-        return [
-            'provider' => $provider,
-            'api_key' => $this->get("{$provider}_api_key"),
-            'model' => $this->get("{$provider}_model"),
-        ];
-    }
+  public function get(string $key, mixed $default = null): mixed
+  {
+  $setting = SystemSetting::where('key', $key)->first();
+  
+  if (!$setting) {
+  return $default;
+  }
+  
+  $value = $setting->is_encrypted 
+  ? decrypt($setting->value) 
+  : $setting->value;
+  
+  return match($setting->type) {
+  'boolean' => (bool) $value,
+  'json' => json_decode($value, true),
+  default => $value,
+  };
+  }
+  
+  public function set(string $key, mixed $value, array $options = []): void
+  {
+  $type = $options['type'] ?? 'string';
+  $encrypted = $options['encrypted'] ?? false;
+  
+  $storeValue = match($type) {
+  'json' => json_encode($value),
+  'boolean' => $value ? '1' : '0',
+  default => (string) $value,
+  };
+  
+  if ($encrypted) {
+  $storeValue = encrypt($storeValue);
+  }
+  
+  SystemSetting::updateOrCreate(
+  ['key' => $key],
+  [
+  'value' => $storeValue,
+  'type' => $type,
+  'is_encrypted' => $encrypted,
+  ]
+  );
+  }
+  
+  public function getAiProvider(): string
+  {
+  return $this->get('ai_provider', 'gemini');
+  }
+  
+  public function getAiConfig(): array
+  {
+  $provider = $this->getAiProvider();
+  
+  return [
+  'provider' => $provider,
+  'api_key' => $this->get("{$provider}_api_key"),
+  'model' => $this->get("{$provider}_model"),
+  ];
+  }
 }
 ```
 
@@ -268,23 +268,23 @@ class SettingsService
 // database/seeders/SystemSettingsSeeder.php
 class SystemSettingsSeeder extends Seeder
 {
-    public function run(): void
-    {
-        $settings = [
-            ['key' => 'ai_provider', 'value' => 'gemini', 'type' => 'string'],
-            ['key' => 'gemini_model', 'value' => 'gemini-pro', 'type' => 'string'],
-            ['key' => 'openai_model', 'value' => 'gpt-4-turbo', 'type' => 'string'],
-            ['key' => 'anthropic_model', 'value' => 'claude-3-sonnet', 'type' => 'string'],
-            ['key' => 'app_locale', 'value' => 'id', 'type' => 'string'],
-            ['key' => 'app_timezone', 'value' => 'Asia/Jakarta', 'type' => 'string'],
-        ];
-        
-        foreach ($settings as $setting) {
-            SystemSetting::updateOrCreate(
-                ['key' => $setting['key']],
-                $setting
-            );
-        }
-    }
+  public function run(): void
+  {
+  $settings = [
+  ['key' => 'ai_provider', 'value' => 'gemini', 'type' => 'string'],
+  ['key' => 'gemini_model', 'value' => 'gemini-pro', 'type' => 'string'],
+  ['key' => 'openai_model', 'value' => 'gpt-4-turbo', 'type' => 'string'],
+  ['key' => 'anthropic_model', 'value' => 'claude-3-sonnet', 'type' => 'string'],
+  ['key' => 'app_locale', 'value' => 'id', 'type' => 'string'],
+  ['key' => 'app_timezone', 'value' => 'Asia/Jakarta', 'type' => 'string'],
+  ];
+  
+  foreach ($settings as $setting) {
+  SystemSetting::updateOrCreate(
+  ['key' => $setting['key']],
+  $setting
+  );
+  }
+  }
 }
 ```

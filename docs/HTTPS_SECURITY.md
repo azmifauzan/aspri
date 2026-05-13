@@ -21,9 +21,9 @@ The `forceHttpsInProduction()` method automatically forces all URL generation to
 ```php
 protected function forceHttpsInProduction(): void
 {
-    if (app()->isProduction()) {
-        URL::forceScheme('https');
-    }
+  if (app()->isProduction()) {
+  URL::forceScheme('https');
+  }
 }
 ```
 
@@ -39,14 +39,14 @@ This ensures:
 When behind a reverse proxy (Nginx, Cloudflare, AWS ALB), the application needs to trust proxy headers to correctly detect HTTPS.
 
 ```php
-protected $proxies = '*';  // Trust all proxies
+protected $proxies = '*'; // Trust all proxies
 
 protected $headers =
-    Request::HEADER_X_FORWARDED_FOR |
-    Request::HEADER_X_FORWARDED_HOST |
-    Request::HEADER_X_FORWARDED_PORT |
-    Request::HEADER_X_FORWARDED_PROTO |
-    Request::HEADER_X_FORWARDED_AWS_ELB;
+  Request::HEADER_X_FORWARDED_FOR |
+  Request::HEADER_X_FORWARDED_HOST |
+  Request::HEADER_X_FORWARDED_PORT |
+  Request::HEADER_X_FORWARDED_PROTO |
+  Request::HEADER_X_FORWARDED_AWS_ELB;
 ```
 
 This middleware:
@@ -85,31 +85,31 @@ APP_DEBUG=false
 
 ```nginx
 server {
-    listen 443 ssl http2;
-    server_name aspriai.my.id;
+  listen 443 ssl http2;
+  server_name aspriai.my.id;
 
-    # SSL certificate configuration
-    ssl_certificate /path/to/certificate.crt;
-    ssl_certificate_key /path/to/private.key;
+  # SSL certificate configuration
+  ssl_certificate /path/to/certificate.crt;
+  ssl_certificate_key /path/to/private.key;
 
-    location / {
-        proxy_pass http://localhost:8000;
-        
-        # Important: Pass these headers to Laravel
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header X-Forwarded-Host $host;
-        proxy_set_header X-Forwarded-Port $server_port;
-    }
+  location / {
+  proxy_pass http://localhost:8000;
+  
+  # Important: Pass these headers to Laravel
+  proxy_set_header Host $host;
+  proxy_set_header X-Real-IP $remote_addr;
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_set_header X-Forwarded-Proto $scheme;
+  proxy_set_header X-Forwarded-Host $host;
+  proxy_set_header X-Forwarded-Port $server_port;
+  }
 }
 
 # Redirect HTTP to HTTPS
 server {
-    listen 80;
-    server_name aspriai.my.id;
-    return 301 https://$server_name$request_uri;
+  listen 80;
+  server_name aspriai.my.id;
+  return 301 https://$server_name$request_uri;
 }
 ```
 
@@ -117,28 +117,28 @@ server {
 
 ```apache
 <VirtualHost *:443>
-    ServerName aspriai.my.id
-    
-    # SSL Configuration
-    SSLEngine on
-    SSLCertificateFile /path/to/certificate.crt
-    SSLCertificateKeyFile /path/to/private.key
-    
-    # Proxy Configuration
-    ProxyPreserveHost On
-    
-    # Important: Pass these headers to Laravel
-    RequestHeader set X-Forwarded-Proto "https"
-    RequestHeader set X-Forwarded-Port "443"
-    
-    ProxyPass / http://localhost:8000/
-    ProxyPassReverse / http://localhost:8000/
+  ServerName aspriai.my.id
+  
+  # SSL Configuration
+  SSLEngine on
+  SSLCertificateFile /path/to/certificate.crt
+  SSLCertificateKeyFile /path/to/private.key
+  
+  # Proxy Configuration
+  ProxyPreserveHost On
+  
+  # Important: Pass these headers to Laravel
+  RequestHeader set X-Forwarded-Proto "https"
+  RequestHeader set X-Forwarded-Port "443"
+  
+  ProxyPass / http://localhost:8000/
+  ProxyPassReverse / http://localhost:8000/
 </VirtualHost>
 
 # Redirect HTTP to HTTPS
 <VirtualHost *:80>
-    ServerName aspriai.my.id
-    Redirect permanent / https://aspriai.my.id/
+  ServerName aspriai.my.id
+  Redirect permanent / https://aspriai.my.id/
 </VirtualHost>
 ```
 
@@ -147,48 +147,48 @@ server {
 ### Still Getting Mixed Content Errors?
 
 1. **Check `.env` file**:
-   ```bash
-   grep APP_URL .env
-   # Should output: APP_URL=https://yourdomain.com
-   ```
+  ```bash
+  grep APP_URL .env
+  # Should output: APP_URL=https://yourdomain.com
+  ```
 
 2. **Check APP_ENV**:
-   ```bash
-   grep APP_ENV .env
-   # Should output: APP_ENV=production
-   ```
+  ```bash
+  grep APP_ENV .env
+  # Should output: APP_ENV=production
+  ```
 
 3. **Clear cache**:
-   ```bash
-   php artisan config:clear
-   php artisan cache:clear
-   php artisan route:clear
-   php artisan view:clear
-   ```
+  ```bash
+  php artisan config:clear
+  php artisan cache:clear
+  php artisan route:clear
+  php artisan view:clear
+  ```
 
 4. **Check reverse proxy headers**:
-   
-   Add this to a controller temporarily:
-   ```php
-   dd([
-       'scheme' => request()->getScheme(),
-       'host' => request()->getHost(),
-       'url' => url('/'),
-       'asset' => asset('test'),
-       'headers' => request()->headers->all(),
-   ]);
-   ```
-   
-   Verify:
-   - `scheme` should be "https"
-   - `url` should start with "https://"
-   - `x-forwarded-proto` header should be ["https"]
+  
+  Add this to a controller temporarily:
+  ```php
+  dd([
+  'scheme' => request()->getScheme(),
+  'host' => request()->getHost(),
+  'url' => url('/'),
+  'asset' => asset('test'),
+  'headers' => request()->headers->all(),
+  ]);
+  ```
+  
+  Verify:
+  - `scheme` should be "https"
+  - `url` should start with "https://"
+  - `x-forwarded-proto` header should be ["https"]
 
 5. **Verify SSL certificate**:
-   ```bash
-   curl -I https://yourdomain.com
-   # Should return HTTP/2 200 or similar
-   ```
+  ```bash
+  curl -I https://yourdomain.com
+  # Should return HTTP/2 200 or similar
+  ```
 
 ### Cloudflare Users
 
@@ -214,9 +214,9 @@ php artisan tinker
 
 Then in tinker:
 ```php
-url('/');        // Should output: https://yourdomain.com
-route('login');  // Should output: https://yourdomain.com/login
-asset('css/app.css');  // Should output: https://yourdomain.com/css/app.css
+url('/'); // Should output: https://yourdomain.com
+route('login'); // Should output: https://yourdomain.com/login
+asset('css/app.css'); // Should output: https://yourdomain.com/css/app.css
 ```
 
 All should return HTTPS URLs in production.
@@ -226,9 +226,9 @@ All should return HTTPS URLs in production.
 1. **Always use HTTPS in production** - No exceptions
 2. **Redirect HTTP to HTTPS** at the reverse proxy level
 3. **Enable HSTS** (HTTP Strict Transport Security):
-   ```nginx
-   add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
-   ```
+  ```nginx
+  add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+  ```
 4. **Keep SSL certificates updated** - Use Let's Encrypt for free auto-renewal
 5. **Use strong SSL configuration** - Follow Mozilla's SSL Configuration Generator
 

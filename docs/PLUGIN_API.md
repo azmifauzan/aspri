@@ -24,18 +24,18 @@ GET /plugins
 ```json
 {
   "data": [
-    {
-      "id": 1,
-      "slug": "kata-motivasi",
-      "name": "Kata Motivasi",
-      "description": "Send motivational quotes daily",
-      "version": "1.0.0",
-      "author": "ASPRI Team",
-      "icon": "sparkles",
-      "is_active": true,
-      "is_user_activated": true,
-      "activated_at": "2026-02-01T10:00:00Z"
-    }
+  {
+  "id": 1,
+  "slug": "kata-motivasi",
+  "name": "Kata Motivasi",
+  "description": "Send motivational quotes daily",
+  "version": "1.0.0",
+  "author": "ASPRI Team",
+  "icon": "sparkles",
+  "is_active": true,
+  "is_user_activated": true,
+  "activated_at": "2026-02-01T10:00:00Z"
+  }
   ]
 }
 ```
@@ -53,26 +53,26 @@ GET /plugins/{slug}
 ```json
 {
   "data": {
-    "id": 1,
-    "slug": "kata-motivasi",
-    "name": "Kata Motivasi",
-    "description": "Send motivational quotes daily",
-    "version": "1.0.0",
-    "author": "ASPRI Team",
-    "icon": "sparkles",
-    "is_active": true,
-    "config_schema": {
-      "delivery_time": {
-        "type": "time",
-        "label": "Waktu Pengiriman",
-        "default": "07:00",
-        "required": true
-      }
-    },
-    "current_config": {
-      "delivery_time": "08:00",
-      "enabled": true
-    }
+  "id": 1,
+  "slug": "kata-motivasi",
+  "name": "Kata Motivasi",
+  "description": "Send motivational quotes daily",
+  "version": "1.0.0",
+  "author": "ASPRI Team",
+  "icon": "sparkles",
+  "is_active": true,
+  "config_schema": {
+  "delivery_time": {
+  "type": "time",
+  "label": "Waktu Pengiriman",
+  "default": "07:00",
+  "required": true
+  }
+  },
+  "current_config": {
+  "delivery_time": "08:00",
+  "enabled": true
+  }
   }
 }
 ```
@@ -91,8 +91,8 @@ POST /plugins/{slug}/activate
 {
   "message": "Plugin activated successfully",
   "data": {
-    "is_active": true,
-    "activated_at": "2026-02-05T10:00:00Z"
+  "is_active": true,
+  "activated_at": "2026-02-05T10:00:00Z"
   }
 }
 ```
@@ -116,7 +116,7 @@ POST /plugins/{slug}/deactivate
 {
   "message": "Plugin deactivated successfully",
   "data": {
-    "is_active": false
+  "is_active": false
   }
 }
 ```
@@ -131,9 +131,9 @@ GET /plugins/{slug}/config
 ```json
 {
   "data": {
-    "delivery_time": "08:00",
-    "categories": ["general", "business"],
-    "enabled": true
+  "delivery_time": "08:00",
+  "categories": ["general", "business"],
+  "enabled": true
   }
 }
 ```
@@ -159,9 +159,9 @@ PUT /plugins/{slug}/config
 {
   "message": "Configuration updated successfully",
   "data": {
-    "delivery_time": "09:00",
-    "categories": ["health", "productivity"],
-    "enabled": true
+  "delivery_time": "09:00",
+  "categories": ["health", "productivity"],
+  "enabled": true
   }
 }
 ```
@@ -181,9 +181,9 @@ DELETE /plugins/{slug}/config
 {
   "message": "Configuration reset to defaults",
   "data": {
-    "delivery_time": "07:00",
-    "categories": ["general"],
-    "enabled": true
+  "delivery_time": "07:00",
+  "categories": ["general"],
+  "enabled": true
   }
 }
 ```
@@ -203,21 +203,21 @@ GET /plugins/{slug}/logs
 ```json
 {
   "data": [
-    {
-      "id": 1,
-      "level": "info",
-      "message": "Quote sent successfully",
-      "context": {
-        "quote_id": 42,
-        "delivery_method": "telegram"
-      },
-      "created_at": "2026-02-05T08:00:00Z"
-    }
+  {
+  "id": 1,
+  "level": "info",
+  "message": "Quote sent successfully",
+  "context": {
+  "quote_id": 42,
+  "delivery_method": "telegram"
+  },
+  "created_at": "2026-02-05T08:00:00Z"
+  }
   ],
   "meta": {
-    "current_page": 1,
-    "per_page": 20,
-    "total": 150
+  "current_page": 1,
+  "per_page": 20,
+  "total": 150
   }
 }
 ```
@@ -232,14 +232,14 @@ GET /plugins/{slug}/schedules
 ```json
 {
   "data": [
-    {
-      "id": 1,
-      "schedule_type": "daily",
-      "schedule_value": "08:00",
-      "last_run_at": "2026-02-05T08:00:00Z",
-      "next_run_at": "2026-02-06T08:00:00Z",
-      "is_active": true
-    }
+  {
+  "id": 1,
+  "schedule_type": "daily",
+  "schedule_value": "08:00",
+  "last_run_at": "2026-02-05T08:00:00Z",
+  "next_run_at": "2026-02-06T08:00:00Z",
+  "is_active": true
+  }
   ]
 }
 ```
@@ -255,7 +255,7 @@ Returns the display name of the plugin.
 ```php
 public function getName(): string
 {
-    return 'My Awesome Plugin';
+  return 'My Awesome Plugin';
 }
 ```
 
@@ -266,7 +266,7 @@ Returns the unique identifier (slug) for the plugin.
 ```php
 public function getSlug(): string
 {
-    return 'my-awesome-plugin';
+  return 'my-awesome-plugin';
 }
 ```
 
@@ -277,7 +277,7 @@ Returns a brief description of the plugin's functionality.
 ```php
 public function getDescription(): string
 {
-    return 'This plugin does amazing things!';
+  return 'This plugin does amazing things!';
 }
 ```
 
@@ -288,7 +288,7 @@ Returns the current version of the plugin (semantic versioning).
 ```php
 public function getVersion(): string
 {
-    return '1.2.3'; // MAJOR.MINOR.PATCH
+  return '1.2.3'; // MAJOR.MINOR.PATCH
 }
 ```
 
@@ -299,7 +299,7 @@ Returns the author's name or organization.
 ```php
 public function getAuthor(): string
 {
-    return 'ASPRI Team';
+  return 'ASPRI Team';
 }
 ```
 
@@ -310,7 +310,7 @@ Returns the Heroicon name to use as plugin icon.
 ```php
 public function getIcon(): string
 {
-    return 'sparkles'; // Any Heroicon name
+  return 'sparkles'; // Any Heroicon name
 }
 ```
 
@@ -323,9 +323,9 @@ Called once when plugin is installed (seeded to database).
 ```php
 public function install(): void
 {
-    // Seed default data
-    // Create necessary database records
-    // One-time setup tasks
+  // Seed default data
+  // Create necessary database records
+  // One-time setup tasks
 }
 ```
 
@@ -336,9 +336,9 @@ Called when plugin is removed from the system (admin only).
 ```php
 public function uninstall(): void
 {
-    // Clean up plugin data
-    // Remove schedules
-    // Remove configurations (optional)
+  // Clean up plugin data
+  // Remove schedules
+  // Remove configurations (optional)
 }
 ```
 
@@ -349,16 +349,16 @@ Called when a user activates the plugin for their account.
 ```php
 public function activate(): void
 {
-    $user = auth()->user();
-    
-    // Create user-specific schedules
-    $this->createSchedule($user->id, [
-        'schedule_type' => 'daily',
-        'schedule_value' => '09:00',
-    ]);
-    
-    // Initialize user configuration
-    // Send welcome message
+  $user = auth()->user();
+  
+  // Create user-specific schedules
+  $this->createSchedule($user->id, [
+  'schedule_type' => 'daily',
+  'schedule_value' => '09:00',
+  ]);
+  
+  // Initialize user configuration
+  // Send welcome message
 }
 ```
 
@@ -369,13 +369,13 @@ Called when a user deactivates the plugin.
 ```php
 public function deactivate(): void
 {
-    $user = auth()->user();
-    
-    // Cancel schedules
-    $this->deleteSchedules($user->id);
-    
-    // Keep configuration for potential reactivation
-    // Send goodbye message (optional)
+  $user = auth()->user();
+  
+  // Cancel schedules
+  $this->deleteSchedules($user->id);
+  
+  // Keep configuration for potential reactivation
+  // Send goodbye message (optional)
 }
 ```
 
@@ -388,21 +388,21 @@ Returns the configuration schema defining available settings.
 ```php
 public function getConfigSchema(): array
 {
-    return [
-        'field_name' => [
-            'type' => 'text|textarea|number|boolean|select|multiselect|time|date|color',
-            'label' => 'Field Label',
-            'placeholder' => 'Placeholder text',
-            'default' => 'default_value',
-            'required' => true|false,
-            'options' => [], // For select/multiselect
-            'min' => 0, // For number
-            'max' => 100, // For number
-            'step' => 1, // For number
-            'rows' => 5, // For textarea
-            'condition' => 'other_field === true', // Conditional display
-        ],
-    ];
+  return [
+  'field_name' => [
+  'type' => 'text|textarea|number|boolean|select|multiselect|time|date|color',
+  'label' => 'Field Label',
+  'placeholder' => 'Placeholder text',
+  'default' => 'default_value',
+  'required' => true|false,
+  'options' => [], // For select/multiselect
+  'min' => 0, // For number
+  'max' => 100, // For number
+  'step' => 1, // For number
+  'rows' => 5, // For textarea
+  'condition' => 'other_field === true', // Conditional display
+  ],
+  ];
 }
 ```
 
@@ -413,11 +413,11 @@ Returns the default configuration values.
 ```php
 public function getDefaultConfig(): array
 {
-    return [
-        'enabled' => true,
-        'frequency' => 'daily',
-        'time' => '09:00',
-    ];
+  return [
+  'enabled' => true,
+  'frequency' => 'daily',
+  'time' => '09:00',
+  ];
 }
 ```
 
@@ -428,22 +428,22 @@ Validates configuration before saving.
 ```php
 public function validateConfig(array $config): bool
 {
-    // Check required fields
-    if (!isset($config['time'])) {
-        return false;
-    }
-    
-    // Validate format
-    if (!preg_match('/^\d{2}:\d{2}$/', $config['time'])) {
-        return false;
-    }
-    
-    // Custom business logic
-    if (isset($config['max_count']) && $config['max_count'] < 1) {
-        return false;
-    }
-    
-    return true;
+  // Check required fields
+  if (!isset($config['time'])) {
+  return false;
+  }
+  
+  // Validate format
+  if (!preg_match('/^\d{2}:\d{2}$/', $config['time'])) {
+  return false;
+  }
+  
+  // Custom business logic
+  if (isset($config['max_count']) && $config['max_count'] < 1) {
+  return false;
+  }
+  
+  return true;
 }
 ```
 
@@ -456,23 +456,23 @@ Called by the scheduler when a scheduled task should run.
 ```php
 public function execute(int $userId, array $metadata): void
 {
-    try {
-        $user = User::find($userId);
-        $config = $this->getConfig($userId);
-        
-        // Perform scheduled task
-        $this->doSomething($user, $config, $metadata);
-        
-        // Log success
-        $this->log($userId, 'info', 'Task completed successfully');
-        
-    } catch (\Exception $e) {
-        // Log error
-        $this->log($userId, 'error', 'Task failed: ' . $e->getMessage(), [
-            'exception' => get_class($e),
-            'trace' => $e->getTraceAsString(),
-        ]);
-    }
+  try {
+  $user = User::find($userId);
+  $config = $this->getConfig($userId);
+  
+  // Perform scheduled task
+  $this->doSomething($user, $config, $metadata);
+  
+  // Log success
+  $this->log($userId, 'info', 'Task completed successfully');
+  
+  } catch (\Exception $e) {
+  // Log error
+  $this->log($userId, 'error', 'Task failed: ' . $e->getMessage(), [
+  'exception' => get_class($e),
+  'trace' => $e->getTraceAsString(),
+  ]);
+  }
 }
 ```
 
@@ -493,8 +493,8 @@ Update configuration for a user.
 
 ```php
 $this->updateConfig($userId, [
-    'time' => '10:00',
-    'enabled' => false,
+  'time' => '10:00',
+  'enabled' => false,
 ]);
 ```
 
@@ -504,11 +504,11 @@ Create a new schedule for this plugin.
 
 ```php
 $this->createSchedule($userId, [
-    'schedule_type' => 'daily', // daily|interval|cron|weekly
-    'schedule_value' => '09:00', // Time or cron expression
-    'metadata' => [
-        'custom_field' => 'value',
-    ],
+  'schedule_type' => 'daily', // daily|interval|cron|weekly
+  'schedule_value' => '09:00', // Time or cron expression
+  'metadata' => [
+  'custom_field' => 'value',
+  ],
 ]);
 ```
 
@@ -526,8 +526,8 @@ Log plugin activity.
 
 ```php
 $this->log($userId, 'info', 'Operation completed', [
-    'duration_ms' => 123,
-    'items_processed' => 5,
+  'duration_ms' => 123,
+  'items_processed' => 5,
 ]);
 ```
 
@@ -550,7 +550,7 @@ $manager = app(PluginManager::class);
 $plugins = $manager->loadPlugins();
 
 foreach ($plugins as $plugin) {
-    echo $plugin->getName();
+  echo $plugin->getName();
 }
 ```
 
@@ -562,7 +562,7 @@ Get a specific plugin by slug.
 $plugin = $manager->getPlugin('kata-motivasi');
 
 if ($plugin) {
-    echo $plugin->getDescription();
+  echo $plugin->getDescription();
 }
 ```
 
@@ -588,7 +588,7 @@ Check if a plugin is active for a user.
 
 ```php
 if ($manager->isPluginActive('kata-motivasi', $userId)) {
-    // Plugin is active
+  // Plugin is active
 }
 ```
 
@@ -618,23 +618,23 @@ use App\Models\PluginConfiguration;
 
 // Get configuration
 $config = PluginConfiguration::where('plugin_id', $pluginId)
-    ->where('user_id', $userId)
-    ->where('config_key', 'time')
-    ->first();
+  ->where('user_id', $userId)
+  ->where('config_key', 'time')
+  ->first();
 
 // Value is JSON encoded
 $value = json_decode($config->config_value);
 
 // Set configuration
 PluginConfiguration::updateOrCreate(
-    [
-        'plugin_id' => $pluginId,
-        'user_id' => $userId,
-        'config_key' => 'time',
-    ],
-    [
-        'config_value' => json_encode('09:00'),
-    ]
+  [
+  'plugin_id' => $pluginId,
+  'user_id' => $userId,
+  'config_key' => 'time',
+  ],
+  [
+  'config_value' => json_encode('09:00'),
+  ]
 );
 ```
 
@@ -647,24 +647,24 @@ use App\Models\PluginSchedule;
 
 // Create schedule
 PluginSchedule::create([
-    'plugin_id' => $pluginId,
-    'user_id' => $userId,
-    'schedule_type' => 'daily',
-    'schedule_value' => '09:00',
-    'next_run_at' => now()->addDay()->setTime(9, 0),
-    'is_active' => true,
-    'metadata' => json_encode(['key' => 'value']),
+  'plugin_id' => $pluginId,
+  'user_id' => $userId,
+  'schedule_type' => 'daily',
+  'schedule_value' => '09:00',
+  'next_run_at' => now()->addDay()->setTime(9, 0),
+  'is_active' => true,
+  'metadata' => json_encode(['key' => 'value']),
 ]);
 
 // Get pending schedules
 $pending = PluginSchedule::where('next_run_at', '<=', now())
-    ->where('is_active', true)
-    ->get();
+  ->where('is_active', true)
+  ->get();
 
 // Update after execution
 $schedule->update([
-    'last_run_at' => now(),
-    'next_run_at' => $this->calculateNextRun($schedule),
+  'last_run_at' => now(),
+  'next_run_at' => $this->calculateNextRun($schedule),
 ]);
 ```
 
@@ -686,19 +686,19 @@ use App\Models\PluginLog;
 
 // Create log
 PluginLog::create([
-    'plugin_id' => $pluginId,
-    'user_id' => $userId,
-    'level' => 'info',
-    'message' => 'Operation completed',
-    'context' => json_encode(['duration' => 123]),
+  'plugin_id' => $pluginId,
+  'user_id' => $userId,
+  'level' => 'info',
+  'message' => 'Operation completed',
+  'context' => json_encode(['duration' => 123]),
 ]);
 
 // Query logs
 $logs = PluginLog::where('plugin_id', $pluginId)
-    ->where('user_id', $userId)
-    ->where('level', 'error')
-    ->orderBy('created_at', 'desc')
-    ->get();
+  ->where('user_id', $userId)
+  ->where('level', 'error')
+  ->orderBy('created_at', 'desc')
+  ->get();
 
 // Get recent logs
 $recentLogs = PluginLog::recent($pluginId, $userId, 10);
@@ -779,10 +779,10 @@ Fired when a plugin is activated.
 use App\Events\PluginActivated;
 
 Event::listen(PluginActivated::class, function ($event) {
-    $userId = $event->userId;
-    $plugin = $event->plugin;
-    
-    // Do something
+  $userId = $event->userId;
+  $plugin = $event->plugin;
+  
+  // Do something
 });
 ```
 
@@ -794,10 +794,10 @@ Fired when a plugin is deactivated.
 use App\Events\PluginDeactivated;
 
 Event::listen(PluginDeactivated::class, function ($event) {
-    $userId = $event->userId;
-    $plugin = $event->plugin;
-    
-    // Do something
+  $userId = $event->userId;
+  $plugin = $event->plugin;
+  
+  // Do something
 });
 ```
 
@@ -809,11 +809,11 @@ Fired when plugin configuration is updated.
 use App\Events\PluginConfigUpdated;
 
 Event::listen(PluginConfigUpdated::class, function ($event) {
-    $userId = $event->userId;
-    $plugin = $event->plugin;
-    $config = $event->config;
-    
-    // Do something
+  $userId = $event->userId;
+  $plugin = $event->plugin;
+  $config = $event->config;
+  
+  // Do something
 });
 ```
 

@@ -20,9 +20,9 @@ Refactor ASPRI dari arsitektur lama (Python/React dan rencana Java/Angular) ke L
 | Setup Tailwind theme (colors, dark mode) | Medium | 3 jam |
 
 **Deliverables**:
-- ✅ Working authentication (register/login/logout)
-- ✅ Dashboard layout matching mockup
-- ✅ Database schema untuk profiles
+- [x] Working authentication (register/login/logout)
+- [x] Dashboard layout matching mockup
+- [x] Database schema untuk profiles
 
 ---
 
@@ -42,9 +42,9 @@ Refactor ASPRI dari arsitektur lama (Python/React dan rencana Java/Angular) ke L
 | Create SettingsService | High | 3 jam |
 
 **Deliverables**:
-- ✅ Admin dashboard with user stats
-- ✅ AI provider configuration (Gemini default)
-- ✅ User management CRUD
+- [x] Admin dashboard with user stats
+- [x] AI provider configuration (Gemini default)
+- [x] User management CRUD
 
 ---
 
@@ -65,9 +65,9 @@ Refactor ASPRI dari arsitektur lama (Python/React dan rencana Java/Angular) ke L
 | Dashboard finance widgets | Medium | 3 jam |
 
 **Deliverables**:
-- ✅ Full finance CRUD
-- ✅ Category and account management
-- ✅ Dashboard widgets showing monthly total
+- [x] Full finance CRUD
+- [x] Category and account management
+- [x] Dashboard widgets showing monthly total
 
 ---
 
@@ -87,9 +87,9 @@ Refactor ASPRI dari arsitektur lama (Python/React dan rencana Java/Angular) ke L
 | Dashboard schedule widgets | Medium | 3 jam |
 
 **Deliverables**:
-- ✅ Calendar view dengan events
-- ✅ Event CRUD functionality
-- ✅ Reminder system (in-app)
+- [x] Calendar view dengan events
+- [x] Event CRUD functionality
+- [x] Reminder system (in-app)
 
 ---
 
@@ -109,9 +109,9 @@ Refactor ASPRI dari arsitektur lama (Python/React dan rencana Java/Angular) ke L
 | Implement backlinks | Low | 6 jam |
 
 **Deliverables**:
-- ✅ Notes CRUD
-- ✅ Block-based editor
-- ✅ Tags and search
+- [x] Notes CRUD
+- [x] Block-based editor
+- [x] Tags and search
 
 ---
 
@@ -132,9 +132,9 @@ Refactor ASPRI dari arsitektur lama (Python/React dan rencana Java/Angular) ke L
 | Create user persona system | Medium | 3 jam |
 
 **Deliverables**:
-- ✅ Web chat interface
-- ✅ AI-powered responses
-- ✅ Natural language command processing
+- [x] Web chat interface
+- [x] AI-powered responses
+- [x] Natural language command processing
 
 ---
 
@@ -153,9 +153,9 @@ Refactor ASPRI dari arsitektur lama (Python/React dan rencana Java/Angular) ke L
 | Test full flow | High | 4 jam |
 
 **Deliverables**:
-- ✅ Working Telegram bot
-- ✅ Account linking
-- ✅ Full chat capabilities via Telegram
+- [x] Working Telegram bot
+- [x] Account linking
+- [x] Full chat capabilities via Telegram
 
 ---
 
@@ -172,9 +172,9 @@ Refactor ASPRI dari arsitektur lama (Python/React dan rencana Java/Angular) ke L
 | Testing & bug fixes | High | 8 jam |
 
 **Deliverables**:
-- ✅ Production-ready application
-- ✅ Complete documentation
-- ✅ All tests passing
+- [x] Production-ready application
+- [x] Complete documentation
+- [x] All tests passing
 
 ---
 
@@ -182,22 +182,22 @@ Refactor ASPRI dari arsitektur lama (Python/React dan rencana Java/Angular) ke L
 
 ```mermaid
 gantt
-    title ASPRI Development Timeline
-    dateFormat  YYYY-MM-DD
-    section Foundation
-    Setup & Auth       :2026-01-27, 2w
-    section Finance
-    Finance Module     :2026-02-10, 2w
-    section Schedule
-    Schedule Module    :2026-02-24, 2w
-    section Notes
-    Notes Module       :2026-03-10, 2w
-    section AI Chat
-    Chat & AI         :2026-03-24, 3w
-    section Telegram
-    Telegram Bot      :2026-04-14, 2w
-    section Polish
-    Polish & Testing  :2026-04-28, 1w
+  title ASPRI Development Timeline
+  dateFormat YYYY-MM-DD
+  section Foundation
+  Setup & Auth :done, 2026-01-27, 2w
+  section Finance
+  Finance Module :done, 2026-02-10, 2w
+  section Schedule
+  Schedule Module :done, 2026-02-24, 2w
+  section Notes
+  Notes Module :done, 2026-03-10, 2w
+  section AI Chat
+  Chat & AI :done, 2026-03-24, 3w
+  section Telegram
+  Telegram Bot :done, 2026-04-14, 2w
+  section Polish
+  Polish & Testing :done, 2026-04-28, 1w
 ```
 
 ## Technical Decisions
@@ -225,10 +225,10 @@ gantt
 
 ## Success Metrics
 
-- [ ] User dapat register dan login
-- [ ] Dashboard menampilkan summary keuangan dan jadwal
-- [ ] User dapat mencatat transaksi via web dan chat
-- [ ] User dapat membuat event dan menerima reminder
-- [ ] User dapat menulis dan mencari notes
-- [ ] Telegram bot berfungsi penuh
-- [ ] Response time chat < 3 detik
+- [x] User dapat register dan login
+- [x] Dashboard menampilkan summary keuangan dan jadwal
+- [x] User dapat mencatat transaksi via web dan chat
+- [x] User dapat membuat event dan menerima reminder
+- [x] User dapat menulis dan mencari notes
+- [x] Telegram bot berfungsi penuh
+- [x] Response time chat < 3 detik

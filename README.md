@@ -2,19 +2,19 @@
 
 **ASPRI** adalah aplikasi asisten pribadi cerdas yang dirancang untuk membantu pengelolaan jadwal, keuangan, dan catatan harian Anda melalui interaksi percakapan natural dengan AI.
 
-## ✨ Fitur Utama
+## Fitur Utama
 
-- 🤖 **Asisten Pribadi Cerdas** - Mengelola jadwal, keuangan, dan notes melalui percakapan natural
-- 💬 **Chat-First Experience** - Semua fitur dapat diakses lewat percakapan dengan AI
-- 👤 **Persona Kustom Per User** - Asisten mengikuti preferensi panggilan dan gaya komunikasi Anda
-- 📱 **Integrasi Telegram** - Catat pengeluaran, buat note, atau cek jadwal langsung dari Telegram
-- 📊 **Dashboard Interaktif** - Visualisasi data keuangan dan jadwal dalam satu tampilan
-- 🎁 **Plugin System** - Extend fungsionalitas asisten dengan plugin-plugin powerful
-- 💳 **Subscription System** - Fitur premium dengan layanan berlangganan
-- 🎟️ **Promo Code System** - Kode promo untuk memperpanjang masa berlaku membership
-- 👥 **Admin Panel** - Manajemen user, plugin, jadwal, dan monitoring sistem lengkap
+- **Asisten Pribadi Cerdas** - Mengelola jadwal, keuangan, dan notes melalui percakapan natural
+- **Chat-First Experience** - Semua fitur dapat diakses lewat percakapan dengan AI
+- **Persona Kustom Per User** - Asisten mengikuti preferensi panggilan dan gaya komunikasi Anda
+- **Integrasi Telegram** - Catat pengeluaran, buat note, atau cek jadwal langsung dari Telegram
+- **Dashboard Interaktif** - Visualisasi data keuangan dan jadwal dalam satu tampilan
+- **Plugin System** - Extend fungsionalitas asisten dengan plugin-plugin powerful
+- **Subscription System** - Fitur premium dengan layanan berlangganan
+- **Promo Code System** - Kode promo untuk memperpanjang masa berlaku membership
+- **Admin Panel** - Manajemen user, plugin, jadwal, dan monitoring sistem lengkap
 
-## 🎯 Modul Utama
+## Modul Utama
 
 | Modul | Deskripsi |
 |-------|-----------|
@@ -23,12 +23,12 @@
 | **Notes** | Penyimpanan catatan dengan block-based content editor |
 | **Schedule** | Manajemen kalender, event, dan reminder otomatis |
 | **Finance** | Pencatatan transaksi, kategori, akun, budgeting, dan laporan |
-| **Plugins** | 🎁 Sistem plugin untuk memperluas fitur asisten (motivasi, pengingat, dll) |
-| **Subscription** | 💳 Upload bukti pembayaran dan aktivasi fitur premium |
-| **Promo Codes** | 🎟️ Kode promo untuk memperpanjang membership (admin generate, user redeem) |
-| **Admin Panel** | 👥 User management, payment approval, activity logs, dan monitoring |
+| **Plugins** | Sistem plugin untuk memperluas fitur asisten (motivasi, pengingat, dll) |
+| **Subscription** | Upload bukti pembayaran dan aktivasi fitur premium |
+| **Promo Codes** | Kode promo untuk memperpanjang membership (admin generate, user redeem) |
+| **Admin Panel** | User management, payment approval, activity logs, dan monitoring |
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **Backend**: Laravel 12 (PHP 8.4)
 - **Frontend**: Vue 3 + Inertia.js v2 + TypeScript
@@ -41,7 +41,7 @@
 - **Email**: SMTP / Mailgun / SendGrid support
 - **Icons**: Lucide Icons
 
-## 📋 Prerequisites
+## Prerequisites
 
 - PHP 8.4+ (with extensions: mbstring, openssl, pdo, tokenizer, xml, ctype, json, bcmath, fileinfo)
 - Node.js 20+ (with npm)
@@ -50,7 +50,7 @@
 - Redis (optional, for queue and cache)
 - HTTPS/SSL certificate (untuk production)
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Installation
 
@@ -96,7 +96,7 @@ php artisan serve
 npm run dev
 ```
 
-## ⚙️ Configuration
+## Configuration
 
 ### Environment Variables
 
@@ -123,57 +123,57 @@ TELEGRAM_BOT_TOKEN=
 TELEGRAM_WEBHOOK_SECRET=
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 aspri/
 ├── app/
-│   ├── Actions/              # Fortify actions (registration, profile update, etc)
-│   ├── Http/
-│   │   ├── Controllers/      # Web & API controllers
-│   │   │   ├── Admin/        # Admin panel controllers
-│   │   │   ├── Api/          # API controllers  
-│   │   │   └── Settings/     # User settings controllers
-│   │   ├── Middleware/       # Custom middleware
-│   │   └── Requests/         # Form request validation
-│   ├── Models/               # Eloquent models
-│   ├── Services/             # Business logic services
-│   │   ├── Admin/            # Admin services
-│   │   ├── AI/               # AI provider integration
-│   │   ├── Chat/             # Chat intent parsing & response
-│   │   └── Telegram/         # Telegram bot handlers
-│   ├── Jobs/                 # Queue jobs (notifications, scheduled tasks)
-│   ├── Plugins/              # Built-in plugin classes
-│   ├── Policies/             # Authorization policies
-│   ├── Providers/            # Service providers
-│   └── Notifications/        # Email & Telegram notifications
+│ ├── Actions/ # Fortify actions (registration, profile update, etc)
+│ ├── Http/
+│ │ ├── Controllers/ # Web & API controllers
+│ │ │ ├── Admin/ # Admin panel controllers
+│ │ │ ├── Api/ # API controllers 
+│ │ │ └── Settings/ # User settings controllers
+│ │ ├── Middleware/ # Custom middleware
+│ │ └── Requests/ # Form request validation
+│ ├── Models/ # Eloquent models
+│ ├── Services/ # Business logic services
+│ │ ├── Admin/ # Admin services
+│ │ ├── AI/ # AI provider integration
+│ │ ├── Chat/ # Chat intent parsing & response
+│ │ └── Telegram/ # Telegram bot handlers
+│ ├── Jobs/ # Queue jobs (notifications, scheduled tasks)
+│ ├── Plugins/ # Built-in plugin classes
+│ ├── Policies/ # Authorization policies
+│ ├── Providers/ # Service providers
+│ └── Notifications/ # Email & Telegram notifications
 ├── resources/
-│   ├── js/
-│   │   ├── actions/          # Wayfinder generated functions
-│   │   ├── components/       # Vue components
-│   │   │   └── ui/           # Reusable UI components (Reka UI)
-│   │   ├── layouts/          # Page layouts
-│   │   ├── pages/            # Inertia pages (view layer)
-│   │   └── types/            # TypeScript type definitions
-│   ├── css/                  # Tailwind CSS & custom styles
-│   └── views/                # Blade templates (minimal, mostly for emails)
+│ ├── js/
+│ │ ├── actions/ # Wayfinder generated functions
+│ │ ├── components/ # Vue components
+│ │ │ └── ui/ # Reusable UI components (Reka UI)
+│ │ ├── layouts/ # Page layouts
+│ │ ├── pages/ # Inertia pages (view layer)
+│ │ └── types/ # TypeScript type definitions
+│ ├── css/ # Tailwind CSS & custom styles
+│ └── views/ # Blade templates (minimal, mostly for emails)
 ├── database/
-│   ├── factories/            # Model factories
-│   ├── migrations/           # Database migrations
-│   └── seeders/              # Database seeders (including plugins)
+│ ├── factories/ # Model factories
+│ ├── migrations/ # Database migrations
+│ └── seeders/ # Database seeders (including plugins)
 ├── routes/
-│   ├── web.php               # Web routes (main app)
-│   ├── api.php               # API routes (Telegram webhook, etc)
-│   ├── console.php           # Console routes (artisan commands)
-│   └── settings.php          # User settings routes
-├── docs/                     # Comprehensive documentation
+│ ├── web.php # Web routes (main app)
+│ ├── api.php # API routes (Telegram webhook, etc)
+│ ├── console.php # Console routes (artisan commands)
+│ └── settings.php # User settings routes
+├── docs/ # Comprehensive documentation
 ├── tests/
-│   ├── Feature/              # Feature tests (HTTP, integration)
-│   └── Unit/                 # Unit tests (isolated logic)
-└── public/                   # Public assets (compiled JS/CSS)
+│ ├── Feature/ # Feature tests (HTTP, integration)
+│ └── Unit/ # Unit tests (isolated logic)
+└── public/ # Public assets (compiled JS/CSS)
 ```
 
-## 📖 Documentation
+## Documentation
 
 Dokumentasi lengkap tersedia di folder `docs/`:
 
@@ -192,7 +192,7 @@ Dokumentasi lengkap tersedia di folder `docs/`:
 - [HTTPS Security](docs/HTTPS_SECURITY.md) - SSL/TLS configuration guide
 - [Admin Panel](docs/ADMIN.md) - Admin features dan management
 
-## 🎁 Plugin System
+## Plugin System
 
 ASPRI dilengkapi dengan sistem plugin yang memungkinkan Anda memperluas kemampuan asisten sesuai kebutuhan.
 
@@ -200,17 +200,17 @@ ASPRI dilengkapi dengan sistem plugin yang memungkinkan Anda memperluas kemampua
 
 | Plugin | Description | Status |
 |--------|-------------|--------|
-| 🎯 **Kata Motivasi** | Kirim quote motivasi harian via Telegram | ✅ Active |
-| 💧 **Pengingat Minum Air** | Reminder minum air secara berkala | ✅ Active |
-| 💰 **Expense Alert** | Notifikasi ketika budget hampir habis | ✅ Active |
+| **Kata Motivasi** | Kirim quote motivasi harian via Telegram | Active |
+| **Pengingat Minum Air** | Reminder minum air secara berkala | Active |
+| **Expense Alert** | Notifikasi ketika budget hampir habis | Active |
 
 ### Plugin Features
 
-- ⚙️ **Easy Configuration** - Configure melalui web UI yang intuitif
-- ⏰ **Scheduled Tasks** - Jalankan tugas otomatis sesuai jadwal
-- 📊 **Activity Logs** - Monitor aktivitas dan debugging plugin
-- 🔌 **Plug & Play** - Aktifkan/nonaktifkan kapan saja tanpa pengaruh ke core
-- 🛠️ **Developer Friendly** - API lengkap untuk membuat plugin sendiri
+- **Easy Configuration** - Configure melalui web UI yang intuitif
+- **Scheduled Tasks** - Jalankan tugas otomatis sesuai jadwal
+- **Activity Logs** - Monitor aktivitas dan debugging plugin
+- **Plug & Play** - Aktifkan/nonaktifkan kapan saja tanpa pengaruh ke core
+- **Developer Friendly** - API lengkap untuk membuat plugin sendiri
 
 ### Create Your Own Plugin
 
@@ -224,7 +224,7 @@ php artisan db:seed --class=PluginSeeder
 
 Lihat [Plugin Development Guide](docs/PLUGIN_DEVELOPMENT_GUIDE.md) untuk panduan lengkap.
 
-## 🧪 Testing
+## Testing
 
 ```bash
 # Run all tests
@@ -237,7 +237,7 @@ php artisan test --filter=FinanceTest
 php artisan test --coverage
 ```
 
-## 🔧 Development
+## Development
 
 ```bash
 # Start development server (Laravel + Vite + Queue)
@@ -253,7 +253,7 @@ npm run format
 npm run lint
 ```
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork repository
 2. Create feature branch (`git checkout -b feature/amazing-feature`)
@@ -261,11 +261,11 @@ npm run lint
 4. Push to branch (`git push origin feature/amazing-feature`)
 5. Open Pull Request
 
-## 📝 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - [Laravel](https://laravel.com)
 - [Vue.js](https://vuejs.org)
@@ -275,4 +275,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**ASPRI** - Siap Mengatur Hidup Lebih Baik? 🚀
+**ASPRI** - Siap Mengatur Hidup Lebih Baik? 

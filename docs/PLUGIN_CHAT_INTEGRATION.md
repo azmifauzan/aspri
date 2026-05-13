@@ -23,7 +23,7 @@ Tell the system your plugin supports chat integration:
 ```php
 public function supportsChatIntegration(): bool
 {
-    return true;
+  return true;
 }
 ```
 
@@ -34,22 +34,22 @@ Define what intents your plugin can handle:
 ```php
 public function getChatIntents(): array
 {
-    return [
-        [
-            'action' => 'plugin_yourplugin_actionname',
-            'description' => 'Clear description of what this does',
-            'entities' => [
-                'entity_name' => 'type|null',
-                // ... more entities
-            ],
-            'examples' => [
-                'example user message 1',
-                'example user message 2',
-                // ... more examples
-            ],
-        ],
-        // ... more intents
-    ];
+  return [
+  [
+  'action' => 'plugin_yourplugin_actionname',
+  'description' => 'Clear description of what this does',
+  'entities' => [
+  'entity_name' => 'type|null',
+  // ... more entities
+  ],
+  'examples' => [
+  'example user message 1',
+  'example user message 2',
+  // ... more examples
+  ],
+  ],
+  // ... more intents
+  ];
 }
 ```
 
@@ -60,29 +60,29 @@ Handle the intent execution:
 ```php
 public function handleChatIntent(int $userId, string $action, array $entities): array
 {
-    // Validate action
-    if ($action !== 'plugin_yourplugin_actionname') {
-        return [
-            'success' => false,
-            'message' => 'Action not supported',
-        ];
-    }
+  // Validate action
+  if ($action !== 'plugin_yourplugin_actionname') {
+  return [
+  'success' => false,
+  'message' => 'Action not supported',
+  ];
+  }
 
-    try {
-        // Process request
-        $result = $this->processAction($userId, $entities);
-        
-        return [
-            'success' => true,
-            'message' => 'Your formatted response',
-            'data' => $result, // optional
-        ];
-    } catch (\Exception $e) {
-        return [
-            'success' => false,
-            'message' => 'User-friendly error message',
-        ];
-    }
+  try {
+  // Process request
+  $result = $this->processAction($userId, $entities);
+  
+  return [
+  'success' => true,
+  'message' => 'Your formatted response',
+  'data' => $result, // optional
+  ];
+  } catch (\Exception $e) {
+  return [
+  'success' => false,
+  'message' => 'User-friendly error message',
+  ];
+  }
 }
 ```
 
@@ -125,10 +125,10 @@ Dictionary of parameters your plugin expects from the user's message.
 **Example:**
 ```php
 'entities' => [
-    'amount' => 'number|null',       // Optional amount
-    'from' => 'string|null',          // Optional source
-    'to' => 'string',                 // Required target
-    'date' => 'string|null',          // Optional date
+  'amount' => 'number|null', // Optional amount
+  'from' => 'string|null', // Optional source
+  'to' => 'string', // Required target
+  'date' => 'string|null', // Optional date
 ]
 ```
 
@@ -143,11 +143,11 @@ Array of sample user messages that should trigger this intent. Include variation
 **Example:**
 ```php
 'examples' => [
-    'convert 100 USD to EUR',
-    'berapa kurs IDR ke USD sekarang',
-    'how much is 50 dollar in rupiah',
-    '1000 rupiah ke dolar',
-    'kurs SGD hari ini',
+  'convert 100 USD to EUR',
+  'berapa kurs IDR ke USD sekarang',
+  'how much is 50 dollar in rupiah',
+  '1000 rupiah ke dolar',
+  'kurs SGD hari ini',
 ]
 ```
 
@@ -163,138 +163,138 @@ use Illuminate\Support\Facades\Http;
 
 class CurrencyConverterPlugin extends BasePlugin
 {
-    public function getName(): string
-    {
-        return 'Currency Converter';
-    }
+  public function getName(): string
+  {
+  return 'Currency Converter';
+  }
 
-    public function getSlug(): string
-    {
-        return 'currency-converter';
-    }
+  public function getSlug(): string
+  {
+  return 'currency-converter';
+  }
 
-    public function getDescription(): string
-    {
-        return 'Convert currencies with realtime exchange rates';
-    }
+  public function getDescription(): string
+  {
+  return 'Convert currencies with realtime exchange rates';
+  }
 
-    public function getVersion(): string
-    {
-        return '1.0.0';
-    }
+  public function getVersion(): string
+  {
+  return '1.0.0';
+  }
 
-    public function getIcon(): string
-    {
-        return 'banknote';
-    }
+  public function getIcon(): string
+  {
+  return 'banknote';
+  }
 
-    public function supportsChatIntegration(): bool
-    {
-        return true;
-    }
+  public function supportsChatIntegration(): bool
+  {
+  return true;
+  }
 
-    public function getChatIntents(): array
-    {
-        return [
-            [
-                'action' => 'plugin_currency_convert',
-                'description' => 'Convert currency from one type to another',
-                'entities' => [
-                    'amount' => 'number|null',
-                    'from' => 'string|null',
-                    'to' => 'string|null',
-                ],
-                'examples' => [
-                    'berapa kurs IDR ke USD sekarang',
-                    'convert 100 dollar to rupiah',
-                    '1000 rupiah ke dolar',
-                    'berapa nilai 50 euro dalam yen',
-                    'kurs SGD hari ini',
-                    'how much is 500 USD in EUR',
-                ],
-            ],
-        ];
-    }
+  public function getChatIntents(): array
+  {
+  return [
+  [
+  'action' => 'plugin_currency_convert',
+  'description' => 'Convert currency from one type to another',
+  'entities' => [
+  'amount' => 'number|null',
+  'from' => 'string|null',
+  'to' => 'string|null',
+  ],
+  'examples' => [
+  'berapa kurs IDR ke USD sekarang',
+  'convert 100 dollar to rupiah',
+  '1000 rupiah ke dolar',
+  'berapa nilai 50 euro dalam yen',
+  'kurs SGD hari ini',
+  'how much is 500 USD in EUR',
+  ],
+  ],
+  ];
+  }
 
-    public function handleChatIntent(int $userId, string $action, array $entities): array
-    {
-        if ($action !== 'plugin_currency_convert') {
-            return [
-                'success' => false,
-                'message' => 'Action not supported',
-            ];
-        }
+  public function handleChatIntent(int $userId, string $action, array $entities): array
+  {
+  if ($action !== 'plugin_currency_convert') {
+  return [
+  'success' => false,
+  'message' => 'Action not supported',
+  ];
+  }
 
-        // Get user's configuration
-        $config = $this->getUserConfig($userId);
-        
-        // Extract entities with defaults
-        $amount = $entities['amount'] ?? 1;
-        $from = strtoupper($entities['from'] ?? $config['base_currency'] ?? 'IDR');
-        $to = strtoupper($entities['to'] ?? 'USD');
+  // Get user's configuration
+  $config = $this->getUserConfig($userId);
+  
+  // Extract entities with defaults
+  $amount = $entities['amount'] ?? 1;
+  $from = strtoupper($entities['from'] ?? $config['base_currency'] ?? 'IDR');
+  $to = strtoupper($entities['to'] ?? 'USD');
 
-        // Perform conversion
-        try {
-            $response = Http::timeout(10)->get("https://api.exchangerate-api.com/v4/latest/{$from}");
-            
-            if (!$response->successful()) {
-                throw new \Exception('Failed to fetch exchange rates');
-            }
+  // Perform conversion
+  try {
+  $response = Http::timeout(10)->get("https://api.exchangerate-api.com/v4/latest/{$from}");
+  
+  if (!$response->successful()) {
+  throw new \Exception('Failed to fetch exchange rates');
+  }
 
-            $data = $response->json();
-            
-            if (!isset($data['rates'][$to])) {
-                return [
-                    'success' => false,
-                    'message' => "Mata uang {$to} tidak ditemukan.",
-                ];
-            }
+  $data = $response->json();
+  
+  if (!isset($data['rates'][$to])) {
+  return [
+  'success' => false,
+  'message' => "Mata uang {$to} tidak ditemukan.",
+  ];
+  }
 
-            $rate = $data['rates'][$to];
-            $result = $amount * $rate;
+  $rate = $data['rates'][$to];
+  $result = $amount * $rate;
 
-            // Log the action
-            $this->log($userId, 'info', "Converted {$amount} {$from} to {$result} {$to}");
+  // Log the action
+  $this->log($userId, 'info', "Converted {$amount} {$from} to {$result} {$to}");
 
-            // Format response
-            $message = sprintf(
-                "💱 **Konversi Mata Uang**\n\n" .
-                "%s %s = **%s %s**\n\n" .
-                "Nilai tukar: 1 %s = %s %s\n\n" .
-                "_Data realtime dari ExchangeRate-API_",
-                number_format($amount, 2, ',', '.'),
-                $from,
-                number_format($result, 2, ',', '.'),
-                $to,
-                $from,
-                number_format($rate, 4),
-                $to
-            );
+  // Format response
+  $message = sprintf(
+  " **Konversi Mata Uang**\n\n" .
+  "%s %s = **%s %s**\n\n" .
+  "Nilai tukar: 1 %s = %s %s\n\n" .
+  "_Data realtime dari ExchangeRate-API_",
+  number_format($amount, 2, ',', '.'),
+  $from,
+  number_format($result, 2, ',', '.'),
+  $to,
+  $from,
+  number_format($rate, 4),
+  $to
+  );
 
-            return [
-                'success' => true,
-                'message' => $message,
-                'data' => [
-                    'amount' => $amount,
-                    'from' => $from,
-                    'to' => $to,
-                    'rate' => $rate,
-                    'result' => round($result, 2),
-                ],
-            ];
-        } catch (\Exception $e) {
-            $this->log($userId, 'error', 'Conversion failed: ' . $e->getMessage());
-            
-            return [
-                'success' => false,
-                'message' => '❌ Maaf, gagal mengambil data kurs. Silakan coba lagi nanti.',
-            ];
-        }
-    }
+  return [
+  'success' => true,
+  'message' => $message,
+  'data' => [
+  'amount' => $amount,
+  'from' => $from,
+  'to' => $to,
+  'rate' => $rate,
+  'result' => round($result, 2),
+  ],
+  ];
+  } catch (\Exception $e) {
+  $this->log($userId, 'error', 'Conversion failed: ' . $e->getMessage());
+  
+  return [
+  'success' => false,
+  'message' => ' Maaf, gagal mengambil data kurs. Silakan coba lagi nanti.',
+  ];
+  }
+  }
 
-    // Other required methods...
-    public function getConfigSchema(): array { /* ... */ }
-    public function execute(int $userId, array $config, array $context = []): void { /* ... */ }
+  // Other required methods...
+  public function getConfigSchema(): array { /* ... */ }
+  public function execute(int $userId, array $config, array $context = []): void { /* ... */ }
 }
 ```
 
@@ -305,51 +305,51 @@ A plugin can support multiple chat intents:
 ```php
 public function getChatIntents(): array
 {
-    return [
-        [
-            'action' => 'plugin_weather_current',
-            'description' => 'Get current weather for a location',
-            'entities' => [
-                'location' => 'string',
-                'unit' => 'string|null',
-            ],
-            'examples' => [
-                'how is the weather in Jakarta',
-                'cuaca di Bandung sekarang',
-                'temperature in New York',
-            ],
-        ],
-        [
-            'action' => 'plugin_weather_forecast',
-            'description' => 'Get weather forecast for upcoming days',
-            'entities' => [
-                'location' => 'string',
-                'days' => 'number|null',
-            ],
-            'examples' => [
-                'weather forecast for tomorrow in Bali',
-                'prakiraan cuaca 3 hari ke depan di Surabaya',
-                '5 day forecast for Singapore',
-            ],
-        ],
-    ];
+  return [
+  [
+  'action' => 'plugin_weather_current',
+  'description' => 'Get current weather for a location',
+  'entities' => [
+  'location' => 'string',
+  'unit' => 'string|null',
+  ],
+  'examples' => [
+  'how is the weather in Jakarta',
+  'cuaca di Bandung sekarang',
+  'temperature in New York',
+  ],
+  ],
+  [
+  'action' => 'plugin_weather_forecast',
+  'description' => 'Get weather forecast for upcoming days',
+  'entities' => [
+  'location' => 'string',
+  'days' => 'number|null',
+  ],
+  'examples' => [
+  'weather forecast for tomorrow in Bali',
+  'prakiraan cuaca 3 hari ke depan di Surabaya',
+  '5 day forecast for Singapore',
+  ],
+  ],
+  ];
 }
 
 public function handleChatIntent(int $userId, string $action, array $entities): array
 {
-    switch ($action) {
-        case 'plugin_weather_current':
-            return $this->handleCurrentWeather($userId, $entities);
-            
-        case 'plugin_weather_forecast':
-            return $this->handleForecast($userId, $entities);
-            
-        default:
-            return [
-                'success' => false,
-                'message' => 'Unknown action',
-            ];
-    }
+  switch ($action) {
+  case 'plugin_weather_current':
+  return $this->handleCurrentWeather($userId, $entities);
+  
+  case 'plugin_weather_forecast':
+  return $this->handleForecast($userId, $entities);
+  
+  default:
+  return [
+  'success' => false,
+  'message' => 'Unknown action',
+  ];
+  }
 }
 ```
 
@@ -360,19 +360,19 @@ public function handleChatIntent(int $userId, string $action, array $entities): 
 ```php
 public function handleChatIntent(int $userId, string $action, array $entities): array
 {
-    // Check required entities
-    if (empty($entities['location'])) {
-        return [
-            'success' => false,
-            'message' => 'Mohon sebutkan lokasi yang ingin dicek cuacanya.',
-        ];
-    }
-    
-    // Provide defaults for optional entities
-    $unit = $entities['unit'] ?? 'celsius';
-    $days = $entities['days'] ?? 3;
-    
-    // Continue with processing...
+  // Check required entities
+  if (empty($entities['location'])) {
+  return [
+  'success' => false,
+  'message' => 'Mohon sebutkan lokasi yang ingin dicek cuacanya.',
+  ];
+  }
+  
+  // Provide defaults for optional entities
+  $unit = $entities['unit'] ?? 'celsius';
+  $days = $entities['days'] ?? 3;
+  
+  // Continue with processing...
 }
 ```
 
@@ -382,16 +382,16 @@ Use markdown formatting for better readability:
 
 ```php
 $message = sprintf(
-    "🌤 **Cuaca di %s**\n\n" .
-    "Suhu: %s°C\n" .
-    "Kondisi: %s\n" .
-    "Kelembaban: %s%%\n\n" .
-    "_Diperbarui: %s_",
-    $location,
-    $temp,
-    $condition,
-    $humidity,
-    now()->format('H:i')
+  " **Cuaca di %s**\n\n" .
+  "Suhu: %s°C\n" .
+  "Kondisi: %s\n" .
+  "Kelembaban: %s%%\n\n" .
+  "_Diperbarui: %s_",
+  $location,
+  $temp,
+  $condition,
+  $humidity,
+  now()->format('H:i')
 );
 ```
 
@@ -401,20 +401,20 @@ Never throw exceptions - return error responses:
 
 ```php
 try {
-    $result = $this->dangerousOperation();
-    
-    return [
-        'success' => true,
-        'message' => 'Success message',
-        'data' => $result,
-    ];
+  $result = $this->dangerousOperation();
+  
+  return [
+  'success' => true,
+  'message' => 'Success message',
+  'data' => $result,
+  ];
 } catch (\Exception $e) {
-    $this->log($userId, 'error', 'Operation failed: ' . $e->getMessage());
-    
-    return [
-        'success' => false,
-        'message' => 'Maaf, terjadi kesalahan. Silakan coba lagi nanti.',
-    ];
+  $this->log($userId, 'error', 'Operation failed: ' . $e->getMessage());
+  
+  return [
+  'success' => false,
+  'message' => 'Maaf, terjadi kesalahan. Silakan coba lagi nanti.',
+  ];
 }
 ```
 
@@ -424,15 +424,15 @@ Provide examples in both Indonesian and English:
 
 ```php
 'examples' => [
-    // Indonesian
-    'berapa cuaca di Jakarta',
-    'prakiraan cuaca hari ini',
-    'suhu berapa di Bandung',
-    
-    // English
-    'weather in Jakarta',
-    'today weather forecast',
-    'temperature in Bandung',
+  // Indonesian
+  'berapa cuaca di Jakarta',
+  'prakiraan cuaca hari ini',
+  'suhu berapa di Bandung',
+  
+  // English
+  'weather in Jakarta',
+  'today weather forecast',
+  'temperature in Bandung',
 ]
 ```
 
@@ -443,14 +443,14 @@ Respect user's plugin configuration:
 ```php
 public function handleChatIntent(int $userId, string $action, array $entities): array
 {
-    // Get user's configuration
-    $config = $this->getUserConfig($userId);
-    
-    // Use configured defaults
-    $from = $entities['from'] ?? $config['base_currency'];
-    $unit = $entities['unit'] ?? $config['default_unit'];
-    
-    // Process...
+  // Get user's configuration
+  $config = $this->getUserConfig($userId);
+  
+  // Use configured defaults
+  $from = $entities['from'] ?? $config['base_currency'];
+  $unit = $entities['unit'] ?? $config['default_unit'];
+  
+  // Process...
 }
 ```
 
@@ -461,15 +461,15 @@ Log all chat interactions for debugging:
 ```php
 // Log successful operations
 $this->log($userId, 'info', "Action executed", [
-    'action' => $action,
-    'entities' => $entities,
-    'result' => 'success',
+  'action' => $action,
+  'entities' => $entities,
+  'result' => 'success',
 ]);
 
 // Log errors
 $this->log($userId, 'error', "Action failed", [
-    'action' => $action,
-    'error' => $e->getMessage(),
+  'action' => $action,
+  'error' => $e->getMessage(),
 ]);
 ```
 
@@ -484,12 +484,12 @@ $this->log($userId, 'error', "Action failed", [
 ### 2. Test Different Scenarios
 
 ```
-✅ Test with all entities provided
-✅ Test with missing optional entities
-✅ Test with invalid entities
-✅ Test in Indonesian
-✅ Test in English
-✅ Test with different phrasings
+ Test with all entities provided
+ Test with missing optional entities
+ Test with invalid entities
+ Test in Indonesian
+ Test in English
+ Test with different phrasings
 ```
 
 ### 3. Debug Intent Parsing
@@ -499,14 +499,14 @@ Add logging in your handleChatIntent:
 ```php
 public function handleChatIntent(int $userId, string $action, array $entities): array
 {
-    Log::debug('Plugin chat intent received', [
-        'plugin' => $this->getSlug(),
-        'action' => $action,
-        'entities' => $entities,
-        'user_id' => $userId,
-    ]);
-    
-    // Your logic...
+  Log::debug('Plugin chat intent received', [
+  'plugin' => $this->getSlug(),
+  'action' => $action,
+  'entities' => $entities,
+  'user_id' => $userId,
+  ]);
+  
+  // Your logic...
 }
 ```
 
@@ -547,35 +547,35 @@ Use conversation history for context-aware responses:
 ```php
 public function handleChatIntent(int $userId, string $action, array $entities): array
 {
-    $user = User::find($userId);
-    
-    // Check user's recent interactions
-    $lastQuery = $user->chatMessages()
-        ->where('role', 'user')
-        ->latest()
-        ->first();
-    
-    // Provide context-aware response
-    if ($lastQuery && str_contains($lastQuery->content, 'cuaca')) {
-        $message = "Berikut update cuaca terbaru:\n\n" . $weatherData;
-    } else {
-        $message = "Cuaca saat ini:\n\n" . $weatherData;
-    }
-    
-    return [
-        'success' => true,
-        'message' => $message,
-    ];
+  $user = User::find($userId);
+  
+  // Check user's recent interactions
+  $lastQuery = $user->chatMessages()
+  ->where('role', 'user')
+  ->latest()
+  ->first();
+  
+  // Provide context-aware response
+  if ($lastQuery && str_contains($lastQuery->content, 'cuaca')) {
+  $message = "Berikut update cuaca terbaru:\n\n" . $weatherData;
+  } else {
+  $message = "Cuaca saat ini:\n\n" . $weatherData;
+  }
+  
+  return [
+  'success' => true,
+  'message' => $message,
+  ];
 }
 ```
 
 ## Summary
 
 Chat integration is **completely scalable**:
-- ✅ No need to modify core files
-- ✅ Define intents in your plugin class
-- ✅ System automatically discovers active plugins
-- ✅ AI learns from your examples
-- ✅ Full control over response formatting
+- No need to modify core files
+- Define intents in your plugin class
+- System automatically discovers active plugins
+- AI learns from your examples
+- Full control over response formatting
 
 Start building chat-enabled plugins today!

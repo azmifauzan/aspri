@@ -23,38 +23,38 @@ ASPRI (Asisten Pribadi Berbasis AI) adalah aplikasi asisten pribadi cerdas untuk
 
 ```mermaid
 graph TB
-    subgraph "Client Layer"
-        WEB[Web App - Vue 3 + Inertia]
-        TG[Telegram Bot]
-        WA[WhatsApp - Future]
-    end
-    
-    subgraph "Laravel Application"
-        ROUTE[Routes]
-        MW[Middleware]
-        CTRL[Controllers]
-        SVC[Services]
-        MODEL[Eloquent Models]
-        JOB[Queue Jobs]
-    end
-    
-    subgraph "External Services"
-        AI[AI Provider - OpenAI/Gemini]
-        TGAPI[Telegram Bot API]
-    end
-    
-    subgraph "Data Layer"
-        DB[(PostgreSQL/SQLite)]
-        CACHE[(Redis/File Cache)]
-    end
-    
-    WEB --> ROUTE
-    TG --> TGAPI --> ROUTE
-    ROUTE --> MW --> CTRL
-    CTRL --> SVC
-    SVC --> MODEL --> DB
-    SVC --> AI
-    SVC --> JOB --> CACHE
+  subgraph "Client Layer"
+  WEB[Web App - Vue 3 + Inertia]
+  TG[Telegram Bot]
+  WA[WhatsApp - Future]
+  end
+  
+  subgraph "Laravel Application"
+  ROUTE[Routes]
+  MW[Middleware]
+  CTRL[Controllers]
+  SVC[Services]
+  MODEL[Eloquent Models]
+  JOB[Queue Jobs]
+  end
+  
+  subgraph "External Services"
+  AI[AI Provider - OpenAI/Gemini]
+  TGAPI[Telegram Bot API]
+  end
+  
+  subgraph "Data Layer"
+  DB[(PostgreSQL/SQLite)]
+  CACHE[(Redis/File Cache)]
+  end
+  
+  WEB --> ROUTE
+  TG --> TGAPI --> ROUTE
+  ROUTE --> MW --> CTRL
+  CTRL --> SVC
+  SVC --> MODEL --> DB
+  SVC --> AI
+  SVC --> JOB --> CACHE
 ```
 
 ## Directory Structure
@@ -62,56 +62,56 @@ graph TB
 ```
 aspri/
 ├── app/
-│   ├── Http/
-│   │   ├── Controllers/
-│   │   │   ├── DashboardController.php
-│   │   │   ├── ChatController.php
-│   │   │   ├── NoteController.php
-│   │   │   ├── ScheduleController.php
-│   │   │   ├── FinanceController.php
-│   │   │   └── Api/
-│   │   │       └── TelegramWebhookController.php
-│   │   ├── Middleware/
-│   │   └── Requests/
-│   ├── Models/
-│   │   ├── User.php
-│   │   ├── ChatThread.php
-│   │   ├── ChatMessage.php
-│   │   ├── Note.php
-│   │   ├── NoteBlock.php
-│   │   ├── Calendar.php
-│   │   ├── Event.php
-│   │   ├── FinanceAccount.php
-│   │   ├── FinanceCategory.php
-│   │   └── FinanceTransaction.php
-│   ├── Services/
-│   │   ├── AI/
-│   │   │   ├── AssistantService.php
-│   │   │   └── IntentParserService.php
-│   │   ├── Chat/
-│   │   │   └── ChatOrchestrator.php
-│   │   └── Telegram/
-│   │       └── TelegramBotService.php
-│   └── Jobs/
-│       ├── ProcessChatMessage.php
-│       └── SendReminder.php
+│ ├── Http/
+│ │ ├── Controllers/
+│ │ │ ├── DashboardController.php
+│ │ │ ├── ChatController.php
+│ │ │ ├── NoteController.php
+│ │ │ ├── ScheduleController.php
+│ │ │ ├── FinanceController.php
+│ │ │ └── Api/
+│ │ │ └── TelegramWebhookController.php
+│ │ ├── Middleware/
+│ │ └── Requests/
+│ ├── Models/
+│ │ ├── User.php
+│ │ ├── ChatThread.php
+│ │ ├── ChatMessage.php
+│ │ ├── Note.php
+│ │ ├── NoteBlock.php
+│ │ ├── Calendar.php
+│ │ ├── Event.php
+│ │ ├── FinanceAccount.php
+│ │ ├── FinanceCategory.php
+│ │ └── FinanceTransaction.php
+│ ├── Services/
+│ │ ├── AI/
+│ │ │ ├── AssistantService.php
+│ │ │ └── IntentParserService.php
+│ │ ├── Chat/
+│ │ │ └── ChatOrchestrator.php
+│ │ └── Telegram/
+│ │ └── TelegramBotService.php
+│ └── Jobs/
+│ ├── ProcessChatMessage.php
+│ └── SendReminder.php
 ├── resources/
-│   ├── js/
-│   │   ├── pages/
-│   │   │   ├── Dashboard.vue
-│   │   │   ├── Chat/
-│   │   │   ├── Notes/
-│   │   │   ├── Schedule/
-│   │   │   └── Finance/
-│   │   ├── components/
-│   │   └── composables/
-│   └── css/
+│ ├── js/
+│ │ ├── pages/
+│ │ │ ├── Dashboard.vue
+│ │ │ ├── Chat/
+│ │ │ ├── Notes/
+│ │ │ ├── Schedule/
+│ │ │ └── Finance/
+│ │ ├── components/
+│ │ └── composables/
+│ └── css/
 ├── database/
-│   ├── migrations/
-│   └── seeders/
+│ ├── migrations/
+│ └── seeders/
 ├── routes/
-│   ├── web.php
-│   └── api.php
+│ ├── web.php
+│ └── api.php
 └── docs/
 ```
 
@@ -159,44 +159,44 @@ aspri/
 
 ```mermaid
 sequenceDiagram
-    participant U as User
-    participant W as Web/Telegram
-    participant C as ChatController
-    participant O as ChatOrchestrator
-    participant AI as AI Service
-    participant DB as Database
-    
-    U->>W: Send Message
-    W->>C: POST /chat/message
-    C->>DB: Save message
-    C->>O: Process message
-    O->>AI: Parse intent
-    AI-->>O: Intent + entities
-    O->>O: Execute action
-    O->>DB: Create/Update data
-    O->>AI: Generate response
-    AI-->>O: Response text
-    O->>DB: Save response
-    O-->>C: Response
-    C-->>W: Display response
+  participant U as User
+  participant W as Web/Telegram
+  participant C as ChatController
+  participant O as ChatOrchestrator
+  participant AI as AI Service
+  participant DB as Database
+  
+  U->>W: Send Message
+  W->>C: POST /chat/message
+  C->>DB: Save message
+  C->>O: Process message
+  O->>AI: Parse intent
+  AI-->>O: Intent + entities
+  O->>O: Execute action
+  O->>DB: Create/Update data
+  O->>AI: Generate response
+  AI-->>O: Response text
+  O->>DB: Save response
+  O-->>C: Response
+  C-->>W: Display response
 ```
 
 ### Safe Mutations (Confirmation Flow)
 
 ```mermaid
 sequenceDiagram
-    participant U as User
-    participant C as ChatOrchestrator
-    participant DB as Database
-    
-    U->>C: "Hapus transaksi kemarin"
-    C->>C: Parse intent (delete)
-    C->>DB: Save pending_action
-    C-->>U: "Apakah Anda yakin ingin menghapus? [Ya/Batal]"
-    U->>C: "Ya"
-    C->>DB: Get pending_action
-    C->>DB: Execute delete
-    C-->>U: "Transaksi berhasil dihapus"
+  participant U as User
+  participant C as ChatOrchestrator
+  participant DB as Database
+  
+  U->>C: "Hapus transaksi kemarin"
+  C->>C: Parse intent (delete)
+  C->>DB: Save pending_action
+  C-->>U: "Apakah Anda yakin ingin menghapus? [Ya/Batal]"
+  U->>C: "Ya"
+  C->>DB: Get pending_action
+  C->>DB: Execute delete
+  C-->>U: "Transaksi berhasil dihapus"
 ```
 
 ## Authentication
@@ -220,8 +220,8 @@ Menggunakan abstraksi service untuk provider-agnostic:
 ```php
 interface AiProviderInterface
 {
-    public function chat(array $messages): string;
-    public function parseIntent(string $message): Intent;
+  public function chat(array $messages): string;
+  public function parseIntent(string $message): Intent;
 }
 ```
 
