@@ -18,14 +18,18 @@ const scrollContainer = ref<ComponentPublicInstance | null>(null);
 const newMessageIds = ref<Set<string>>(new Set());
 
 const scrollToBottom = (smooth = true) => {
-    nextTick(() => {
-        if (scrollContainer.value?.$el) {
-            const scrollArea = scrollContainer.value.$el.querySelector('[data-radix-scroll-area-viewport]');
-            if (scrollArea) {
-                scrollArea.scrollTop = scrollArea.scrollHeight;
-            }
+    const doScroll = () => {
+        const el = scrollContainer.value?.$el?.querySelector('[data-radix-scroll-area-viewport]');
+        if (el) {
+            el.scrollTop = el.scrollHeight;
         }
-    });
+    };
+
+    // Run immediately after Vue's DOM update
+    nextTick(doScroll);
+
+    // Fallback: run after the browser has painted (catches Radix layout cycles)
+    nextTick(() => requestAnimationFrame(doScroll));
 };
 
 // Expose method to parent component

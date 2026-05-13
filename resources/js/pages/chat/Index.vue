@@ -69,9 +69,11 @@ const sendMessage = async (content: string) => {
     };
     messages.value.push(tempUserMessage);
     
-    // Scroll after adding user message
+    // Scroll after adding user message – also add a setTimeout fallback so
+    // the scroll fires after the message bubble has fully painted.
     await nextTick();
     chatMessageListRef.value?.scrollToBottom();
+    setTimeout(() => chatMessageListRef.value?.scrollToBottom(), 80);
 
     isLoading.value = true;
 
@@ -103,6 +105,15 @@ const sendMessage = async (content: string) => {
         });
 
         if (!response.ok) {
+            if (response.status === 419) {
+                // CSRF token expired (session expired) - reload page to re-authenticate
+                messages.value = messages.value.filter(
+                    (m) => m.id !== tempUserMessage.id && m.id !== streamingMessageId,
+                );
+                isLoading.value = false;
+                router.visit(window.location.pathname, { replace: true });
+                return;
+            }
             const contentType = response.headers.get('Content-Type') ?? '';
             if (contentType.includes('application/json')) {
                 const errorData = await response.json();
