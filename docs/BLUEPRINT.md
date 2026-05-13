@@ -1,182 +1,288 @@
 # ASPRI Blueprint
 
+> **Last Updated**: May 2026  
+> Status: Production-ready. Fitur inti selesai. Rencana selanjutnya di [PLAN.md](PLAN.md).
+
 ## Vision Statement
 
-ASPRI adalah asisten pribadi cerdas berbasis AI yang membantu pengguna mengelola jadwal dan keuangan harian melalui interaksi percakapan natural, baik via web maupun messaging platform.
+ASPRI adalah asisten pribadi cerdas berbasis AI yang membantu pengguna mengelola jadwal dan keuangan harian melalui interaksi percakapan natural, baik via web maupun messaging platform (Telegram).
 
 ## Core Principles
 
 ### 1. Chat-First Experience
 - Semua fitur utama dapat diakses melalui percakapan
-- Natural language processing untuk perintah
+- Natural language processing untuk semua perintah
 - Konfirmasi sebelum aksi yang mengubah data
 
 ### 2. Persona Per User
-- Asisten mengikuti `aspri_persona` user
-- Memanggil user sesuai `call_preference`
-- Personalisasi pengalaman interaksi
+- Asisten mengikuti `aspri_persona` user (pria, wanita, kucing, custom, dll.)
+- Memanggil user sesuai `call_preference` (Kak, Bapak, Ibu, dll.)
+- Personalisasi yang konsisten di semua channel (web + Telegram)
 
 ### 3. Multi-Platform Integration
 - Web application sebagai hub utama
-- Telegram sebagai channel pertama
+- Telegram sebagai channel aktif (terimplementasi)
 - WhatsApp (future roadmap)
 
 ### 4. Data Privacy & Security
-- Isolasi data per user
-- No third-party auth dependency
-- Encrypted sensitive data
+- Isolasi data ketat per user_id
+- Tidak ada dependensi third-party auth
+- Enkripsi data sensitif (API keys via `encrypted` flag di system_settings)
 
-## Feature Specifications
+### 5. Extensibility via Plugins
+- Arsitektur plugin yang modular dan extensible
+- 15 built-in plugins, siap ditambah lebih banyak
+- Setiap plugin bisa punya jadwal, konfigurasi, dan integrasi chat sendiri
 
-### Dashboard Module
+## Feature Status
 
-| Feature | Priority | Description |
-|---------|----------|-------------|
-| Monthly Summary | High | Total pengeluaran, income, dan selisih bulan ini |
-| Today's Schedule | High | Daftar event dan meeting hari ini |
-| Quick Actions | High | Shortcut untuk add expense, create event |
-| Weekly Chart | Medium | Visualisasi pengeluaran mingguan |
-| Recent Activity | Medium | Timeline aktivitas terbaru |
+### Dashboard Module ✅ DONE
 
-**UI Reference**: 
-![Dashboard Mockup](../archieve/uploaded_media_0_1769343967610.png)
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Monthly Summary | ✅ Done | Income, expense, balance |
+| Today's Schedule | ✅ Done | Daftar event hari ini |
+| Quick Actions | ✅ Done | Shortcut add expense, new event |
+| Weekly Chart | ✅ Done | Chart pengeluaran 7 hari |
+| Recent Activity | ✅ Done | Timeline aktivitas |
+| Subscription Card | ✅ Done | Status trial/premium |
+| Telegram Card | ✅ Done | Status link + instruksi |
 
-### Admin Module (Super Admin)
+### Admin Module ✅ DONE
 
-| Feature | Priority | Description |
-|---------|----------|-------------|
-| Admin Dashboard | High | User stats, system health, usage metrics |
-| User Management | High | CRUD users, toggle active, reset password |
-| AI Provider Settings | High | Configure Gemini/OpenAI/Claude, API keys |
-| System Settings | Medium | App name, locale, timezone, maintenance |
-| Telegram Settings | Medium | Bot token, webhook URL configuration |
-| Activity Logs | Low | Track admin actions |
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Admin Dashboard | ✅ Done | User stats, system health |
+| User Management | ✅ Done | CRUD, activate/deactivate |
+| AI Provider Settings | ✅ Done | Gemini/OpenAI/Claude + API keys |
+| System Settings | ✅ Done | App name, locale, timezone |
+| Telegram Settings | ✅ Done | Bot token, webhook URL |
+| Activity Logs | ✅ Done | Admin action tracking |
+| Promo Codes | ✅ Done | Generate, list, manage |
+| Payment Management | ✅ Done | Review payment proofs |
+| Queue Monitor | ✅ Done | Queue status overview |
 
-### Chat Module
+### Chat Module ✅ DONE (core)
 
-| Feature | Priority | Description |
-|---------|----------|-------------|
-| Web Chat | High | UI chat di web application |
-| Chat History | High | Riwayat percakapan tersimpan |
-| Intent Recognition | High | Parse perintah natural language |
-| Action Confirmation | High | Konfirmasi untuk create/update/delete |
-| Telegram Integration | High | Bot Telegram terintegrasi |
-| Context Awareness | Medium | Chat memahami konteks sebelumnya |
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Web Chat UI | ✅ Done | Thread-based interface |
+| Chat History | ✅ Done | Multiple threads per user |
+| Intent Recognition | ✅ Done | Finance, schedule, notes, plugin |
+| Action Confirmation | ✅ Done | Keyword + AI detection |
+| Telegram Integration | ✅ Done | Full webhook-based |
+| Conversation Context | ✅ Done | History dalam 1 thread (20 pesan terakhir) |
+| Cross-Session Memory | 🔲 Planned | Lihat PLAN.md |
+| Plugin-Chat Bridge | ✅ Done | Plugin actions via chat |
 
-### Notes Module
+### Notes Module ✅ DONE
 
-| Feature | Priority | Description |
-|---------|----------|-------------|
-| Create/Edit Note | High | Basic CRUD notes |
-| Block-based Content | Medium | Support berbagai tipe block |
-| Tags | Medium | Kategorisasi dengan tag |
-| Search | Medium | Full-text search notes |
-| Backlinks | Low | Link antar notes |
-| Version History | Low | Track perubahan note |
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Create/Edit Note | ✅ Done | CRUD lengkap |
+| Text Content | ✅ Done | LongText content |
+| Tags | ✅ Done | JSON array |
+| Pin Notes | ✅ Done | is_pinned flag |
+| Soft Delete | ✅ Done | deleted_at |
+| Color Coding | ✅ Done | color field |
+| Block-based Editor | 🔲 Planned | Future enhancement |
+| Backlinks | 🔲 Planned | Future enhancement |
 
-### Schedule Module
+### Schedule Module ✅ DONE
 
-| Feature | Priority | Description |
-|---------|----------|-------------|
-| Calendar View | High | Tampilan kalender bulanan |
-| Create Event | High | Tambah event dengan detail |
-| Reminders | High | Pengingat via web dan Telegram |
-| Event List | High | Daftar event yang akan datang |
-| Recurring Events | Medium | Event berulang (RRULE) |
-| Multiple Calendars | Low | Kategorisasi kalender |
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Calendar View | ✅ Done | Monthly calendar |
+| Create/Edit Event | ✅ Done | CRUD dengan detail |
+| All-day Events | ✅ Done | is_all_day flag |
+| Location | ✅ Done | location field |
+| Completion Tracking | ✅ Done | is_completed flag |
+| Recurring Events | ✅ Done | RRULE string (is_recurring + recurrence_rule) |
+| Reminders | 🔲 Planned | Belum ada event_reminders table |
+| Multiple Calendars | 🔲 Planned | Future enhancement |
 
-### Finance Module
+### Finance Module ✅ DONE
 
-| Feature | Priority | Description |
-|---------|----------|-------------|
-| Add Transaction | High | Catat income/expense |
-| Categories | High | Kategori transaksi |
-| Account Management | High | Multiple financial accounts |
-| Monthly Report | High | Laporan bulanan |
-| Budget Tracking | Medium | Target budget per kategori |
-| Charts & Analytics | Medium | Visualisasi data keuangan |
-| Export Data | Low | Export ke CSV/PDF |
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Add Transaction | ✅ Done | income/expense |
+| Categories | ✅ Done | Per tx_type |
+| Account Management | ✅ Done | cash/bank/e-wallet |
+| Monthly Report | ✅ Done | Summary di dashboard |
+| Payment Proof | ✅ Done | Attachment upload |
+| Budget Tracking | 🔲 Planned | Belum ada finance_budgets table |
+| Export Data | 🔲 Planned | CSV/PDF future |
+
+### Plugin System ✅ DONE
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Plugin Architecture | ✅ Done | PluginInterface + BasePlugin |
+| Plugin Registry | ✅ Done | Discovery + DB registry |
+| 15 Built-in Plugins | ✅ Done | Production-ready |
+| Per-user Activation | ✅ Done | user_plugins table |
+| Configuration Schema | ✅ Done | JSON schema per plugin |
+| Scheduled Tasks | ✅ Done | ProcessPluginSchedules |
+| Activity Logging | ✅ Done | plugin_logs table |
+| Plugin Ratings | ✅ Done | plugin_ratings table |
+| Public Plugin Explorer | ✅ Done | /explore-plugins route |
+
+### Subscription System ✅ DONE
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Trial Period | ✅ Done | trial_ends_at |
+| Premium Subscription | ✅ Done | Manual activation by admin |
+| Payment Proof Upload | ✅ Done | payment_proofs table |
+| Promo Codes | ✅ Done | Generate + redeem |
+| Chat Usage Metering | ✅ Done | ChatUsageLog |
+| Stripe/Midtrans Integration | 🔲 Planned | Future payment gateway |
 
 ## User Stories
 
 ### As a new user:
-1. Saya bisa mendaftar dengan email dan password
-2. Saya bisa mengatur preferensi panggilan dan persona asisten
-3. Saya bisa menghubungkan akun Telegram saya
+1. ✅ Saya bisa mendaftar dengan email dan password
+2. ✅ Saya harus mengisi preferensi panggilan dan persona asisten saat registrasi
+3. ✅ Saya bisa menghubungkan akun Telegram via kode unik
+4. ✅ Saya menerima email selamat datang setelah registrasi
 
 ### As an active user (Chat):
-1. Saya bisa chat dengan asisten via web
-2. Saya bisa chat dengan asisten via Telegram
-3. Saya bisa mencatat pengeluaran dengan perintah "Beli kopi 25rb"
-4. Asisten akan konfirmasi sebelum menyimpan data
-5. Asisten memanggil saya sesuai preferensi
+1. ✅ Saya bisa chat dengan asisten via web (thread-based)
+2. ✅ Saya bisa chat dengan asisten via Telegram
+3. ✅ Saya bisa mencatat pengeluaran dengan perintah "Beli kopi 25rb"
+4. ✅ Asisten akan konfirmasi sebelum menyimpan/mengubah/menghapus data
+5. ✅ Asisten memanggil saya sesuai call_preference di semua response
+6. ✅ Asisten merespons dalam bahasa yang saya gunakan (Indonesia/Inggris)
+7. 🔲 Asisten mengingat preferensi dan informasi penting dari percakapan sebelumnya
 
 ### As an active user (Finance):
-1. Saya bisa melihat ringkasan keuangan di dashboard
-2. Saya bisa menambah transaksi dari menu keuangan
-3. Saya bisa melihat chart pengeluaran mingguan
-4. Saya bisa melihat transaksi per kategori
+1. ✅ Saya bisa melihat ringkasan keuangan di dashboard
+2. ✅ Saya bisa menambah transaksi dari menu keuangan
+3. ✅ Saya bisa melihat chart pengeluaran mingguan
+4. ✅ Saya bisa mengelola kategori dan akun keuangan
 
 ### As an active user (Schedule):
-1. Saya bisa melihat jadwal hari ini di dashboard
-2. Saya bisa membuat event baru
-3. Saya bisa mengatur reminder
-4. Saya menerima notifikasi via Telegram
+1. ✅ Saya bisa melihat jadwal hari ini di dashboard
+2. ✅ Saya bisa membuat event dengan detail (lokasi, waktu, deskripsi)
+3. ✅ Saya bisa mengatur event berulang
+4. 🔲 Saya menerima notifikasi reminder via Telegram
 
-## API Endpoints
+### As an active user (Plugins):
+1. ✅ Saya bisa mengeksplor dan mengaktifkan plugin dari halaman plugins
+2. ✅ Saya bisa mengkonfigurasi plugin sesuai kebutuhan
+3. ✅ Saya bisa menggunakan plugin via chat (e.g., "lihat cuaca Jakarta")
 
-### Authentication
-- `POST /register` - User registration
+### As an admin:
+1. ✅ Saya bisa melihat statistik penggunaan sistem
+2. ✅ Saya bisa mengelola user (activate/deactivate/promote)
+3. ✅ Saya bisa mengkonfigurasi provider AI dan API key
+4. ✅ Saya bisa mereview dan approve pembayaran subscription
+5. ✅ Saya bisa membuat dan mengelola promo code
+
+## API Endpoints (Actual Routes)
+
+### Authentication (Fortify)
+- `POST /register` - User registration + profile creation
 - `POST /login` - User login
 - `POST /logout` - User logout
 - `POST /forgot-password` - Password reset request
 - `POST /reset-password` - Password reset
 
 ### Dashboard
-- `GET /dashboard` - Dashboard page with summary data
+- `GET /dashboard` - Dashboard dengan semua widget data
 
 ### Chat
-- `GET /chat` - Chat page with threads
-- `GET /chat/{thread}` - Specific thread
-- `POST /chat/message` - Send message
-- `POST /api/telegram/webhook` - Telegram webhook
+- `GET /chat` - Chat page dengan thread list
+- `GET /chat/{thread}` - View specific thread
+- `POST /chat/message` - Send message (returns AI response)
+- `DELETE /chat/{thread}` - Delete thread
 
 ### Notes
-- `GET /notes` - List notes
-- `GET /notes/{note}` - View note
+- `GET /notes` - List semua notes
 - `POST /notes` - Create note
-- `PUT /notes/{note}` - Update note
-- `DELETE /notes/{note}` - Delete note
+- `PATCH /notes/{note}` - Update note
+- `DELETE /notes/{note}` - Delete note (soft delete)
 
 ### Schedule
 - `GET /schedule` - Calendar view
-- `GET /schedule/events` - List events (JSON)
+- `GET /schedule/events` - List events (JSON for calendar)
 - `POST /schedule/events` - Create event
-- `PUT /schedule/events/{event}` - Update event
-- `DELETE /schedule/events/{event}` - Delete event
+- `PATCH /schedule/events/{schedule}` - Update event
+- `DELETE /schedule/events/{schedule}` - Delete event
 
 ### Finance
 - `GET /finance` - Finance overview
-- `GET /finance/transactions` - List transactions
+- `GET /finance/transactions` - Transaction list
 - `POST /finance/transactions` - Create transaction
-- `PUT /finance/transactions/{transaction}` - Update
+- `PATCH /finance/transactions/{transaction}` - Update
 - `DELETE /finance/transactions/{transaction}` - Delete
-- `GET /finance/categories` - List categories
-- `GET /finance/accounts` - List accounts
-- `GET /finance/report` - Generate report
+- `GET /finance/categories` - Categories list
+- `POST /finance/categories` - Create category
+- `GET /finance/accounts` - Accounts list
+- `POST /finance/accounts` - Create account
+
+### Settings
+- `GET /settings/profile` - Profile & persona settings
+- `PATCH /settings/profile` - Update profile
+- `DELETE /settings/profile` - Delete account
+- `PUT /settings/password` - Update password
+- `GET /settings/telegram` - Telegram linking page
+- `POST /settings/telegram/generate-code` - Generate link code
+- `GET /settings/two-factor` - 2FA management
+
+### Plugins
+- `GET /plugins` - Plugin management (user's plugins)
+- `GET /explore-plugins` - Public plugin explorer
+- `POST /plugins/{plugin}/activate` - Activate plugin
+- `DELETE /plugins/{plugin}/deactivate` - Deactivate
+- `GET /plugins/{plugin}` - Plugin detail
+- `PATCH /plugins/{plugin}/configure` - Update config
+- `POST /plugins/{plugin}/rate` - Rate plugin
+
+### Subscription
+- `GET /subscription` - Subscription status
+- `POST /subscription/upload-proof` - Upload payment proof
+- `POST /subscription/redeem-promo` - Redeem promo code
+
+### Admin
+- `GET /admin` - Admin dashboard
+- `GET /admin/users` - User list
+- `POST /admin/users` - Create user
+- `PATCH /admin/users/{user}` - Update user
+- `DELETE /admin/users/{user}` - Delete user
+- `POST /admin/users/{user}/toggle-active` - Toggle active
+- `POST /admin/users/{user}/promote` - Promote to admin
+- `GET /admin/settings` - System settings
+- `POST /admin/settings/ai` - Update AI settings
+- `POST /admin/settings/telegram` - Update Telegram settings
+- `POST /admin/settings/general` - Update general settings
+- `GET /admin/payments` - Payment proofs list
+- `POST /admin/payments/{payment}/approve` - Approve payment
+- `GET /admin/promo-codes` - Promo codes
+- `POST /admin/promo-codes` - Create promo code
+- `GET /admin/activity` - Activity logs
+- `GET /admin/queues` - Queue monitor
+
+### API (Public)
+- `POST /api/telegram/webhook` - Telegram bot webhook
 
 ## Database Schema Summary
 
 Lihat [DATABASE.md](DATABASE.md) untuk detail lengkap.
 
-### Core Tables:
-- `users` - User authentication
-- `profiles` - User preferences & persona settings
-- `external_identities` - Telegram/WhatsApp linking
-- `chat_threads` & `chat_messages` - Chat history
-- `notes` & `note_blocks` - Notes with block content
-- `calendars` & `events` - Schedule management
-- `event_reminders` - Reminder settings
-- `finance_accounts` - Financial accounts
-- `finance_categories` - Transaction categories
-- `finance_transactions` - Transaction records
+### Implemented Tables (33 migrations):
+- `users` - Auth + telegram fields + role + subscription fields
+- `profiles` - User preferences & persona (ALL fields required)
+- `password_reset_tokens`, `sessions` - Laravel default
+- `cache`, `jobs`, `job_batches`, `failed_jobs` - Laravel default
+- `chat_threads`, `chat_messages` - Chat system
+- `pending_actions` - Confirmation flow
+- `notes` - Notes with JSON tags
+- `schedules` - Events/calendar
+- `finance_accounts`, `finance_categories`, `finance_transactions` - Finance
+- `payment_proofs` - Subscription payment evidence
+- `system_settings` - Global configuration
+- `activity_logs` - Admin audit trail
+- `subscriptions`, `promo_codes`, `promo_code_redemptions` - Subscription
+- `chat_usage_logs` - Usage metering
+- `plugins`, `user_plugins`, `plugin_configurations`, `plugin_schedules`, `plugin_logs`, `plugin_ratings` - Plugin system
