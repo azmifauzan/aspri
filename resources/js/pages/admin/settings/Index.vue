@@ -42,6 +42,7 @@ const aiForm = useForm({
     anthropic_api_key: '',
     anthropic_model: props.aiSettings.anthropic_model,
     anthropic_base_url: props.aiSettings.anthropic_base_url || '',
+    ai_context_length: props.aiSettings.ai_context_length || 32000,
 });
 
 const submitAi = () => {
@@ -60,6 +61,7 @@ const submitAi = () => {
             payload.anthropic_model = data.anthropic_model;
             payload.anthropic_base_url = data.anthropic_base_url;
         }
+        payload.ai_context_length = data.ai_context_length;
         return payload;
     }).post(admin.settings.updateAi().url, {
         preserveScroll: true,
@@ -476,6 +478,29 @@ const formatCurrency = (value: number) => {
                                             <Label>Base URL (Optional)</Label>
                                             <Input v-model="aiForm.anthropic_base_url" placeholder="https://api.anthropic.com" />
                                         </div>
+                                    </div>
+                                </div>
+
+                                <div class="space-y-4 rounded-lg border p-4 bg-muted/30 mb-6">
+                                    <h4 class="font-medium flex items-center gap-2">
+                                        <Bot class="h-4 w-4" />
+                                        Context & Memory Budget
+                                    </h4>
+                                    <div class="space-y-2">
+                                        <Label for="ai_context_length">Context Length (tokens)</Label>
+                                        <div class="flex items-center gap-4">
+                                            <Input id="ai_context_length" v-model.number="aiForm.ai_context_length" type="number" min="4096" max="2000000" class="w-full md:w-64" />
+                                            <div class="flex flex-wrap gap-2">
+                                                <Button type="button" variant="outline" size="sm" class="h-8 text-xs" @click="aiForm.ai_context_length = 32000">Gemini (32k)</Button>
+                                                <Button type="button" variant="outline" size="sm" class="h-8 text-xs" @click="aiForm.ai_context_length = 128000">GPT-4 (128k)</Button>
+                                                <Button type="button" variant="outline" size="sm" class="h-8 text-xs" @click="aiForm.ai_context_length = 200000">Claude (200k)</Button>
+                                                <Button type="button" variant="outline" size="sm" class="h-8 text-xs" @click="aiForm.ai_context_length = 1000000">Gemini 1.5 (1M)</Button>
+                                            </div>
+                                        </div>
+                                        <p class="text-xs text-muted-foreground mt-1">
+                                            Panjang context window model AI yang digunakan. ASPRI akan mengalokasikan 15% dari budget ini untuk Long-term Memory.
+                                        </p>
+                                        <InputError :message="aiForm.errors.ai_context_length" />
                                     </div>
                                 </div>
 

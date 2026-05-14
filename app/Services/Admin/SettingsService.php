@@ -40,6 +40,7 @@ class SettingsService
             'has_gemini_key' => (bool) $this->get('gemini_api_key'),
             'has_openai_key' => (bool) $this->get('openai_api_key'),
             'has_anthropic_key' => (bool) $this->get('anthropic_api_key'),
+            'ai_context_length' => (int) $this->get('ai_context_length', 32000),
         ];
     }
 
@@ -97,6 +98,10 @@ class SettingsService
 
         if (array_key_exists('anthropic_base_url', $data)) {
             $this->set('anthropic_base_url', $data['anthropic_base_url'], ['group' => 'ai']);
+        }
+
+        if (array_key_exists('ai_context_length', $data) && $data['ai_context_length']) {
+            $this->set('ai_context_length', (int) $data['ai_context_length'], ['group' => 'ai']);
         }
     }
 

@@ -20,7 +20,9 @@ class ChatOrchestrator
         protected IntentParserService $intentParser,
         protected ActionExecutorService $actionExecutor,
         protected AiProviderInterface $aiProvider,
-        protected PluginManager $pluginManager
+        protected PluginManager $pluginManager,
+        protected ConversationMemoryService $memoryService,
+        protected \App\Services\Admin\SettingsService $settingsService
     ) {}
 
     /**
@@ -32,6 +34,11 @@ class ChatOrchestrator
     {
         // Store user message for language detection in all downstream responses
         $this->currentUserMessage = $message;
+
+        // Fetch memory context
+        $contextLength = (int) $this->settingsService->get('ai_context_length', 32000);
+        $memoryBudget = (int) ($contextLength * 0.15); // 15% for memory
+        $memoryContext = $this->memoryService->buildMemoryContext($user, $memoryBudget);
 
         // First, check if there's a pending action for this thread
         $pendingAction = PendingAction::where('thread_id', $thread->id)
@@ -46,9 +53,6 @@ class ChatOrchestrator
         ]);
 
         // When there's a pending action, use keyword-based detection FIRST.
-        // This prevents the AI from misclassifying short confirmations (e.g. "ya") as a
-        // new action intent based on conversation history, which would cancel the pending
-        // action and re-create it — causing an infinite confirmation loop.
         if ($pendingAction) {
             $messageLower = strtolower(trim($message));
 
@@ -68,7 +72,7 @@ class ChatOrchestrator
                     'pending_action_id' => $pendingAction->id,
                 ]);
 
-                return $this->handleConfirmation($user, $pendingAction);
+                return $this->handleConfirmation($user, $pendingAction, $memoryContext);
             }
 
             if ($isCancellation) {
@@ -77,7 +81,7 @@ class ChatOrchestrator
                     'pending_action_id' => $pendingAction->id,
                 ]);
 
-                return $this->handleCancellation($pendingAction);
+                return $this->handleCancellation($pendingAction, $memoryContext);
             }
         }
 
@@ -90,13 +94,13 @@ class ChatOrchestrator
         if ($pendingAction && $intent['action'] === 'confirm') {
             Log::info('Confirm action detected by AI, calling handleConfirmation');
 
-            return $this->handleConfirmation($user, $pendingAction);
+            return $this->handleConfirmation($user, $pendingAction, $memoryContext);
         }
 
         if ($pendingAction && $intent['action'] === 'cancel') {
             Log::info('Cancel action detected by AI, calling handleCancellation');
 
-            return $this->handleCancellation($pendingAction);
+            return $this->handleCancellation($pendingAction, $memoryContext);
         }
 
         // Cancel any existing pending action if user is doing something else
@@ -110,19 +114,30 @@ class ChatOrchestrator
         }
 
         // Handle different intents
-        return match ($intent['module']) {
-            'finance' => $this->handleFinanceIntent($user, $thread, $intent, $conversationHistory),
-            'schedule' => $this->handleScheduleIntent($user, $thread, $intent, $conversationHistory),
-            'notes' => $this->handleNotesIntent($user, $thread, $intent, $conversationHistory),
-            'plugin' => $this->handlePluginIntent($user, $thread, $intent, $conversationHistory),
-            default => $this->handleGeneralIntent($user, $intent, $conversationHistory, $message),
+        $result = match ($intent['module']) {
+            'finance' => $this->handleFinanceIntent($user, $thread, $intent, $conversationHistory, $memoryContext),
+            'schedule' => $this->handleScheduleIntent($user, $thread, $intent, $conversationHistory, $memoryContext),
+            'notes' => $this->handleNotesIntent($user, $thread, $intent, $conversationHistory, $memoryContext),
+            'plugin' => $this->handlePluginIntent($user, $thread, $intent, $conversationHistory, $memoryContext),
+            default => $this->handleGeneralIntent($user, $intent, $conversationHistory, $message, $memoryContext),
         };
+
+        // Dispatch memory extraction job (with 15 min delay as per plan)
+        // We use debounce logic to ensure only the last message triggers extraction after idle
+        $dispatchTime = now()->toDateTimeString();
+        \Illuminate\Support\Facades\Cache::put("memory_extraction_last_dispatch_{$thread->id}", $dispatchTime, now()->addMinutes(30));
+
+        $thread->update(['last_message_at' => now()]);
+
+        \App\Jobs\ExtractConversationMemories::dispatch($thread, $dispatchTime)->delay(now()->addMinutes(15));
+
+        return $result;
     }
 
     /**
      * Handle confirmation of a pending action.
      */
-    protected function handleConfirmation(User $user, PendingAction $pendingAction): array
+    protected function handleConfirmation(User $user, PendingAction $pendingAction, string $memoryContext = ''): array
     {
         Log::info('Handling confirmation', [
             'pending_action_id' => $pendingAction->id,
@@ -142,8 +157,8 @@ class ChatOrchestrator
         ]);
 
         $response = $result['success']
-            ? $this->formatSuccessResponse($user, $result)
-            : $this->formatErrorResponse($user, $result);
+            ? $this->formatSuccessResponse($user, $result, $memoryContext)
+            : $this->formatErrorResponse($user, $result, $memoryContext);
 
         return [
             'response' => $response,
@@ -155,7 +170,7 @@ class ChatOrchestrator
     /**
      * Handle cancellation of a pending action.
      */
-    protected function handleCancellation(PendingAction $pendingAction): array
+    protected function handleCancellation(PendingAction $pendingAction, string $memoryContext = ''): array
     {
         $pendingAction->cancel();
 
@@ -164,7 +179,8 @@ class ChatOrchestrator
                 $pendingAction->user,
                 'success',
                 [],
-                'Aksi dibatalkan. / Action cancelled. Ask the user if there is anything else you can help with.'
+                'Aksi dibatalkan. / Action cancelled. Ask the user if there is anything else you can help with.',
+                $memoryContext
             ),
             'action_taken' => false,
             'pending_action' => null,
@@ -174,7 +190,7 @@ class ChatOrchestrator
     /**
      * Handle finance-related intents.
      */
-    protected function handleFinanceIntent(User $user, ChatThread $thread, array $intent, array $history): array
+    protected function handleFinanceIntent(User $user, ChatThread $thread, array $intent, array $history, string $memoryContext = ''): array
     {
         $action = $intent['action'];
         $entities = $intent['entities'];
@@ -184,7 +200,7 @@ class ChatOrchestrator
             $summary = $this->actionExecutor->getFinanceSummary($user, $entities['period'] ?? null);
 
             return [
-                'response' => $this->formatFinanceSummary($user, $summary),
+                'response' => $this->formatFinanceSummary($user, $summary, $memoryContext),
                 'action_taken' => false,
                 'pending_action' => null,
             ];
@@ -199,7 +215,7 @@ class ChatOrchestrator
             );
 
             return [
-                'response' => $this->formatTransactionsList($user, $transactions),
+                'response' => $this->formatTransactionsList($user, $transactions, $memoryContext),
                 'action_taken' => false,
                 'pending_action' => null,
             ];
@@ -209,13 +225,13 @@ class ChatOrchestrator
         if ($action === 'create_transaction') {
             // Validate required fields
             if (! isset($entities['amount']) || $entities['amount'] <= 0) {
-                return $this->askForMissingInfo($user, 'What is the transaction amount?', $history);
+                return $this->askForMissingInfo($user, 'What is the transaction amount?', $history, $memoryContext);
             }
 
             $pendingAction = $this->createPendingAction($user, $thread, $intent);
 
             return [
-                'response' => $this->formatTransactionConfirmation($user, $entities),
+                'response' => $this->formatTransactionConfirmation($user, $entities, $memoryContext),
                 'action_taken' => false,
                 'pending_action' => $pendingAction->toArray(),
             ];
@@ -225,19 +241,19 @@ class ChatOrchestrator
             $pendingAction = $this->createPendingAction($user, $thread, $intent);
 
             return [
-                'response' => $this->formatDeleteConfirmation($user, 'transaksi', $entities),
+                'response' => $this->formatDeleteConfirmation($user, 'transaksi', $entities, $memoryContext),
                 'action_taken' => false,
                 'pending_action' => $pendingAction->toArray(),
             ];
         }
 
-        return $this->generateAiResponse($user, 'I did not understand this finance request.', $history);
+        return $this->generateAiResponse($user, 'I did not understand this finance request.', $history, $memoryContext);
     }
 
     /**
      * Handle schedule-related intents.
      */
-    protected function handleScheduleIntent(User $user, ChatThread $thread, array $intent, array $history): array
+    protected function handleScheduleIntent(User $user, ChatThread $thread, array $intent, array $history, string $memoryContext = ''): array
     {
         $action = $intent['action'];
         $entities = $intent['entities'];
@@ -246,7 +262,7 @@ class ChatOrchestrator
             $schedules = $this->actionExecutor->getSchedules($user, $entities['period'] ?? null);
 
             return [
-                'response' => $this->formatSchedulesList($user, $schedules, $entities['period'] ?? null),
+                'response' => $this->formatSchedulesList($user, $schedules, $entities['period'] ?? null, $memoryContext),
                 'action_taken' => false,
                 'pending_action' => null,
             ];
@@ -254,13 +270,13 @@ class ChatOrchestrator
 
         if ($action === 'create_schedule') {
             if (! isset($entities['title']) || empty($entities['title'])) {
-                return $this->askForMissingInfo($user, 'What is the schedule title?', $history);
+                return $this->askForMissingInfo($user, 'What is the schedule title?', $history, $memoryContext);
             }
 
             $pendingAction = $this->createPendingAction($user, $thread, $intent);
 
             return [
-                'response' => $this->formatScheduleConfirmation($user, $entities),
+                'response' => $this->formatScheduleConfirmation($user, $entities, $memoryContext),
                 'action_taken' => false,
                 'pending_action' => $pendingAction->toArray(),
             ];
@@ -268,13 +284,13 @@ class ChatOrchestrator
 
         if ($action === 'update_schedule') {
             if (! isset($entities['schedule_id']) && ! isset($entities['title'])) {
-                return $this->askForMissingInfo($user, 'Which schedule would you like to update?', $history);
+                return $this->askForMissingInfo($user, 'Which schedule would you like to update?', $history, $memoryContext);
             }
 
             $pendingAction = $this->createPendingAction($user, $thread, $intent);
 
             return [
-                'response' => $this->formatScheduleUpdateConfirmation($user, $entities),
+                'response' => $this->formatScheduleUpdateConfirmation($user, $entities, $memoryContext),
                 'action_taken' => false,
                 'pending_action' => $pendingAction->toArray(),
             ];
@@ -284,19 +300,19 @@ class ChatOrchestrator
             $pendingAction = $this->createPendingAction($user, $thread, $intent);
 
             return [
-                'response' => $this->formatDeleteConfirmation($user, 'jadwal', $entities),
+                'response' => $this->formatDeleteConfirmation($user, 'jadwal', $entities, $memoryContext),
                 'action_taken' => false,
                 'pending_action' => $pendingAction->toArray(),
             ];
         }
 
-        return $this->generateAiResponse($user, 'I did not understand this schedule request.', $history);
+        return $this->generateAiResponse($user, 'I did not understand this schedule request.', $history, $memoryContext);
     }
 
     /**
      * Handle notes-related intents.
      */
-    protected function handleNotesIntent(User $user, ChatThread $thread, array $intent, array $history): array
+    protected function handleNotesIntent(User $user, ChatThread $thread, array $intent, array $history, string $memoryContext = ''): array
     {
         $action = $intent['action'];
         $entities = $intent['entities'];
@@ -310,7 +326,7 @@ class ChatOrchestrator
             );
 
             return [
-                'response' => $this->formatNotesList($user, $notes),
+                'response' => $this->formatNotesList($user, $notes, $memoryContext),
                 'action_taken' => false,
                 'pending_action' => null,
             ];
@@ -318,7 +334,7 @@ class ChatOrchestrator
 
         if ($action === 'create_note') {
             if (! isset($entities['content']) || empty($entities['content'])) {
-                return $this->askForMissingInfo($user, 'What should the note contain?', $history);
+                return $this->askForMissingInfo($user, 'What should the note contain?', $history, $memoryContext);
             }
 
             // Execute directly without confirmation (non-destructive operation)
@@ -335,7 +351,7 @@ class ChatOrchestrator
 
         if ($action === 'update_note') {
             if (! isset($entities['note_id']) && ! isset($entities['title'])) {
-                return $this->askForMissingInfo($user, 'Which note would you like to update?', $history);
+                return $this->askForMissingInfo($user, 'Which note would you like to update?', $history, $memoryContext);
             }
 
             // Execute directly without confirmation (non-destructive operation)
@@ -354,19 +370,19 @@ class ChatOrchestrator
             $pendingAction = $this->createPendingAction($user, $thread, $intent);
 
             return [
-                'response' => $this->formatDeleteConfirmation($user, 'catatan', $entities),
+                'response' => $this->formatDeleteConfirmation($user, 'catatan', $entities, $memoryContext),
                 'action_taken' => false,
                 'pending_action' => $pendingAction->toArray(),
             ];
         }
 
-        return $this->generateAiResponse($user, 'I did not understand this notes request.', $history);
+        return $this->generateAiResponse($user, 'I did not understand this notes request.', $history, $memoryContext);
     }
 
     /**
      * Handle plugin-related intents.
      */
-    protected function handlePluginIntent(User $user, ChatThread $thread, array $intent, array $history): array
+    protected function handlePluginIntent(User $user, ChatThread $thread, array $intent, array $history, string $memoryContext = ''): array
     {
         $action = $intent['action'];
         $entities = $intent['entities'];
@@ -375,14 +391,14 @@ class ChatOrchestrator
         $pluginSlug = $entities['plugin_slug'] ?? null;
 
         if (! $pluginSlug) {
-            return $this->generateAiResponse($user, 'The requested plugin was not found.', $history);
+            return $this->generateAiResponse($user, 'The requested plugin was not found.', $history, $memoryContext);
         }
 
         // Get plugin instance
         $pluginInstance = $this->pluginManager->getPlugin($pluginSlug);
 
         if (! $pluginInstance) {
-            return $this->generateAiResponse($user, 'The plugin is not available.', $history);
+            return $this->generateAiResponse($user, 'The plugin is not available.', $history, $memoryContext);
         }
 
         // Check if user has plugin activated
@@ -397,7 +413,8 @@ class ChatOrchestrator
                     $user,
                     'error',
                     [],
-                    "Plugin {$pluginName} is not activated. Tell the user to activate it on the Plugin page."
+                    "Plugin {$pluginName} is not activated. Tell the user to activate it on the Plugin page.",
+                    $memoryContext
                 ),
                 'action_taken' => false,
                 'pending_action' => null,
@@ -414,7 +431,8 @@ class ChatOrchestrator
                         $user,
                         'success',
                         [],
-                        $result['message']
+                        $result['message'],
+                        $memoryContext
                     ),
                     'action_taken' => true,
                     'pending_action' => null,
@@ -427,7 +445,8 @@ class ChatOrchestrator
                     $user,
                     'error',
                     [],
-                    $result['message'] ?? 'An error occurred while running the plugin.'
+                    $result['message'] ?? 'An error occurred while running the plugin.',
+                    $memoryContext
                 ),
                 'action_taken' => false,
                 'pending_action' => null,
@@ -444,7 +463,8 @@ class ChatOrchestrator
                     $user,
                     'error',
                     [],
-                    'An error occurred while running the plugin. Please try again.'
+                    'An error occurred while running the plugin. Please try again.',
+                    $memoryContext
                 ),
                 'action_taken' => false,
                 'pending_action' => null,
@@ -455,11 +475,11 @@ class ChatOrchestrator
     /**
      * Handle general intents (greeting, help, unknown).
      */
-    protected function handleGeneralIntent(User $user, array $intent, array $history, string $currentMessage): array
+    protected function handleGeneralIntent(User $user, array $intent, array $history, string $currentMessage, string $memoryContext = ''): array
     {
         if ($intent['action'] === 'greeting') {
             return [
-                'response' => $this->personalizeResponse($user, 'greeting', ['user_name' => $user->name]),
+                'response' => $this->personalizeResponse($user, 'greeting', ['user_name' => $user->name], null, $memoryContext),
                 'action_taken' => false,
                 'pending_action' => null,
             ];
@@ -467,7 +487,7 @@ class ChatOrchestrator
 
         if ($intent['action'] === 'help') {
             return [
-                'response' => $this->getHelpMessage($user, $intent['entities']['topic'] ?? null),
+                'response' => $this->getHelpMessage($user, $intent['entities']['topic'] ?? null, $memoryContext),
                 'action_taken' => false,
                 'pending_action' => null,
             ];
@@ -475,12 +495,12 @@ class ChatOrchestrator
 
         // Handle out of scope questions - forward to LLM with persona
         if ($intent['action'] === 'out_of_scope') {
-            return $this->handleOutOfScopeQuestion($user, $intent, $history, $currentMessage);
+            return $this->handleOutOfScopeQuestion($user, $intent, $history, $currentMessage, $memoryContext);
         }
 
         // Handle unknown intents - use contextual AI response instead of generic template
         if ($intent['action'] === 'unknown') {
-            return $this->handleCasualConversation($user, $intent, $history, $currentMessage);
+            return $this->handleCasualConversation($user, $intent, $history, $currentMessage, $memoryContext);
         }
 
         // For any other unknown intents, use AI to generate a helpful response
@@ -490,11 +510,11 @@ class ChatOrchestrator
     /**
      * Handle out of scope questions by forwarding to LLM with persona.
      */
-    protected function handleOutOfScopeQuestion(User $user, array $intent, array $history, string $currentMessage): array
+    protected function handleOutOfScopeQuestion(User $user, array $intent, array $history, string $currentMessage, string $memoryContext = ''): array
     {
         $topic = $intent['entities']['topic'] ?? 'the topic';
 
-        $systemPrompt = $this->chatService->buildSystemPrompt($user);
+        $systemPrompt = $this->chatService->buildSystemPrompt($user, $memoryContext);
 
         // Get the last user message from history to get the actual question
         $lastUserMessage = trim($currentMessage);
@@ -542,9 +562,9 @@ class ChatOrchestrator
      * Handle casual conversation or unknown intents by using AI with full context.
      * This ensures ASPRI can respond naturally to any message, even when intent is unclear.
      */
-    protected function handleCasualConversation(User $user, array $intent, array $history, string $currentMessage): array
+    protected function handleCasualConversation(User $user, array $intent, array $history, string $currentMessage, string $memoryContext = ''): array
     {
-        $systemPrompt = $this->chatService->buildSystemPrompt($user);
+        $systemPrompt = $this->chatService->buildSystemPrompt($user, $memoryContext);
 
         // Get the last user message from history to get the actual question
         $lastUserMessage = trim($currentMessage);
@@ -612,10 +632,10 @@ class ChatOrchestrator
     /**
      * Ask for missing information.
      */
-    protected function askForMissingInfo(User $user, string $question, array $history): array
+    protected function askForMissingInfo(User $user, string $question, array $history, string $memoryContext = ''): array
     {
         return [
-            'response' => $this->personalizeResponse($user, 'success', [], "Ask the user: {$question}"),
+            'response' => $this->personalizeResponse($user, 'success', [], "Ask the user: {$question}", $memoryContext),
             'action_taken' => false,
             'pending_action' => null,
         ];
@@ -624,12 +644,12 @@ class ChatOrchestrator
     /**
      * Generate AI response for complex queries.
      */
-    protected function generateAiResponse(User $user, string $context, array $history): array
+    protected function generateAiResponse(User $user, string $context, array $history, string $memoryContext = ''): array
     {
         $languageHint = $this->currentUserMessage !== ''
             ? " (Respond in the same language as: \"{$this->currentUserMessage}\")" : '';
 
-        $response = $this->chatService->sendMessage($user, $context.$languageHint, $history);
+        $response = $this->chatService->sendMessage($user, $context.$languageHint, $history, $memoryContext);
 
         return [
             'response' => $response,
@@ -642,7 +662,7 @@ class ChatOrchestrator
      * Personalize any response through LLM with user's ASPRI persona.
      * This ensures all responses are consistent with the user's registered persona settings.
      */
-    protected function personalizeResponse(User $user, string $responseType, array $data, ?string $rawContent = null): string
+    protected function personalizeResponse(User $user, string $responseType, array $data, ?string $rawContent = null, string $memoryContext = ''): string
     {
         $profile = $user->profile;
         $callPref = $profile?->call_preference ?? 'Kak';
@@ -674,7 +694,7 @@ Information to convey:
 PROMPT;
 
         $messages = [
-            ['role' => 'system', 'content' => $this->chatService->buildSystemPrompt($user)],
+            ['role' => 'system', 'content' => $this->chatService->buildSystemPrompt($user, $memoryContext)],
             ['role' => 'user', 'content' => $prompt],
         ];
 
@@ -926,31 +946,31 @@ PROMPT;
     /**
      * Format success response.
      */
-    protected function formatSuccessResponse(User $user, array $result): string
+    protected function formatSuccessResponse(User $user, array $result, string $memoryContext = ''): string
     {
-        return $this->personalizeResponse($user, 'success', $result);
+        return $this->personalizeResponse($user, 'success', $result, null, $memoryContext);
     }
 
     /**
      * Format error response.
      */
-    protected function formatErrorResponse(User $user, array $result): string
+    protected function formatErrorResponse(User $user, array $result, string $memoryContext = ''): string
     {
-        return $this->personalizeResponse($user, 'error', $result);
+        return $this->personalizeResponse($user, 'error', $result, null, $memoryContext);
     }
 
     /**
      * Format finance summary.
      */
-    protected function formatFinanceSummary(User $user, array $summary): string
+    protected function formatFinanceSummary(User $user, array $summary, string $memoryContext = ''): string
     {
-        return $this->personalizeResponse($user, 'finance_summary', $summary);
+        return $this->personalizeResponse($user, 'finance_summary', $summary, null, $memoryContext);
     }
 
     /**
      * Format transactions list.
      */
-    protected function formatTransactionsList(User $user, array $transactions): string
+    protected function formatTransactionsList(User $user, array $transactions, string $memoryContext = ''): string
     {
         if (empty($transactions)) {
             return 'Belum ada transaksi yang tercatat.';
@@ -970,73 +990,73 @@ PROMPT;
     /**
      * Format schedules list.
      */
-    protected function formatSchedulesList(User $user, array $schedules, ?string $period): string
+    protected function formatSchedulesList(User $user, array $schedules, ?string $period, string $memoryContext = ''): string
     {
         return $this->personalizeResponse($user, 'schedules_list', [
             'schedules' => $schedules,
             'period' => $period,
-        ]);
+        ], null, $memoryContext);
     }
 
     /**
      * Format notes list.
      */
-    protected function formatNotesList(User $user, array $notes): string
+    protected function formatNotesList(User $user, array $notes, string $memoryContext = ''): string
     {
-        return $this->personalizeResponse($user, 'notes_list', ['notes' => $notes]);
+        return $this->personalizeResponse($user, 'notes_list', ['notes' => $notes], null, $memoryContext);
     }
 
     /**
      * Format transaction confirmation.
      */
-    protected function formatTransactionConfirmation(User $user, array $entities): string
+    protected function formatTransactionConfirmation(User $user, array $entities, string $memoryContext = ''): string
     {
-        return $this->personalizeResponse($user, 'transaction_confirmation', $entities);
+        return $this->personalizeResponse($user, 'transaction_confirmation', $entities, null, $memoryContext);
     }
 
     /**
      * Format schedule confirmation.
      */
-    protected function formatScheduleConfirmation(User $user, array $entities): string
+    protected function formatScheduleConfirmation(User $user, array $entities, string $memoryContext = ''): string
     {
-        return $this->personalizeResponse($user, 'schedule_confirmation', $entities);
+        return $this->personalizeResponse($user, 'schedule_confirmation', $entities, null, $memoryContext);
     }
 
     /**
      * Format schedule update confirmation.
      */
-    protected function formatScheduleUpdateConfirmation(User $user, array $entities): string
+    protected function formatScheduleUpdateConfirmation(User $user, array $entities, string $memoryContext = ''): string
     {
-        return $this->personalizeResponse($user, 'schedule_update_confirmation', $entities);
+        return $this->personalizeResponse($user, 'schedule_update_confirmation', $entities, null, $memoryContext);
     }
 
     /**
      * Format note confirmation.
      */
-    protected function formatNoteConfirmation(User $user, array $entities): string
+    protected function formatNoteConfirmation(User $user, array $entities, string $memoryContext = ''): string
     {
-        return $this->personalizeResponse($user, 'note_confirmation', $entities);
+        return $this->personalizeResponse($user, 'note_confirmation', $entities, null, $memoryContext);
     }
 
     /**
      * Format delete confirmation.
      */
-    protected function formatDeleteConfirmation(User $user, string $itemType, array $entities): string
+    protected function formatDeleteConfirmation(User $user, string $itemType, array $entities, string $memoryContext = ''): string
     {
         $identifier = $entities['title'] ?? $entities['description'] ?? $entities['note_id'] ?? $entities['schedule_id'] ?? $entities['transaction_id'] ?? 'item tersebut';
 
         return $this->personalizeResponse($user, 'delete_confirmation', [
             'item_type' => $itemType,
             'identifier' => $identifier,
-        ]);
+        ], null, $memoryContext);
     }
 
     /**
      * Get help message.
      */
-    protected function getHelpMessage(User $user, ?string $topic): string
+    protected function getHelpMessage(User $user, ?string $topic, string $memoryContext = ''): string
     {
-        return $this->personalizeResponse($user, 'help', ['topic' => $topic]);
+        return $this->personalizeResponse($user, 'help', ['topic' => $topic], null, $memoryContext);
     }
 
     /**

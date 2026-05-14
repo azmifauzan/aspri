@@ -1,6 +1,6 @@
 # ASPRI - Current Status
 
-> **Date**: May 13, 2026  
+> **Date**: May 14, 2026  
 > **Status**: Production-Ready MVP — Semua fitur inti sudah live.
 
 ## Quick Summary
@@ -13,12 +13,12 @@ ASPRI adalah aplikasi asisten pribadi berbasis AI yang sudah fully functional. S
 
 | Category | Count |
 |----------|-------|
-| Models (Eloquent) | 23 |
+| Models (Eloquent) | 24 |
 | Controllers | 21 |
-| Services | 19 |
+| Services | 20 |
 | Form Requests | 13 |
-| Migrations | 33 |
-| Model Factories | 14 |
+| Migrations | 34 |
+| Model Factories | 15 |
 | Vue Pages | 30+ |
 | Vue Components | 50+ |
 | Built-in Plugins | 15 |
@@ -53,10 +53,23 @@ ASPRI adalah aplikasi asisten pribadi berbasis AI yang sudah fully functional. S
 - Telegram bot integration (webhook-based, full parity)
 - Intent parsing: finance, schedule, notes, plugin, general
 - Confirmation flow untuk semua mutation actions (keyword + AI detection)
-- Context-aware responses (last 20 messages dalam thread)
+- Dynamic context window (token-budget-based pruning, configurable via admin)
 - Language auto-detect (Bahasa/English)
 - Persona consistency (aspri_name + aspri_persona + call_preference)
-- **Limitation**: Context hanya dalam 1 thread; tidak ada cross-session memory
+
+### ✅ Conversation Memory System
+- Tabel `conversation_memories` dengan indexing untuk access pattern
+- Model `ConversationMemory` dengan scopes: `active()`, `byType()`, `mostImportant()`
+- `ConversationMemoryService` dengan method:
+  - `extractMemoriesFromThread()` — AI-powered extraction post-conversation
+  - `buildMemoryContext()` — inject memories ke system prompt (token-budget-aware)
+  - `shouldCompact()` — check threshold (token count > 15% context length, atau > 50 items)
+  - `compact()` — AI-powered compaction, preserve importance ≥ 4
+  - `estimateTokenCount()` — heuristik ~3 chars/token
+- Job `ExtractConversationMemories` dengan debounce logic (15-menit delay, skip jika ada job lebih baru)
+- Memory context diinjeksi ke semua AI responses
+- `ai_context_length` setting di Admin Panel (dengan preset: Gemini 32k, GPT-4 128k, Claude 200k, Gemini 1.5 1M)
+- Compaction otomatis dipanggil setelah extraction jika perlu
 
 ### ✅ Notes Module
 - CRUD notes dengan title + longText content
@@ -156,10 +169,9 @@ ASPRI adalah aplikasi asisten pribadi berbasis AI yang sudah fully functional. S
 - Intent parsing (action + module + entities + confidence)
 - Conversational response generation
 - System prompt with persona + date/time context
-- Conversation history injection (last 20 messages in thread)
+- Dynamic conversation history (token-budget-based, configurable context length)
 - Language detection & auto-switching
-
-**Gap: Cross-session memory** — LLM tidak memiliki ingatan dari percakapan di sesi/thread yang berbeda. Ini adalah prioritas utama berikutnya (lihat PLAN.md).
+- Cross-session memory (via `ConversationMemoryService` + `conversation_memories` table)
 
 ---
 
@@ -175,19 +187,20 @@ ASPRI adalah aplikasi asisten pribadi berbasis AI yang sudah fully functional. S
 
 ## Known Limitations & Tech Debt
 
-1. **No cross-session memory**: AI hanya ingat percakapan dalam 1 thread aktif
-2. **No schedule reminders**: event_reminders belum diimplementasi
-3. **No budget tracking**: finance_budgets belum diimplementasi
-4. **Hardcoded history limit**: 20 pesan terakhir tanpa mempertimbangkan context length
-5. **No payment gateway**: subscription approval masih manual oleh admin
-6. **No block-based note editor**: notes menggunakan simple textarea
-7. **No WhatsApp integration**: masih dalam roadmap
+1. **No schedule reminders**: event_reminders belum diimplementasi
+2. **No budget tracking**: finance_budgets belum diimplementasi
+3. **No payment gateway**: subscription approval masih manual oleh admin
+4. **No block-based note editor**: notes menggunakan simple textarea
+5. **No WhatsApp integration**: masih dalam roadmap
+6. **Memory system — no artisan command**: `aspri:compact-memories` belum ada (manual compaction belum tersedia)
+7. **Memory system — no feature tests**: unit/feature tests untuk ConversationMemoryService belum ditulis
+8. **No admin view for per-user memory stats**: belum diimplementasi
 
 ---
 
 ## What's Next
 
 Lihat [PLAN.md](PLAN.md) untuk rencana pengembangan berikutnya, yang mencakup:
-1. **Conversation Memory System** — Cross-session AI memory dengan best practices frontier LLM
-2. **Context Length Settings** — Admin panel setting untuk mengontrol memory budget
-3. **Memory Compaction** — Automatic summarization ketika memory mendekati batas
+1. **Memory System Polish** — Artisan command, feature tests, admin per-user memory view
+2. **Schedule Reminders** — event_reminders + Telegram notification
+3. **Finance Budget Tracking** — finance_budgets per kategori dengan alert

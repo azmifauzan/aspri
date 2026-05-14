@@ -8,16 +8,16 @@ class ChatService
 {
     protected AiProviderInterface $provider;
 
-    public function __construct(AiProviderInterface $provider)
-    {
-        $this->provider = $provider;
-    }
+    public function __construct(
+        protected AiProviderInterface $provider,
+        protected \App\Services\Admin\SettingsService $settingsService
+    ) {}
 
     /**
      * Build the system prompt based on user's persona settings.
      * The AI will detect and respond in the same language as the user's input.
      */
-    public function buildSystemPrompt(User $user): string
+    public function buildSystemPrompt(User $user, string $memoryContext = ''): string
     {
         $profile = $user->profile;
 
@@ -28,7 +28,7 @@ class ChatService
         $currentDate = now()->format('l, d F Y');
         $currentTime = now()->format('H:i');
 
-        return <<<PROMPT
+        $prompt = <<<PROMPT
 You are {$aspriName}, {$aspriPersona}.
 You are an AI-powered personal assistant helping manage daily schedules and finances.
 
@@ -65,6 +65,12 @@ For schedules, when the user wants to create:
 - Ask for the time and event title if not mentioned
 - Confirm before saving
 PROMPT;
+
+        if (! empty($memoryContext)) {
+            $prompt .= "\n\nInformasi penting yang kamu ingat tentang user ini:\n".$memoryContext;
+        }
+
+        return $prompt;
     }
 
     /**
@@ -72,18 +78,44 @@ PROMPT;
      *
      * @param  array<int, array{role: string, content: string}>  $conversationHistory
      */
-    public function formatMessages(User $user, string $userMessage, array $conversationHistory = []): array
+    public function formatMessages(User $user, string $userMessage, array $conversationHistory = [], string $memoryContext = ''): array
     {
+        $systemPrompt = $this->buildSystemPrompt($user, $memoryContext);
+
         $messages = [
             [
                 'role' => 'system',
-                'content' => $this->buildSystemPrompt($user),
+                'content' => $systemPrompt,
             ],
         ];
 
-        // Add conversation history (limit to last 10 exchanges)
-        $historyLimit = array_slice($conversationHistory, -20);
-        foreach ($historyLimit as $message) {
+        // Dynamic history pruning based on token budget
+        $contextLength = (int) $this->settingsService->get('ai_context_length', 32000);
+
+        // Calculate budget for history: Total - SystemPrompt - UserMessage - MemoryContext (already in SystemPrompt) - ResponseBuffer
+        $usedTokens = $this->estimateTokenCount($systemPrompt) + $this->estimateTokenCount($userMessage);
+        $availableHistoryTokens = $contextLength - $usedTokens - 2000; // 2000 tokens buffer for AI response
+
+        // Limit to last 30 messages max, then prune by tokens
+        $recentHistory = array_slice($conversationHistory, -30);
+
+        $prunedHistory = [];
+        $currentHistoryTokens = 0;
+
+        // Iterate backwards to keep the most recent messages
+        foreach (array_reverse($recentHistory) as $message) {
+            $tokens = $this->estimateTokenCount($message['content']);
+
+            if ($currentHistoryTokens + $tokens > $availableHistoryTokens) {
+                break;
+            }
+
+            $prunedHistory[] = $message;
+            $currentHistoryTokens += $tokens;
+        }
+
+        // Add pruned history in correct chronological order
+        foreach (array_reverse($prunedHistory) as $message) {
             $messages[] = [
                 'role' => $message['role'],
                 'content' => $message['content'],
@@ -100,13 +132,22 @@ PROMPT;
     }
 
     /**
+     * Estimate token count for a string (heuristic: ~4 chars per token).
+     */
+    protected function estimateTokenCount(string $text): int
+    {
+        // Simple heuristic for estimation
+        return (int) ceil(mb_strlen($text) / 4);
+    }
+
+    /**
      * Send a message and get a response.
      *
      * @param  array<int, array{role: string, content: string}>  $conversationHistory
      */
-    public function sendMessage(User $user, string $message, array $conversationHistory = []): string
+    public function sendMessage(User $user, string $message, array $conversationHistory = [], string $memoryContext = ''): string
     {
-        $messages = $this->formatMessages($user, $message, $conversationHistory);
+        $messages = $this->formatMessages($user, $message, $conversationHistory, $memoryContext);
 
         return $this->provider->chat($messages);
     }
@@ -116,9 +157,9 @@ PROMPT;
      *
      * @param  array<int, array{role: string, content: string}>  $conversationHistory
      */
-    public function streamMessage(User $user, string $message, callable $callback, array $conversationHistory = []): string
+    public function streamMessage(User $user, string $message, callable $callback, array $conversationHistory = [], string $memoryContext = ''): string
     {
-        $messages = $this->formatMessages($user, $message, $conversationHistory);
+        $messages = $this->formatMessages($user, $message, $conversationHistory, $memoryContext);
 
         return $this->provider->chatStream($messages, $callback);
     }

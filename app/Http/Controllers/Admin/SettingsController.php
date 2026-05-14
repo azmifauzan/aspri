@@ -47,6 +47,7 @@ class SettingsController extends Controller
             'anthropic_api_key' => ['nullable', 'string'],
             'anthropic_model' => ['nullable', 'string'],
             'anthropic_base_url' => ['nullable', 'string', 'url'],
+            'ai_context_length' => ['nullable', 'integer', 'min:4096', 'max:2000000'],
         ]);
 
         $this->settingsService->updateAiSettings($validated);
@@ -139,7 +140,7 @@ class SettingsController extends Controller
      */
     private function testOpenAi(string $apiKey, ?string $model, ?string $baseUrl = null): array
     {
-        $url = rtrim($baseUrl ?? 'https://api.openai.com/v1', '/') . '/models';
+        $url = rtrim($baseUrl ?? 'https://api.openai.com/v1', '/').'/models';
 
         $response = Http::withHeaders([
             'Authorization' => "Bearer {$apiKey}",
@@ -169,7 +170,7 @@ class SettingsController extends Controller
      */
     private function testGemini(string $apiKey, ?string $model, ?string $baseUrl = null): array
     {
-        $url = rtrim($baseUrl ?? 'https://generativelanguage.googleapis.com', '/') . "/v1/models?key={$apiKey}";
+        $url = rtrim($baseUrl ?? 'https://generativelanguage.googleapis.com', '/')."/v1/models?key={$apiKey}";
 
         $response = Http::withOptions([
             'verify' => app()->environment('production'),
@@ -197,7 +198,7 @@ class SettingsController extends Controller
      */
     private function testAnthropic(string $apiKey, ?string $model, ?string $baseUrl = null): array
     {
-        $url = rtrim($baseUrl ?? 'https://api.anthropic.com', '/') . '/v1/messages';
+        $url = rtrim($baseUrl ?? 'https://api.anthropic.com', '/').'/v1/messages';
 
         // Anthropic doesn't have a simple "list models" endpoint, so we test with a minimal message
         $response = Http::withHeaders([
