@@ -13,3 +13,6 @@ Schedule::command('plugins:process-schedules')->everyMinute();
 
 // Plugin log cleanup - runs daily at 3am
 Schedule::command('plugins:cleanup-logs --days=30')->dailyAt('03:00');
+
+// Event reminders - process due reminders every minute
+Schedule::command('aspri:send-reminders')->everyMinute()->withoutOverlapping();

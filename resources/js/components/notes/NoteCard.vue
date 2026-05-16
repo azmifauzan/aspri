@@ -2,6 +2,7 @@
 import { defineProps, defineEmits } from 'vue';
 import { Trash2, Pin, Pencil } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
+import BlockRenderer from '@/components/notes/BlockRenderer.vue';
 
 const { t, locale } = useI18n();
 
@@ -26,22 +27,6 @@ const formatDate = (dateString: string) => {
     });
 };
 
-/** Extract readable text from JSON block content */
-const contentPreview = (content: string | null): string => {
-    if (!content) { return ''; }
-    try {
-        const blocks = JSON.parse(content);
-        if (!Array.isArray(blocks)) { return content; }
-        return blocks.map((block: any) => {
-            if (block.type === 'list' && Array.isArray(block.items)) {
-                return block.items.join(' ');
-            }
-            return block.content ?? '';
-        }).join(' ').trim();
-    } catch {
-        return content;
-    }
-};
 </script>
 
 <template>
@@ -61,9 +46,10 @@ const contentPreview = (content: string | null): string => {
                 </span>
             </div>
             
-            <p class="mb-4 text-sm text-zinc-600 dark:text-zinc-400 line-clamp-3 min-h-[3rem]">
-                {{ contentPreview(note.content) || $t('notes.startWriting') }}
-            </p>
+            <div class="mb-4 text-sm text-zinc-600 dark:text-zinc-400 min-h-[3rem]">
+                <BlockRenderer v-if="note.content" :content="note.content" preview />
+                <p v-else>{{ $t('notes.startWriting') }}</p>
+            </div>
             
             <div class="flex items-center text-xs text-zinc-400">
                 {{ formatDate(note.updated_at) }}

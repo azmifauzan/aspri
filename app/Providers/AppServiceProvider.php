@@ -94,7 +94,9 @@ class AppServiceProvider extends ServiceProvider
                 $app->make(IntentParserService::class),
                 $app->make(ActionExecutorService::class),
                 $app->make(AiProviderInterface::class),
-                $app->make(PluginManager::class)
+                $app->make(PluginManager::class),
+                $app->make(\App\Services\Ai\ConversationMemoryService::class),
+                $app->make(\App\Services\Admin\SettingsService::class),
             );
         });
 

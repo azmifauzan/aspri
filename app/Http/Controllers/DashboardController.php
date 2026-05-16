@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\ChatUsageLog;
 use App\Models\SystemSetting;
+use App\Services\Finance\FinanceBudgetService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -11,7 +13,7 @@ use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request, FinanceBudgetService $budgetService): Response
     {
         $user = $request->user();
 
@@ -125,6 +127,9 @@ class DashboardController extends Controller
             'telegramInfo' => $telegramInfo,
         ]);
 
+        $now = Carbon::now();
+        $budgets = $budgetService->getProgressForUserPeriod($user, $now->year, $now->month);
+
         return Inertia::render('Dashboard', [
             'monthlySummary' => $monthlyFinance,
             'todayEvents' => $todaySchedule,
@@ -133,6 +138,7 @@ class DashboardController extends Controller
             'subscriptionInfo' => $subscriptionInfo,
             'chatLimit' => $chatLimit,
             'telegramInfo' => $telegramInfo,
+            'budgets' => $budgets,
         ]);
     }
 }

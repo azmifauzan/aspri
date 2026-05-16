@@ -91,3 +91,27 @@ export interface FinanceCategoriesProps {
 export interface FinanceAccountsProps {
     accounts: FinanceAccount[];
 }
+
+export interface FinanceBudget {
+    id: number;
+    user_id: number;
+    category_id: string | null;
+    period_year: number;
+    period_month: number;
+    amount: number;
+    alert_threshold_pct: number;
+    is_active: boolean;
+    category?: FinanceCategory | null;
+    // Progress fields injected by FinanceBudgetService::getProgressForUserPeriod
+    spent: number;
+    remaining: number;
+    used_pct: number;
+    is_over: boolean;
+    is_approaching: boolean;
+}
+
+export interface FinanceBudgetsProps {
+    budgets: FinanceBudget[];
+    categories: Pick<FinanceCategory, 'id' | 'name' | 'icon' | 'color'>[];
+    period: { year: number; month: number };
+}

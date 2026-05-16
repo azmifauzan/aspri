@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import {
+    BudgetProgressCard,
     MonthlySummaryCard,
     QuickActionsCard,
     RecentActivityCard,
@@ -14,6 +15,7 @@ import { dashboard } from '@/routes';
 import type {
     BreadcrumbItem,
     ChatLimit,
+    FinanceBudget,
     MonthlySummary,
     RecentActivity,
     SubscriptionInfo,
@@ -32,6 +34,7 @@ const page = usePage<{
     subscriptionInfo: SubscriptionInfo;
     chatLimit: ChatLimit;
     telegramInfo: TelegramInfo;
+    budgets: FinanceBudget[];
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -49,6 +52,7 @@ const recentActivities = page.props.recentActivities;
 const subscriptionInfo = page.props.subscriptionInfo;
 const chatLimit = page.props.chatLimit;
 const telegramInfo = page.props.telegramInfo;
+const budgets = page.props.budgets ?? [];
 </script>
 
 <template>
@@ -81,6 +85,9 @@ const telegramInfo = page.props.telegramInfo;
                     <RecentActivityCard :activities="recentActivities" />
                 </div>
             </div>
+
+            <!-- Baris 4: Budget Progress -->
+            <BudgetProgressCard :budgets="budgets" />
         </div>
     </AppLayout>
 </template>

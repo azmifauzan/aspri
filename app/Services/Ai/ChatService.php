@@ -6,8 +6,6 @@ use App\Models\User;
 
 class ChatService
 {
-    protected AiProviderInterface $provider;
-
     public function __construct(
         protected AiProviderInterface $provider,
         protected \App\Services\Admin\SettingsService $settingsService

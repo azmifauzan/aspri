@@ -7,3 +7,4 @@ export { default as WeeklyChartCard } from './WeeklyChartCard.vue';
 export { default as RecentActivityCard } from './RecentActivityCard.vue';
 export { default as SubscriptionCard } from './SubscriptionCard.vue';
 export { default as TelegramCard } from './TelegramCard.vue';
+export { default as BudgetProgressCard } from './BudgetProgressCard.vue';

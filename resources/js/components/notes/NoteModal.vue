@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import InputError from '@/components/InputError.vue';
+import BlockEditor from '@/components/notes/BlockEditor.vue';
 import { Pin } from 'lucide-vue-next';
 import { store, update } from '@/routes/notes';
 import Swal from 'sweetalert2';
@@ -26,31 +27,9 @@ const props = defineProps<{
 
 const emit = defineEmits(['close']);
 
-/** Extract plain text from JSON block content for display in the textarea */
-const blocksToText = (content: string | null): string => {
-    if (!content) { return ''; }
-    try {
-        const blocks = JSON.parse(content);
-        if (!Array.isArray(blocks)) { return content; }
-        return blocks.map((block: any) => {
-            if (block.type === 'list' && Array.isArray(block.items)) {
-                return block.items.join('\n');
-            }
-            return block.content ?? '';
-        }).join('\n\n').trim();
-    } catch {
-        return content;
-    }
-};
-
-/** Wrap plain text into a single paragraph block for storage */
-const textToBlocks = (text: string): string => {
-    return JSON.stringify([{ type: 'paragraph', content: text }]);
-};
-
 const form = useForm({
     title: '',
-    content: '',
+    content: null as string | null,
     is_pinned: false,
     color: null as string | null,
 });
@@ -58,7 +37,7 @@ const form = useForm({
 watch(() => props.note, (newNote) => {
     if (newNote) {
         form.title = newNote.title;
-        form.content = blocksToText(newNote.content);
+        form.content = newNote.content;
         form.is_pinned = newNote.is_pinned;
         form.color = newNote.color;
     } else {
@@ -67,9 +46,8 @@ watch(() => props.note, (newNote) => {
 }, { immediate: true });
 
 const submit = () => {
-    const payload = { ...form.data(), content: form.content ? textToBlocks(form.content) : null };
     if (props.note) {
-        form.transform(() => payload).put(update(props.note!.id).url, {
+        form.put(update(props.note!.id).url, {
             onSuccess: () => {
                 form.reset();
                 emit('close');
@@ -90,7 +68,7 @@ const submit = () => {
             },
         });
     } else {
-        form.transform(() => payload).post(store().url, {
+        form.post(store().url, {
             onSuccess: () => {
                 form.reset();
                 emit('close');
@@ -152,12 +130,7 @@ const colors = [
                 <!-- Content -->
                 <div class="space-y-2">
                     <Label for="content">{{ $t('notes.contentLabel') }}</Label>
-                    <textarea
-                        id="content"
-                        v-model="form.content"
-                        class="flex min-h-32 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        :placeholder="$t('notes.contentPlaceholder')"
-                    ></textarea>
+                    <BlockEditor v-model="form.content" :placeholder="$t('notes.contentPlaceholder')" />
                     <InputError :message="form.errors.content" />
                 </div>
 

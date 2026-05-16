@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
+use App\Models\ConversationMemory;
 use App\Models\User;
+use App\Services\Ai\ConversationMemoryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -54,7 +56,7 @@ class UserManagementController extends Controller
     /**
      * Display user details.
      */
-    public function show(User $user): Response
+    public function show(User $user, ConversationMemoryService $memoryService): Response
     {
         $user->load(['profile', 'chatThreads', 'financeAccounts']);
 
@@ -66,12 +68,46 @@ class UserManagementController extends Controller
                 ->orderByDesc('created_at')
                 ->limit(10)
                 ->get(),
+            'memory' => $this->buildMemoryStats($user, $memoryService),
         ];
 
         return Inertia::render('admin/users/Show', [
             'user' => $user,
             'stats' => $stats,
         ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function buildMemoryStats(User $user, ConversationMemoryService $memoryService): array
+    {
+        $query = ConversationMemory::where('user_id', $user->id);
+
+        $activeMemories = (clone $query)->where('is_active', true)->get();
+        $inactiveCount = (clone $query)->where('is_active', false)->count();
+
+        $estTokens = 0;
+        foreach ($activeMemories as $memory) {
+            $estTokens += $memoryService->estimateTokenCount($memory->content);
+        }
+
+        $byType = $activeMemories
+            ->groupBy('memory_type')
+            ->map(fn ($items) => $items->count())
+            ->toArray();
+
+        $lastExtraction = (clone $query)
+            ->orderByDesc('created_at')
+            ->value('created_at');
+
+        return [
+            'active_count' => $activeMemories->count(),
+            'inactive_count' => $inactiveCount,
+            'est_tokens' => $estTokens,
+            'by_type' => $byType,
+            'last_extraction_at' => $lastExtraction,
+        ];
     }
 
     /**

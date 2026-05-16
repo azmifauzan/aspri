@@ -25,6 +25,13 @@ const props = defineProps<{
             description: string | null;
             created_at: string;
         }>;
+        memory: {
+            active_count: number;
+            inactive_count: number;
+            est_tokens: number;
+            by_type: Record<string, number>;
+            last_extraction_at: string | null;
+        };
     };
 }>();
 
@@ -265,6 +272,46 @@ const roleColors: Record<string, string> = {
                                 <div v-if="user.profile?.aspri_name">
                                     <span class="text-muted-foreground">ASPRI Name</span>
                                     <p class="font-medium">{{ user.profile.aspri_name }}</p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Conversation Memory</CardTitle>
+                            <CardDescription>Memory yang diekstrak dari percakapan user</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div class="space-y-4 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-muted-foreground">Active memories</span>
+                                    <span class="font-medium">{{ stats.memory.active_count }}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-muted-foreground">Inactive (compacted)</span>
+                                    <span class="font-medium">{{ stats.memory.inactive_count }}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-muted-foreground">Estimated tokens</span>
+                                    <span class="font-medium">{{ stats.memory.est_tokens.toLocaleString() }}</span>
+                                </div>
+                                <div v-if="stats.memory.last_extraction_at">
+                                    <span class="text-muted-foreground">Last extraction</span>
+                                    <p class="font-medium">{{ new Date(stats.memory.last_extraction_at).toLocaleString() }}</p>
+                                </div>
+                                <div v-if="Object.keys(stats.memory.by_type).length > 0" class="pt-2 border-t">
+                                    <span class="text-muted-foreground text-xs uppercase tracking-wide">By type</span>
+                                    <div class="mt-2 space-y-1">
+                                        <div
+                                            v-for="(count, type) in stats.memory.by_type"
+                                            :key="type"
+                                            class="flex justify-between text-xs"
+                                        >
+                                            <Badge variant="outline">{{ type }}</Badge>
+                                            <span class="font-medium">{{ count }}</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </CardContent>

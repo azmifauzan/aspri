@@ -98,7 +98,7 @@ class ActionExecutorService
 
             $category = $user->financeCategories()
                 ->where('tx_type', $txType)
-                ->where('name', 'ilike', "%{$categoryName}%")
+                ->whereRaw('LOWER(name) LIKE ?', [mb_strtolower("%{$categoryName}%")])
                 ->first();
 
             if (! $category) {
@@ -159,7 +159,7 @@ class ActionExecutorService
             if (isset($payload['transaction_id'])) {
                 $query->where('id', $payload['transaction_id']);
             } elseif (isset($payload['description'])) {
-                $query->where('note', 'ilike', "%{$payload['description']}%");
+                $query->whereRaw('LOWER(note) LIKE ?', [mb_strtolower("%{$payload['description']}%")]);
             }
 
             $transaction = $query->latest()->first();
@@ -258,7 +258,7 @@ class ActionExecutorService
             if (isset($payload['schedule_id'])) {
                 $query->where('id', $payload['schedule_id']);
             } elseif (isset($payload['title'])) {
-                $query->where('title', 'ilike', "%{$payload['title']}%");
+                $query->whereRaw('LOWER(title) LIKE ?', [mb_strtolower("%{$payload['title']}%")]);
             }
 
             $schedule = $query->latest()->first();
@@ -299,7 +299,7 @@ class ActionExecutorService
             if (isset($payload['schedule_id'])) {
                 $query->where('id', $payload['schedule_id']);
             } elseif (isset($payload['title'])) {
-                $query->where('title', 'ilike', "%{$payload['title']}%");
+                $query->whereRaw('LOWER(title) LIKE ?', [mb_strtolower("%{$payload['title']}%")]);
             }
 
             $schedule = $query->latest()->first();
@@ -404,12 +404,12 @@ class ActionExecutorService
             if (isset($payload['note_id'])) {
                 $query->where('id', $payload['note_id']);
             } elseif (isset($payload['title'])) {
-                $query->where('title', 'ilike', "%{$payload['title']}%");
+                $query->whereRaw('LOWER(title) LIKE ?', [mb_strtolower("%{$payload['title']}%")]);
             } elseif (isset($payload['keyword'])) {
                 $keyword = $payload['keyword'];
                 $query->where(function ($q) use ($keyword) {
-                    $q->where('title', 'ilike', "%{$keyword}%")
-                        ->orWhere('content', 'ilike', "%{$keyword}%");
+                    $q->whereRaw('LOWER(title) LIKE ?', [mb_strtolower("%{$keyword}%")])
+                        ->orWhereRaw('LOWER(content) LIKE ?', [mb_strtolower("%{$keyword}%")]);
                 });
             }
 
@@ -472,7 +472,7 @@ class ActionExecutorService
             if (isset($payload['note_id'])) {
                 $query->where('id', $payload['note_id']);
             } elseif (isset($payload['title'])) {
-                $query->where('title', 'ilike', "%{$payload['title']}%");
+                $query->whereRaw('LOWER(title) LIKE ?', [mb_strtolower("%{$payload['title']}%")]);
             }
 
             $note = $query->latest()->first();
@@ -623,8 +623,8 @@ class ActionExecutorService
 
         if ($search) {
             $query->where(function ($q) use ($search) {
-                $q->where('title', 'ilike', "%{$search}%")
-                    ->orWhere('content', 'ilike', "%{$search}%");
+                $q->whereRaw('LOWER(title) LIKE ?', [mb_strtolower("%{$search}%")])
+                    ->orWhereRaw('LOWER(content) LIKE ?', [mb_strtolower("%{$search}%")]);
             });
         }
 

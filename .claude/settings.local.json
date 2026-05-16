@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(vendor/bin/pint *)"
+      "Bash(vendor/bin/pint *)",
+      "Bash(php artisan *)",
+      "Bash(npm run *)",
+      "Bash(npx vue-tsc *)",
+      "Bash(npm install *)"
     ]
   }
 }
