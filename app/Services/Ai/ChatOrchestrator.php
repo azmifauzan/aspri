@@ -2,10 +2,13 @@
 
 namespace App\Services\Ai;
 
+use App\Jobs\ExtractConversationMemories;
 use App\Models\ChatThread;
 use App\Models\PendingAction;
 use App\Models\User;
+use App\Services\Admin\SettingsService;
 use App\Services\Plugin\PluginManager;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class ChatOrchestrator
@@ -22,7 +25,7 @@ class ChatOrchestrator
         protected AiProviderInterface $aiProvider,
         protected PluginManager $pluginManager,
         protected ConversationMemoryService $memoryService,
-        protected \App\Services\Admin\SettingsService $settingsService
+        protected SettingsService $settingsService
     ) {}
 
     /**
@@ -125,11 +128,11 @@ class ChatOrchestrator
         // Dispatch memory extraction job (with 15 min delay as per plan)
         // We use debounce logic to ensure only the last message triggers extraction after idle
         $dispatchTime = now()->toDateTimeString();
-        \Illuminate\Support\Facades\Cache::put("memory_extraction_last_dispatch_{$thread->id}", $dispatchTime, now()->addMinutes(30));
+        Cache::put("memory_extraction_last_dispatch_{$thread->id}", $dispatchTime, now()->addMinutes(30));
 
         $thread->update(['last_message_at' => now()]);
 
-        \App\Jobs\ExtractConversationMemories::dispatch($thread, $dispatchTime)->delay(now()->addMinutes(15));
+        ExtractConversationMemories::dispatch($thread, $dispatchTime)->delay(now()->addMinutes(15));
 
         return $result;
     }
@@ -1067,6 +1070,17 @@ PROMPT;
     public function parseIntent(User $user, string $message, array $conversationHistory = []): array
     {
         return $this->intentParser->parse($user, $message, $conversationHistory);
+    }
+
+    /**
+     * Build memory context string for the given user, applying the configured budget.
+     */
+    public function buildMemoryContext(User $user): string
+    {
+        $contextLength = (int) $this->settingsService->get('ai_context_length', 32000);
+        $memoryBudget = (int) ($contextLength * 0.15);
+
+        return $this->memoryService->buildMemoryContext($user, $memoryBudget);
     }
 
     /**

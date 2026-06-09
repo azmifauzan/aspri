@@ -46,7 +46,11 @@ class ConversationMemory extends Model
      */
     public function scopeActive(Builder $query): Builder
     {
-        return $query->where('is_active', true);
+        return $query->where('is_active', true)
+            ->where(function (Builder $q) {
+                $q->whereNull('valid_until')
+                    ->orWhere('valid_until', '>', now());
+            });
     }
 
     public function scopeByType(Builder $query, string $type): Builder

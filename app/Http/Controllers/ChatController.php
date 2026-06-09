@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Chat\SendMessageRequest;
+use App\Jobs\ExtractConversationMemories;
 use App\Models\ChatMessage;
 use App\Models\ChatThread;
 use App\Models\ChatUsageLog;
@@ -10,6 +11,7 @@ use App\Models\PendingAction;
 use App\Services\Ai\ChatOrchestrator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -241,7 +243,9 @@ class ChatController extends Controller
             ->map(fn ($m) => ['role' => $m->role, 'content' => $m->content])
             ->toArray();
 
-        return response()->stream(function () use ($user, $messageContent, $thread, $history, $userMessage) {
+        $memoryContext = $this->chatOrchestrator->buildMemoryContext($user);
+
+        return response()->stream(function () use ($user, $messageContent, $thread, $history, $userMessage, $memoryContext) {
             // Set headers for SSE
             header('Content-Type: text/event-stream');
             header('Cache-Control: no-cache');
@@ -292,7 +296,7 @@ class ChatController extends Controller
                 // For simple general chat, use streaming
                 if ($shouldStream) {
                     // Build messages using ChatService
-                    $messages = $this->chatOrchestrator->getChatService()->formatMessages($user, $messageContent, $history);
+                    $messages = $this->chatOrchestrator->getChatService()->formatMessages($user, $messageContent, $history, $memoryContext);
 
                     // Stream response
                     $fullResponse = $this->chatOrchestrator->getAiProvider()->chatStream($messages, function ($chunk) {
@@ -345,6 +349,11 @@ class ChatController extends Controller
 
             // Update thread
             $thread->update(['last_message_at' => now()]);
+
+            // Dispatch memory extraction (mirrors ChatOrchestrator::processMessage debounce)
+            $dispatchTime = now()->toDateTimeString();
+            Cache::put("memory_extraction_last_dispatch_{$thread->id}", $dispatchTime, now()->addMinutes(30));
+            ExtractConversationMemories::dispatch($thread, $dispatchTime)->delay(now()->addMinutes(15));
 
             // Send completion event with metadata
             echo "event: complete\n";
