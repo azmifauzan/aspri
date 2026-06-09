@@ -1,7 +1,7 @@
 # ASPRI Database Schema
 
-> **Last Updated**: May 2026  
-> Schema ini mencerminkan migrasi yang sudah diimplementasi (33 migrations).
+> **Last Updated**: June 2026  
+> Schema ini mencerminkan migrasi yang sudah diimplementasi (38 migrations).
 
 ## Overview
 
@@ -29,6 +29,9 @@ erDiagram
   users ||--o{ plugin_ratings : gives
   users ||--o{ promo_code_redemptions : redeems
   users ||--o{ activity_logs : generates
+  users ||--o{ conversation_memories : has
+  users ||--o{ event_reminders : has
+  users ||--o{ finance_budgets : has
 
   chat_threads ||--o{ chat_messages : contains
   chat_threads ||--o{ pending_actions : has
@@ -76,6 +79,7 @@ Schema::create('users', function (Blueprint $table) {
     $table->timestamp('trial_ends_at')->nullable();
     $table->rememberToken();
     $table->timestamps();
+    // Planned: google_id + google_avatar (Google OAuth — see PLAN.md)
 });
 ```
 
@@ -548,6 +552,80 @@ Schema::create('plugin_ratings', function (Blueprint $table) {
 
 ---
 
+### Conversation Memory
+
+#### conversation_memories
+Cross-session AI memory per user.
+
+```php
+Schema::create('conversation_memories', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+    $table->string('memory_type'); // fact, preference, event, pattern, summary
+    $table->text('content');
+    $table->string('source_thread_id')->nullable();
+    $table->integer('importance')->default(3); // 1 (low) - 5 (high)
+    $table->integer('access_count')->default(0);
+    $table->timestamp('last_accessed_at')->nullable();
+    $table->timestamp('valid_until')->nullable(); // null = permanent
+    $table->boolean('is_active')->default(true);
+    $table->json('metadata')->nullable();
+    $table->timestamps();
+
+    $table->index(['user_id', 'is_active', 'importance']);
+    $table->index(['user_id', 'memory_type']);
+    $table->index(['user_id', 'last_accessed_at']);
+});
+```
+
+---
+
+### Schedule Reminders
+
+#### event_reminders
+Pengingat untuk jadwal/event user.
+
+```php
+Schema::create('event_reminders', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+    $table->foreignId('schedule_id')->constrained('schedules')->cascadeOnDelete();
+    $table->timestamp('remind_at');
+    $table->string('channel')->default('app'); // app, telegram, both
+    $table->string('status')->default('pending'); // pending, sent, failed
+    $table->timestamp('sent_at')->nullable();
+    $table->timestamps();
+
+    $table->index(['status', 'remind_at']); // for aspri:send-reminders query
+    $table->index(['user_id', 'schedule_id']);
+});
+```
+
+---
+
+### Finance Budgets
+
+#### finance_budgets
+Budget per kategori per periode.
+
+```php
+Schema::create('finance_budgets', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+    $table->foreignId('category_id')->constrained('finance_categories')->cascadeOnDelete();
+    $table->integer('period_year');
+    $table->integer('period_month'); // 1-12
+    $table->decimal('amount', 18, 2);
+    $table->integer('alert_threshold_pct')->default(80); // alert when spent >= X%
+    $table->timestamps();
+
+    $table->unique(['user_id', 'category_id', 'period_year', 'period_month']);
+    $table->index(['user_id', 'period_year', 'period_month']);
+});
+```
+
+---
+
 ## Indexes Summary
 
 | Table | Index | Purpose |
@@ -567,6 +645,12 @@ Schema::create('plugin_ratings', function (Blueprint $table) {
 | `plugin_logs` | `user_id, plugin_id, created_at` | Plugin activity |
 | `system_settings` | `group` | Settings by group |
 | `activity_logs` | `user_id, created_at` | Audit trail |
+| `conversation_memories` | `user_id, is_active, importance` | Memory retrieval by priority |
+| `conversation_memories` | `user_id, memory_type` | Memory retrieval by type |
+| `conversation_memories` | `user_id, last_accessed_at` | Access-based aging |
+| `event_reminders` | `status, remind_at` | Due reminder polling |
+| `event_reminders` | `user_id, schedule_id` | Reminder lookup per event |
+| `finance_budgets` | `user_id, period_year, period_month` | Budget period lookup |
 
 ---
 
@@ -574,6 +658,4 @@ Schema::create('plugin_ratings', function (Blueprint $table) {
 
 | Table | Purpose | Priority |
 |-------|---------|---------|
-| `conversation_memories` | Cross-session AI memory | High (see PLAN.md) |
-| `event_reminders` | Schedule reminders | Medium |
-| `finance_budgets` | Budget tracking per category | Medium |
+| (none — all planned tables sudah diimplementasi) | | |

@@ -1,87 +1,66 @@
 # ASPRI Development Plan
 
-> **Last Updated**: May 16, 2026  
-> Conversation Memory System (Phases A–D) sudah selesai. Plan ini difokuskan pada fitur berikutnya.
+> **Last Updated**: June 9, 2026
 
 ---
 
-## Priority 1: Memory System — DONE ✅
+## Priority 1: Google OAuth (Sign In & Register)
 
-### Phase C: Artisan Command + Tests ✅
+Tambahkan opsi login dan registrasi via Google ke halaman auth yang sudah ada.
+
+### Phase A: Backend
 
 | Task | Status |
 |------|--------|
-| Artisan command `aspri:compact-memories` | ✅ `app/Console/Commands/CompactMemoriesCommand.php` |
-| Feature tests `ConversationMemoryService` | ✅ 18 tests in `tests/Feature/ConversationMemoryServiceTest.php` |
-| Feature tests `ExtractConversationMemories` job | ✅ 5 tests in `tests/Feature/ExtractConversationMemoriesJobTest.php` |
-| Feature tests `aspri:compact-memories` command | ✅ 4 tests in `tests/Feature/CompactMemoriesCommandTest.php` |
+| Install `laravel/socialite` | ⬜ |
+| Add `google_id` + `google_avatar` columns ke `users` via migration | ⬜ |
+| Register Google provider di `config/services.php` | ⬜ |
+| `SocialiteController` — `redirect()` + `callback()` | ⬜ |
+| Callback logic: find-or-create user, auto-verify email, skip password | ⬜ |
+| Handle new user flow: redirect ke profile setup jika profil belum diisi | ⬜ |
+| Route: `GET /auth/google` → redirect, `GET /auth/google/callback` → callback | ⬜ |
 
-Command spec:
+### Phase B: Frontend
+
+| Task | Status |
+|------|--------|
+| Tombol "Lanjutkan dengan Google" di `auth/Login.vue` | ⬜ |
+| Tombol "Daftar dengan Google" di `auth/Register.vue` | ⬜ |
+| Styling konsisten dengan Reka UI + Tailwind 4 | ⬜ |
+| Handle redirect error dari callback (flash error di session) | ⬜ |
+
+### Phase C: Tests & Polish
+
+| Task | Status |
+|------|--------|
+| Feature test: user baru via Google → profil setup redirect | ⬜ |
+| Feature test: user existing via Google → login & redirect ke dashboard | ⬜ |
+| Feature test: email yang sudah ada (non-Google) → error graceful | ⬜ |
+| Guard: user dengan Google login tidak bisa reset password via email | ⬜ |
+
+### Detail teknis
+
+**Migration tambahan:**
 ```php
-// php artisan aspri:compact-memories [--user=ID]
-// Tanpa --user: scan semua user dengan active memory, compact yang lewat threshold
-// Dengan --user=ID: compact user spesifik (paksa)
+$table->string('google_id')->nullable()->unique();
+$table->string('google_avatar')->nullable();
 ```
 
-### Phase D: Polish ✅
+**Callback flow:**
+1. Cek `google_id` → jika ada, login langsung
+2. Cek `email` → jika ada tanpa `google_id`, flash error "email sudah terdaftar, login biasa"
+3. Jika tidak ada → buat user baru (`email_verified_at = now()`, `password = null`)
+4. Cek profil → jika belum ada, redirect ke `/profile/setup`, else `/dashboard`
 
-| Task | Status |
-|------|--------|
-| Admin view: per-user memory stats (active/inactive count, est tokens, last extraction, by_type) | ✅ `admin/users/Show.vue` + `UserManagementController::show` |
-| End-to-end testing | Manual verification pending in UI |
-
----
-
-## Priority 2: Other Planned Features
-
-### Schedule Reminders ✅
-
-| Item | Status |
-|------|--------|
-| Tabel `event_reminders` | ✅ `database/migrations/2026_05_16_142315_create_event_reminders_table.php` |
-| Model + factory + scopes (`pending`, `due`) | ✅ `app/Models/EventReminder.php` |
-| `ScheduleReminderService::createForSchedule / replaceForSchedule / sendDue` | ✅ `app/Services/Schedule/ScheduleReminderService.php` |
-| Delivery via Telegram (channel: app / telegram / both) | ✅ `deliverTelegram()` |
-| Artisan command `aspri:send-reminders` | ✅ `SendScheduleRemindersCommand` |
-| Scheduler: `everyMinute()->withoutOverlapping()` | ✅ `routes/console.php` |
-| Tests | ✅ 10 tests in `tests/Feature/ScheduleReminderServiceTest.php` |
-
-### Finance Budget Tracking ✅
-
-| Item | Status |
-|------|--------|
-| Tabel `finance_budgets` (user_id, category_id, period_year/month, amount, alert_threshold_pct) | ✅ `database/migrations/2026_05_16_142637_create_finance_budgets_table.php` |
-| Model + factory + scopes (`active`, `forPeriod`) | ✅ `app/Models/FinanceBudget.php` |
-| `FinanceBudgetService`: `calculateSpent`, `getProgress`, `getProgressForUserPeriod`, `isOverBudget`, `isApproachingLimit` | ✅ `app/Services/Finance/FinanceBudgetService.php` |
-| Tests | ✅ 7 tests in `tests/Feature/FinanceBudgetServiceTest.php` |
-| CRUD controller `FinanceBudgetController` (index/store/update/destroy) + Form Requests | ✅ |
-| Routes: `finance/budgets` resource | ✅ |
-| Vue page `finance/Budgets.vue` — period navigation, budget cards + progress bar, create/edit dialog | ✅ |
-| Dashboard widget `BudgetProgressCard.vue` — top-5 budgets with visual progress | ✅ |
-| DashboardController — pass budgets for current month | ✅ |
-
-### Block-based Note Editor ✅
-
-| Item | Status |
-|------|--------|
-| Tiptap installed (`@tiptap/vue-3`, `starter-kit`, `image`, `placeholder`) | ✅ |
-| `BlockEditor.vue` — toolbar (heading, bold, italic, list, code, image) | ✅ |
-| `BlockRenderer.vue` — read-only renderer + plain-text preview mode + legacy block converter | ✅ |
-| `NoteModal.vue` swapped textarea → BlockEditor | ✅ |
-| `NoteCard.vue` swapped contentPreview → BlockRenderer (preview mode) | ✅ |
-| Tiptap JSON stored directly; legacy `{type, content, items}` arrays auto-converted on load | ✅ |
+**Guard untuk password reset:**
+```php
+// Jika user->password === null, tolak permintaan reset password
+```
 
 ---
 
-## Bug fixes captured along the way
+## Planned (Backlog)
 
-- `app/Services/Ai/ActionExecutorService.php` — replaced all `ILIKE` (PostgreSQL-only) with `LOWER(col) LIKE ?` (cross-database). Reduced test failures from 17 → 7.
-- `app/Services/Ai/ChatService.php` — removed duplicate `$provider` declaration (PHP 8.4 fatal error).
-- `app/Providers/AppServiceProvider.php` — `ChatOrchestrator` binding was missing `ConversationMemoryService` & `SettingsService` (constructor signature drifted after Phase A–C memory work landed). Fixed.
-- Added `HasFactory` trait to `FinanceTransaction`, `FinanceAccount`, `FinanceCategory`, `Schedule` (factories existed in tests but trait was missing).
-
----
-
-## Known pre-existing failures (NOT caused by this work)
-
-`tests/Feature/ScheduleIntentTest` (~11) and `Integration/DashboardIntegrationTest` rely on PostgreSQL `ILIKE` (introduced in commit `55645c0`) but the test suite runs SQLite in-memory. Either swap to portable case-insensitive comparison or run tests against Postgres.
+- **WhatsApp Integration** — via WhatsApp Business API atau Twilio
+- **Payment Gateway** — Midtrans/Xendit untuk subscription otomatis
+- **Mobile App** — React Native wrapper atau PWA

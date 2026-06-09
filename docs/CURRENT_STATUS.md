@@ -1,6 +1,6 @@
 # ASPRI - Current Status
 
-> **Date**: May 14, 2026  
+> **Date**: June 9, 2026  
 > **Status**: Production-Ready MVP — Semua fitur inti sudah live.
 
 ## Quick Summary
@@ -13,19 +13,19 @@ ASPRI adalah aplikasi asisten pribadi berbasis AI yang sudah fully functional. S
 
 | Category | Count |
 |----------|-------|
-| Models (Eloquent) | 24 |
-| Controllers | 21 |
-| Services | 20 |
+| Models (Eloquent) | 27 |
+| Controllers | 23 |
+| Services | 22 |
 | Form Requests | 13 |
-| Migrations | 34 |
-| Model Factories | 15 |
+| Migrations | 38 |
+| Model Factories | 17 |
 | Vue Pages | 30+ |
-| Vue Components | 50+ |
+| Vue Components | 55+ |
 | Built-in Plugins | 15 |
-| Feature Tests | 26+ |
+| Feature Tests | 54+ |
 | Integration Tests | 8 |
 | Unit Tests | 2 |
-| Documentation Files | 15 |
+| Documentation Files | 5 |
 
 ---
 
@@ -46,6 +46,7 @@ ASPRI adalah aplikasi asisten pribadi berbasis AI yang sudah fully functional. S
 - Recent activity timeline
 - Subscription status card
 - Telegram linking status card
+- Budget progress widget (top-5 budgets, `BudgetProgressCard.vue`)
 
 ### ✅ Chat Module
 - Web-based chat interface (threaded)
@@ -56,31 +57,43 @@ ASPRI adalah aplikasi asisten pribadi berbasis AI yang sudah fully functional. S
 - Dynamic context window (token-budget-based pruning, configurable via admin)
 - Language auto-detect (Bahasa/English)
 - Persona consistency (aspri_name + aspri_persona + call_preference)
+- Streaming responses via SSE (Server-Sent Events)
 
 ### ✅ Conversation Memory System
 - Tabel `conversation_memories` dengan indexing untuk access pattern
-- Model `ConversationMemory` dengan scopes: `active()`, `byType()`, `mostImportant()`
-- `ConversationMemoryService` dengan method:
+- Model `ConversationMemory` dengan scopes: `active()` (filter `is_active` + `valid_until`), `byType()`, `mostImportant()`
+- `ConversationMemoryService`:
   - `extractMemoriesFromThread()` — AI-powered extraction post-conversation
   - `buildMemoryContext()` — inject memories ke system prompt (token-budget-aware)
-  - `shouldCompact()` — check threshold (token count > 15% context length, atau > 50 items)
+  - `shouldCompact()` — threshold: token count > 15% context length atau > 50 items
   - `compact()` — AI-powered compaction, preserve importance ≥ 4
   - `estimateTokenCount()` — heuristik ~3 chars/token
-- Job `ExtractConversationMemories` dengan debounce logic (15-menit delay, skip jika ada job lebih baru)
-- Memory context diinjeksi ke semua AI responses
-- `ai_context_length` setting di Admin Panel (dengan preset: Gemini 32k, GPT-4 128k, Claude 200k, Gemini 1.5 1M)
-- Compaction otomatis dipanggil setelah extraction jika perlu
+- Job `ExtractConversationMemories` dengan debounce (15-menit delay, skip jika ada job lebih baru)
+- Memory context diinjeksi ke **semua** AI responses — termasuk streaming path
+- `ExtractConversationMemories` dispatched dari **semua** paths (regular + streaming)
+- Artisan command `aspri:compact-memories [--user=ID]`
+- Auto-compaction dipanggil setelah extraction jika threshold terlampaui
+- Admin view per-user memory stats (active/inactive count, est tokens, last extraction, by_type) di `admin/users/Show`
+- `ai_context_length` setting di Admin Panel (preset: Gemini 32k, GPT-4 128k, Claude 200k, Gemini 1.5 1M)
+- 27 feature tests (`ConversationMemoryServiceTest`, `ExtractConversationMemoriesJobTest`, `CompactMemoriesCommandTest`)
 
 ### ✅ Notes Module
-- CRUD notes dengan title + longText content
+- CRUD notes dengan title + content
 - Tags (JSON array), pin, color-coding
 - Soft delete
+- Block-based editor via Tiptap (`BlockEditor.vue`) — heading, bold, italic, list, code, image
+- Read-only renderer `BlockRenderer.vue` — preview mode + legacy block converter
+- Tiptap JSON storage; legacy format auto-converted on load
 
 ### ✅ Schedule Module
 - Calendar view (monthly)
 - Event CRUD: title, description, location, start/end time, all-day
 - Recurring events (RRULE string)
 - Completion tracking
+- Schedule reminders via `event_reminders` + `ScheduleReminderService`
+  - Delivery: app notification + Telegram
+  - Artisan command `aspri:send-reminders` — scheduled `everyMinute()->withoutOverlapping()`
+  - 10 feature tests
 
 ### ✅ Finance Module
 - Transaction CRUD (income/expense)
@@ -88,6 +101,12 @@ ASPRI adalah aplikasi asisten pribadi berbasis AI yang sudah fully functional. S
 - Category management per type
 - Monthly summary di dashboard
 - Payment proof attachment
+- Budget tracking via `finance_budgets` + `FinanceBudgetService`
+  - Per-kategori, per-periode (year/month), alert threshold %
+  - `calculateSpent`, `getProgress`, `isOverBudget`, `isApproachingLimit`
+  - CRUD controller `FinanceBudgetController` + Form Requests
+  - Vue page `finance/Budgets.vue` — period navigation, budget cards + progress bar, create/edit dialog
+  - 7 feature tests
 
 ### ✅ Plugin System
 - 15 production-ready plugins:
@@ -116,6 +135,7 @@ ASPRI adalah aplikasi asisten pribadi berbasis AI yang sudah fully functional. S
 ### ✅ Admin Panel
 - Dashboard: user stats, system health, usage metrics
 - User management: CRUD, activate/deactivate, promote to admin
+  - Per-user memory stats (active/inactive count, est tokens, last extraction, by_type)
 - AI Provider settings: Gemini (default), OpenAI, Claude
   - API keys (encrypted), model selection, custom base URL
 - System settings: app name, timezone, locale, maintenance mode
@@ -131,7 +151,7 @@ ASPRI adalah aplikasi asisten pribadi berbasis AI yang sudah fully functional. S
 
 | Package | Version |
 |---------|---------|
-| PHP | 8.4.11 |
+| PHP | 8.5.4 |
 | Laravel | 12.x |
 | Laravel Fortify | 1.x |
 | Inertia.js (Laravel) | 2.x |
@@ -146,14 +166,15 @@ ASPRI adalah aplikasi asisten pribadi berbasis AI yang sudah fully functional. S
 | PHPUnit | 11.x |
 | Laravel Pint | 1.x |
 | Laravel Sail | 1.x |
+| Tiptap | 2.x |
 
 ---
 
 ## Database Stats
 
-- **33 migrations** semua applied
+- **38 migrations** semua applied
 - **PostgreSQL** sebagai primary database
-- Key tables: users, profiles, chat_threads, chat_messages, pending_actions, notes, schedules, finance_accounts, finance_categories, finance_transactions, subscriptions, payment_proofs, system_settings, activity_logs, plugins, user_plugins, plugin_*, promo_codes
+- Key tables: users, profiles, chat_threads, chat_messages, pending_actions, conversation_memories, notes, schedules, event_reminders, finance_accounts, finance_categories, finance_transactions, finance_budgets, subscriptions, payment_proofs, system_settings, activity_logs, plugins, user_plugins, plugin_*, promo_codes
 
 ---
 
@@ -168,10 +189,11 @@ ASPRI adalah aplikasi asisten pribadi berbasis AI yang sudah fully functional. S
 **Current AI Features:**
 - Intent parsing (action + module + entities + confidence)
 - Conversational response generation
-- System prompt with persona + date/time context
+- System prompt dengan persona + date/time context
 - Dynamic conversation history (token-budget-based, configurable context length)
 - Language detection & auto-switching
-- Cross-session memory (via `ConversationMemoryService` + `conversation_memories` table)
+- Cross-session memory (`ConversationMemoryService` + `conversation_memories` table)
+- Streaming responses via SSE
 
 ---
 
@@ -187,20 +209,14 @@ ASPRI adalah aplikasi asisten pribadi berbasis AI yang sudah fully functional. S
 
 ## Known Limitations & Tech Debt
 
-1. **No schedule reminders**: event_reminders belum diimplementasi
-2. **No budget tracking**: finance_budgets belum diimplementasi
-3. **No payment gateway**: subscription approval masih manual oleh admin
-4. **No block-based note editor**: notes menggunakan simple textarea
-5. **No WhatsApp integration**: masih dalam roadmap
-6. **Memory system — no artisan command**: `aspri:compact-memories` belum ada (manual compaction belum tersedia)
-7. **Memory system — no feature tests**: unit/feature tests untuk ConversationMemoryService belum ditulis
-8. **No admin view for per-user memory stats**: belum diimplementasi
+1. **No Google OAuth**: login/register hanya via email+password — Google OAuth direncanakan (lihat PLAN.md)
+2. **No payment gateway**: subscription approval masih manual oleh admin
+3. **No WhatsApp integration**: masih dalam roadmap
+4. **Known test failures (pre-existing)**: `ScheduleIntentTest` (~11 tests) dan `DashboardIntegrationTest` menggunakan PostgreSQL `ILIKE` tapi test suite jalan di SQLite in-memory
 
 ---
 
 ## What's Next
 
-Lihat [PLAN.md](PLAN.md) untuk rencana pengembangan berikutnya, yang mencakup:
-1. **Memory System Polish** — Artisan command, feature tests, admin per-user memory view
-2. **Schedule Reminders** — event_reminders + Telegram notification
-3. **Finance Budget Tracking** — finance_budgets per kategori dengan alert
+Lihat [PLAN.md](PLAN.md) untuk rencana pengembangan berikutnya:
+1. **Google OAuth** — login + register via Google
