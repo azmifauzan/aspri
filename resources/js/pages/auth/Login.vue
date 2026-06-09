@@ -11,7 +11,7 @@ import { register } from '@/routes';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
 import { Form, Head } from '@inertiajs/vue3';
-import { Eye, EyeOff } from 'lucide-vue-next';
+import { Eye, EyeOff, Globe } from 'lucide-vue-next';
 import { ref } from 'vue';
 
 defineProps<{
@@ -111,6 +111,28 @@ const showPassword = ref(false);
                 >
                     <Spinner v-if="processing" />
                     {{ $t('auth.loginButton') }}
+                </Button>
+
+                <div class="relative my-2">
+                    <div class="absolute inset-0 flex items-center">
+                        <span class="w-full border-t"></span>
+                    </div>
+                    <div class="relative flex justify-center text-xs uppercase">
+                        <span class="bg-background px-2 text-muted-foreground">
+                            Atau
+                        </span>
+                    </div>
+                </div>
+
+                <Button
+                    type="button"
+                    variant="outline"
+                    class="w-full"
+                    as="a"
+                    href="/auth/google"
+                >
+                    <Globe class="mr-2 h-4 w-4" />
+                    Lanjutkan dengan Google
                 </Button>
             </div>
 

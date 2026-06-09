@@ -32,6 +32,8 @@ export default {
     createAccount: 'Create Account',
     hasAccount: 'Already have an account?',
     loginHere: 'Login here',
+    agreementText: 'By registering, you agree to our ',
+    agreementAnd: ' and ',
 
     // Verify Email
     verifyEmailTitle: 'Verify Email',

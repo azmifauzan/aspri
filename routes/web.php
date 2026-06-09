@@ -7,16 +7,26 @@ use App\Http\Controllers\Admin\PromoCodeController;
 use App\Http\Controllers\Admin\QueueMonitorController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\UserManagementController;
+use App\Http\Controllers\Auth\SocialiteController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\FinanceBudgetController;
 use App\Http\Controllers\FinanceController;
+use App\Http\Controllers\NoteController;
+use App\Http\Controllers\PluginController;
+use App\Http\Controllers\PluginRatingController;
+use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\SubscriptionController;
 use App\Models\Plugin;
 use App\Services\Admin\SettingsService;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
+
+Route::get('/auth/google', [SocialiteController::class, 'redirect'])->name('google.login');
+Route::get('/auth/google/callback', [SocialiteController::class, 'callback'])->name('google.callback');
 
 Route::get('/', function (SettingsService $settingsService) {
     // Get 6 random plugins for landing page
@@ -71,7 +81,7 @@ Route::get('/explore-plugins', function (Request $request) {
     // Manual pagination since we filtered after query
     $page = $request->input('page', 1);
     $perPage = 12;
-    $paginatedPlugins = new \Illuminate\Pagination\LengthAwarePaginator(
+    $paginatedPlugins = new LengthAwarePaginator(
         $plugins->forPage($page, $perPage),
         $plugins->count(),
         $perPage,
@@ -84,6 +94,18 @@ Route::get('/explore-plugins', function (Request $request) {
         'filters' => $request->only(['search', 'min_rating', 'sort_by']),
     ]);
 })->name('explore-plugins');
+
+Route::get('/privacy-policy', function () {
+    return Inertia::render('legal/PrivacyPolicy', [
+        'lastUpdated' => 'October 1, 2023', // Hardcoded for now
+    ]);
+})->name('privacy-policy');
+
+Route::get('/terms-of-service', function () {
+    return Inertia::render('legal/TermsOfService', [
+        'lastUpdated' => 'October 1, 2023', // Hardcoded for now
+    ]);
+})->name('terms-of-service');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -124,31 +146,31 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('finance/categories/{category}', [FinanceController::class, 'destroyCategory'])->name('finance.categories.destroy');
     Route::get('finance/accounts', [FinanceController::class, 'accounts'])->name('finance.accounts');
     Route::post('finance/accounts', [FinanceController::class, 'storeAccount'])->name('finance.accounts.store');
-    Route::resource('finance/budgets', \App\Http\Controllers\FinanceBudgetController::class)
+    Route::resource('finance/budgets', FinanceBudgetController::class)
         ->only(['index', 'store', 'update', 'destroy'])
         ->parameters(['budgets' => 'financeBudget']);
 
     // Schedule routes
-    Route::resource('schedules', \App\Http\Controllers\ScheduleController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::resource('schedules', ScheduleController::class)->only(['index', 'store', 'update', 'destroy']);
 
     // Note routes
-    Route::resource('notes', \App\Http\Controllers\NoteController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::resource('notes', NoteController::class)->only(['index', 'store', 'update', 'destroy']);
 
     // Plugin routes
-    Route::get('plugins', [\App\Http\Controllers\PluginController::class, 'index'])->name('plugins.index');
-    Route::get('plugins/{plugin}', [\App\Http\Controllers\PluginController::class, 'show'])->name('plugins.show');
-    Route::post('plugins/{plugin}/activate', [\App\Http\Controllers\PluginController::class, 'activate'])->name('plugins.activate');
-    Route::post('plugins/{plugin}/deactivate', [\App\Http\Controllers\PluginController::class, 'deactivate'])->name('plugins.deactivate');
-    Route::post('plugins/{plugin}/config', [\App\Http\Controllers\PluginController::class, 'updateConfig'])->name('plugins.config.update');
-    Route::delete('plugins/{plugin}/config', [\App\Http\Controllers\PluginController::class, 'resetConfig'])->name('plugins.config.reset');
-    Route::post('plugins/{plugin}/schedule', [\App\Http\Controllers\PluginController::class, 'updateSchedule'])->name('plugins.schedule.update');
-    Route::delete('plugins/{plugin}/schedule/{scheduleId}', [\App\Http\Controllers\PluginController::class, 'deleteSchedule'])->name('plugins.schedule.delete');
-    Route::post('plugins/{plugin}/test', [\App\Http\Controllers\PluginController::class, 'testExecute'])->name('plugins.test');
+    Route::get('plugins', [PluginController::class, 'index'])->name('plugins.index');
+    Route::get('plugins/{plugin}', [PluginController::class, 'show'])->name('plugins.show');
+    Route::post('plugins/{plugin}/activate', [PluginController::class, 'activate'])->name('plugins.activate');
+    Route::post('plugins/{plugin}/deactivate', [PluginController::class, 'deactivate'])->name('plugins.deactivate');
+    Route::post('plugins/{plugin}/config', [PluginController::class, 'updateConfig'])->name('plugins.config.update');
+    Route::delete('plugins/{plugin}/config', [PluginController::class, 'resetConfig'])->name('plugins.config.reset');
+    Route::post('plugins/{plugin}/schedule', [PluginController::class, 'updateSchedule'])->name('plugins.schedule.update');
+    Route::delete('plugins/{plugin}/schedule/{scheduleId}', [PluginController::class, 'deleteSchedule'])->name('plugins.schedule.delete');
+    Route::post('plugins/{plugin}/test', [PluginController::class, 'testExecute'])->name('plugins.test');
 
     // Plugin Rating routes
-    Route::post('plugins/{plugin}/ratings', [\App\Http\Controllers\PluginRatingController::class, 'store'])->name('plugins.ratings.store');
-    Route::put('plugins/{plugin}/ratings/{rating}', [\App\Http\Controllers\PluginRatingController::class, 'update'])->name('plugins.ratings.update');
-    Route::delete('plugins/{plugin}/ratings/{rating}', [\App\Http\Controllers\PluginRatingController::class, 'destroy'])->name('plugins.ratings.destroy');
+    Route::post('plugins/{plugin}/ratings', [PluginRatingController::class, 'store'])->name('plugins.ratings.store');
+    Route::put('plugins/{plugin}/ratings/{rating}', [PluginRatingController::class, 'update'])->name('plugins.ratings.update');
+    Route::delete('plugins/{plugin}/ratings/{rating}', [PluginRatingController::class, 'destroy'])->name('plugins.ratings.destroy');
 });
 
 // Admin Routes

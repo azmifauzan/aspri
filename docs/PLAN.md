@@ -4,58 +4,43 @@
 
 ---
 
-## Priority 1: Google OAuth (Sign In & Register)
+## Priority 1: Google OAuth — DONE ✅
 
-Tambahkan opsi login dan registrasi via Google ke halaman auth yang sudah ada.
-
-### Phase A: Backend
+### Phase A: Backend ✅
 
 | Task | Status |
 |------|--------|
-| Install `laravel/socialite` | ⬜ |
-| Add `google_id` + `google_avatar` columns ke `users` via migration | ⬜ |
-| Register Google provider di `config/services.php` | ⬜ |
-| `SocialiteController` — `redirect()` + `callback()` | ⬜ |
-| Callback logic: find-or-create user, auto-verify email, skip password | ⬜ |
-| Handle new user flow: redirect ke profile setup jika profil belum diisi | ⬜ |
-| Route: `GET /auth/google` → redirect, `GET /auth/google/callback` → callback | ⬜ |
+| Install `laravel/socialite` | ✅ |
+| Add `google_id` + `google_avatar` columns ke `users` via migration | ✅ `2026_06_09_162313_add_google_columns_to_users_table.php` |
+| Make `password` nullable via migration | ✅ `2026_06_09_164919_make_users_password_nullable.php` |
+| Register Google provider di `config/services.php` | ✅ |
+| `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` di `.env.example` | ✅ |
+| `SocialiteController` — `redirect()` + `callback()` | ✅ `app/Http/Controllers/Auth/SocialiteController.php` |
+| Callback: find-or-create user, auto-link existing email, `forceFill` email_verified_at | ✅ |
+| Callback new user: create default Profile, `createFreeTrial()`, `WelcomeNotification`, admin Telegram notify | ✅ |
+| Route: `GET /auth/google` + `GET /auth/google/callback` | ✅ `routes/web.php` |
+| Guard: Google-only accounts tidak bisa reset password via email | ✅ `ResetUserPassword.php` |
 
-### Phase B: Frontend
-
-| Task | Status |
-|------|--------|
-| Tombol "Lanjutkan dengan Google" di `auth/Login.vue` | ⬜ |
-| Tombol "Daftar dengan Google" di `auth/Register.vue` | ⬜ |
-| Styling konsisten dengan Reka UI + Tailwind 4 | ⬜ |
-| Handle redirect error dari callback (flash error di session) | ⬜ |
-
-### Phase C: Tests & Polish
+### Phase B: Frontend ✅
 
 | Task | Status |
 |------|--------|
-| Feature test: user baru via Google → profil setup redirect | ⬜ |
-| Feature test: user existing via Google → login & redirect ke dashboard | ⬜ |
-| Feature test: email yang sudah ada (non-Google) → error graceful | ⬜ |
-| Guard: user dengan Google login tidak bisa reset password via email | ⬜ |
+| Tombol "Lanjutkan dengan Google" di `auth/Login.vue` | ✅ |
+| Tombol "Daftar dengan Google" di `auth/Register.vue` | ✅ |
+| Error handling via flash `status` session | ✅ |
 
-### Detail teknis
+### Phase C: Tests ✅
 
-**Migration tambahan:**
-```php
-$table->string('google_id')->nullable()->unique();
-$table->string('google_avatar')->nullable();
-```
+| Task | Status |
+|------|--------|
+| New user via Google → profile setup redirect | ✅ |
+| New user: Profile + Subscription + WelcomeNotification tercipta | ✅ |
+| Existing Google user → login + avatar update | ✅ |
+| Email conflict (non-Google existing) → auto-link + login | ✅ |
+| Socialite exception → redirect login dengan error flash | ✅ |
+| New user has default Profile (`aspri_name = 'ASPRI'`) | ✅ |
 
-**Callback flow:**
-1. Cek `google_id` → jika ada, login langsung
-2. Cek `email` → jika ada tanpa `google_id`, flash error "email sudah terdaftar, login biasa"
-3. Jika tidak ada → buat user baru (`email_verified_at = now()`, `password = null`)
-4. Cek profil → jika belum ada, redirect ke `/profile/setup`, else `/dashboard`
-
-**Guard untuk password reset:**
-```php
-// Jika user->password === null, tolak permintaan reset password
-```
+6 tests di `tests/Feature/GoogleOAuthTest.php`.
 
 ---
 

@@ -9,7 +9,7 @@ import AuthBase from '@/layouts/AuthLayout.vue';
 import { login } from '@/routes';
 import { store } from '@/routes/register';
 import { Form, Head } from '@inertiajs/vue3';
-import { Eye, EyeOff } from 'lucide-vue-next';
+import { Eye, EyeOff, Globe } from 'lucide-vue-next';
 import { ref } from 'vue';
 
 const showPassword = ref(false);
@@ -175,6 +175,13 @@ const showPasswordConfirmation = ref(false);
                     </div>
                 </div>
 
+                <div class="mt-4 text-center text-xs text-muted-foreground">
+                    {{ $t('auth.agreementText') }}
+                    <TextLink href="/terms-of-service" class="underline">{{ $t('legal.termsOfService') }}</TextLink>
+                    {{ $t('auth.agreementAnd') }}
+                    <TextLink href="/privacy-policy" class="underline">{{ $t('legal.privacyPolicy') }}</TextLink>
+                </div>
+
                 <Button
                     type="submit"
                     class="mt-4 w-full md:w-auto md:self-end"
@@ -184,6 +191,28 @@ const showPasswordConfirmation = ref(false);
                 >
                     <Spinner v-if="processing" />
                     {{ $t('auth.createAccount') }}
+                </Button>
+
+                <div class="relative mt-6 mb-2">
+                    <div class="absolute inset-0 flex items-center">
+                        <span class="w-full border-t"></span>
+                    </div>
+                    <div class="relative flex justify-center text-xs uppercase">
+                        <span class="bg-background px-2 text-muted-foreground">
+                            Atau
+                        </span>
+                    </div>
+                </div>
+
+                <Button
+                    type="button"
+                    variant="outline"
+                    class="w-full"
+                    as="a"
+                    href="/auth/google"
+                >
+                    <Globe class="mr-2 h-4 w-4" />
+                    Daftar dengan Google
                 </Button>
             </div>
 

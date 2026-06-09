@@ -1,7 +1,7 @@
 # ASPRI Database Schema
 
 > **Last Updated**: June 2026  
-> Schema ini mencerminkan migrasi yang sudah diimplementasi (38 migrations).
+> Schema ini mencerminkan migrasi yang sudah diimplementasi (40 migrations).
 
 ## Overview
 
@@ -77,9 +77,12 @@ Schema::create('users', function (Blueprint $table) {
     // Subscription fields (added by migration)
     $table->enum('subscription_status', ['trial', 'active', 'expired', 'none'])->default('trial');
     $table->timestamp('trial_ends_at')->nullable();
+    // Google OAuth (added by migration 2026_06_09_162313)
+    $table->string('google_id')->nullable()->unique();
+    $table->string('google_avatar')->nullable();
     $table->rememberToken();
     $table->timestamps();
-    // Planned: google_id + google_avatar (Google OAuth — see PLAN.md)
+    // Note: password is nullable (migration 2026_06_09_164919) — Google-only users have null password
 });
 ```
 
@@ -656,6 +659,4 @@ Schema::create('finance_budgets', function (Blueprint $table) {
 
 ## Planned Future Tables
 
-| Table | Purpose | Priority |
-|-------|---------|---------|
-| (none — all planned tables sudah diimplementasi) | | |
+Semua tabel yang direncanakan sudah diimplementasi. Tidak ada planned future tables saat ini.

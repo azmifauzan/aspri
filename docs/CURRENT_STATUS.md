@@ -5,7 +5,7 @@
 
 ## Quick Summary
 
-ASPRI adalah aplikasi asisten pribadi berbasis AI yang sudah fully functional. Semua modul utama (Chat, Finance, Schedule, Notes, Admin, Plugins, Subscription, Telegram) sudah diimplementasi dan di-test. Aplikasi sudah ter-dockerize dan siap untuk production deployment.
+ASPRI adalah aplikasi asisten pribadi berbasis AI yang sudah fully functional. Semua modul utama (Chat, Finance, Schedule, Notes, Admin, Plugins, Subscription, Telegram, Google OAuth) sudah diimplementasi dan di-test. Aplikasi sudah ter-dockerize dan siap untuk production deployment.
 
 ---
 
@@ -14,15 +14,15 @@ ASPRI adalah aplikasi asisten pribadi berbasis AI yang sudah fully functional. S
 | Category | Count |
 |----------|-------|
 | Models (Eloquent) | 27 |
-| Controllers | 23 |
+| Controllers | 24 |
 | Services | 22 |
 | Form Requests | 13 |
-| Migrations | 38 |
+| Migrations | 40 |
 | Model Factories | 17 |
 | Vue Pages | 30+ |
 | Vue Components | 55+ |
 | Built-in Plugins | 15 |
-| Feature Tests | 54+ |
+| Feature Tests | 60+ |
 | Integration Tests | 8 |
 | Unit Tests | 2 |
 | Documentation Files | 5 |
@@ -37,6 +37,10 @@ ASPRI adalah aplikasi asisten pribadi berbasis AI yang sudah fully functional. S
 - Email verification
 - Two-factor authentication (TOTP via Fortify)
 - Remember me / session management
+- **Google OAuth** — sign in + register via Google (laravel/socialite)
+  - Auto-verify email, auto-link existing email accounts
+  - New Google users: default Profile created, free trial provisioned, welcome notification sent
+  - Password reset blocked for Google-only accounts (null password guard)
 
 ### ✅ Dashboard
 - Monthly financial summary (income, expense, balance)
@@ -75,7 +79,7 @@ ASPRI adalah aplikasi asisten pribadi berbasis AI yang sudah fully functional. S
 - Auto-compaction dipanggil setelah extraction jika threshold terlampaui
 - Admin view per-user memory stats (active/inactive count, est tokens, last extraction, by_type) di `admin/users/Show`
 - `ai_context_length` setting di Admin Panel (preset: Gemini 32k, GPT-4 128k, Claude 200k, Gemini 1.5 1M)
-- 27 feature tests (`ConversationMemoryServiceTest`, `ExtractConversationMemoriesJobTest`, `CompactMemoriesCommandTest`)
+- 27 feature tests
 
 ### ✅ Notes Module
 - CRUD notes dengan title + content
@@ -154,6 +158,7 @@ ASPRI adalah aplikasi asisten pribadi berbasis AI yang sudah fully functional. S
 | PHP | 8.5.4 |
 | Laravel | 12.x |
 | Laravel Fortify | 1.x |
+| Laravel Socialite | 5.x |
 | Inertia.js (Laravel) | 2.x |
 | @inertiajs/vue3 | 2.3.7 |
 | Vue | 3.5.13 |
@@ -172,9 +177,9 @@ ASPRI adalah aplikasi asisten pribadi berbasis AI yang sudah fully functional. S
 
 ## Database Stats
 
-- **38 migrations** semua applied
+- **40 migrations** semua applied
 - **PostgreSQL** sebagai primary database
-- Key tables: users, profiles, chat_threads, chat_messages, pending_actions, conversation_memories, notes, schedules, event_reminders, finance_accounts, finance_categories, finance_transactions, finance_budgets, subscriptions, payment_proofs, system_settings, activity_logs, plugins, user_plugins, plugin_*, promo_codes
+- Key tables: users (google_id, google_avatar, nullable password), profiles, chat_threads, chat_messages, pending_actions, conversation_memories, notes, schedules, event_reminders, finance_accounts, finance_categories, finance_transactions, finance_budgets, subscriptions, payment_proofs, system_settings, activity_logs, plugins, user_plugins, plugin_*, promo_codes
 
 ---
 
@@ -209,14 +214,15 @@ ASPRI adalah aplikasi asisten pribadi berbasis AI yang sudah fully functional. S
 
 ## Known Limitations & Tech Debt
 
-1. **No Google OAuth**: login/register hanya via email+password — Google OAuth direncanakan (lihat PLAN.md)
-2. **No payment gateway**: subscription approval masih manual oleh admin
-3. **No WhatsApp integration**: masih dalam roadmap
-4. **Known test failures (pre-existing)**: `ScheduleIntentTest` (~11 tests) dan `DashboardIntegrationTest` menggunakan PostgreSQL `ILIKE` tapi test suite jalan di SQLite in-memory
+1. **No payment gateway**: subscription approval masih manual oleh admin
+2. **No WhatsApp integration**: masih dalam roadmap
+3. **Known test failures (pre-existing)**: `ScheduleIntentTest` (~11 tests) dan `DashboardIntegrationTest` menggunakan PostgreSQL `ILIKE` tapi test suite jalan di SQLite in-memory. `SubscriptionTest` dan beberapa integration tests gagal karena Vite manifest tidak tersedia di test environment.
 
 ---
 
 ## What's Next
 
-Lihat [PLAN.md](PLAN.md) untuk rencana pengembangan berikutnya:
-1. **Google OAuth** — login + register via Google
+Lihat [PLAN.md](PLAN.md). Semua fitur utama sudah selesai. Backlog:
+1. **WhatsApp Integration**
+2. **Payment Gateway** (Midtrans/Xendit)
+3. **Mobile App** (PWA atau React Native)

@@ -61,4 +61,10 @@ return [
         'http_client_verify' => env('TELEGRAM_HTTP_CLIENT_VERIFY', true),
     ],
 
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT_URI', '/auth/google/callback'),
+    ],
+
 ];

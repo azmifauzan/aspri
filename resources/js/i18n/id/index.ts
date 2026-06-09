@@ -5,6 +5,7 @@ import dashboard from './dashboard';
 import explorePlugins from './explorePlugins';
 import finance from './finance';
 import landing from './landing';
+import legal from './legal';
 import notes from './notes';
 import plugins from './plugins';
 import schedules from './schedules';
@@ -24,4 +25,5 @@ export default {
     settings,
     subscription,
     explorePlugins,
+    legal,
 };

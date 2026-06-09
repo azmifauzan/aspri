@@ -466,7 +466,12 @@ const features = computed(() => [
             class="border-t border-border/40 bg-muted/30 py-8 text-center text-sm text-muted-foreground"
         >
             <div class="container mx-auto px-4">
-                <p>{{ $t('landing.footer') }}</p>
+                <p class="mb-4">{{ $t('landing.footer') }}</p>
+                <div class="flex items-center justify-center gap-4">
+                    <Link href="/privacy-policy" class="hover:text-foreground transition-colors">{{ $t('legal.privacyPolicy') }}</Link>
+                    <span>&middot;</span>
+                    <Link href="/terms-of-service" class="hover:text-foreground transition-colors">{{ $t('legal.termsOfService') }}</Link>
+                </div>
             </div>
         </footer>
     </div>

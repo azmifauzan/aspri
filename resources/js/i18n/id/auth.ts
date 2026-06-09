@@ -32,6 +32,8 @@ export default {
     createAccount: 'Buat Akun',
     hasAccount: 'Sudah punya akun?',
     loginHere: 'Masuk di sini',
+    agreementText: 'Dengan mendaftar, Anda menyetujui ',
+    agreementAnd: ' serta ',
 
     // Verify Email
     verifyEmailTitle: 'Verifikasi Email',
