@@ -5,7 +5,24 @@
       "Bash(php artisan *)",
       "Bash(npm run *)",
       "Bash(npx vue-tsc *)",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(./vendor/bin/phpunit --filter=\"CompactMemoriesCommandTest::test_command_fails_for_unknown_user\" --display-deprecations)",
+      "Bash(./vendor/bin/phpunit --filter=\"ConversationMemory|ExtractConversation|CompactMemories\")",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(./vendor/bin/phpunit *)",
+      "Bash(git -C /home/fauzan/dev/aspri log --oneline -5)",
+      "Bash(git -C /home/fauzan/dev/aspri status --short)",
+      "Bash(./vendor/bin/pest tests/Feature/ConversationMemoryServiceTest.php tests/Feature/ExtractConversationMemoriesJobTest.php tests/Feature/CompactMemoriesCommandTest.php)",
+      "Bash(vendor/bin/phpunit tests/Feature/ConversationMemoryServiceTest.php tests/Feature/ExtractConversationMemoriesJobTest.php tests/Feature/CompactMemoriesCommandTest.php)",
+      "Bash(vendor/bin/phpunit tests/Feature/ConversationMemoryServiceTest.php tests/Feature/ChatStreamMemoryDispatchTest.php)",
+      "Bash(vendor/bin/phpunit tests/Feature/ConversationMemoryServiceTest.php tests/Feature/ChatStreamMemoryDispatchTest.php tests/Feature/ExtractConversationMemoriesJobTest.php tests/Feature/CompactMemoriesCommandTest.php)",
+      "Bash(vendor/bin/phpunit tests/Feature/ChatFeatureTest.php tests/Feature/AdminFeatureTest.php)",
+      "Bash(git stash *)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(echo \"legal errors: $?\")",
+      "Bash(npx prettier *)"
     ]
   }
 }

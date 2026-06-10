@@ -7,6 +7,7 @@ export default {
     rememberMe: 'Ingat saya',
     loginButton: 'Masuk',
     continueWithGoogle: 'Lanjutkan dengan Google',
+    orSeparator: 'Atau',
     noAccount: 'Belum punya akun?',
     registerNow: 'Daftar sekarang',
     enterPassword: 'Masukkan password',

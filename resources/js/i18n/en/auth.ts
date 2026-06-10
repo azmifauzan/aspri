@@ -7,6 +7,7 @@ export default {
     rememberMe: 'Remember me',
     loginButton: 'Login',
     continueWithGoogle: 'Continue with Google',
+    orSeparator: 'Or',
     noAccount: "Don't have an account?",
     registerNow: 'Register now',
     enterPassword: 'Enter password',

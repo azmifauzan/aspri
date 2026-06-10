@@ -66,7 +66,7 @@ const showPassword = ref(false);
                     </div>
                     <div class="relative flex justify-center text-xs uppercase">
                         <span class="bg-background px-2 text-muted-foreground">
-                            Atau
+                            {{ $t('auth.orSeparator') }}
                         </span>
                     </div>
                 </div>
