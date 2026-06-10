@@ -97,13 +97,13 @@ Route::get('/explore-plugins', function (Request $request) {
 
 Route::get('/privacy-policy', function () {
     return Inertia::render('legal/PrivacyPolicy', [
-        'lastUpdated' => 'October 1, 2023', // Hardcoded for now
+        'lastUpdated' => 'June 10, 2026', // Hardcoded for now
     ]);
 })->name('privacy-policy');
 
 Route::get('/terms-of-service', function () {
     return Inertia::render('legal/TermsOfService', [
-        'lastUpdated' => 'October 1, 2023', // Hardcoded for now
+        'lastUpdated' => 'June 10, 2026', // Hardcoded for now
     ]);
 })->name('terms-of-service');
 
