@@ -67,19 +67,19 @@ ASPRI adalah aplikasi asisten pribadi berbasis AI yang sudah fully functional. S
 - Tabel `conversation_memories` dengan indexing untuk access pattern
 - Model `ConversationMemory` dengan scopes: `active()` (filter `is_active` + `valid_until`), `byType()`, `mostImportant()`
 - `ConversationMemoryService`:
-  - `extractMemoriesFromThread()` — AI-powered extraction post-conversation
-  - `buildMemoryContext()` — inject memories ke system prompt (token-budget-aware)
+  - `extractMemoriesFromThread()` — AI-powered extraction post-conversation; percakapan panjang di-truncate (keep pesan terbaru, budget ~24k chars); output AI divalidasi (importance clamp 1-5, memory_type whitelist)
+  - `buildMemoryContext()` — inject memories ke system prompt (token-budget-aware); access tracking via single bulk update (bukan per-memory)
   - `shouldCompact()` — threshold: token count > 15% context length atau > 50 items
-  - `compact()` — AI-powered compaction, preserve importance ≥ 4
+  - `compact()` — AI-powered compaction, preserve importance ≥ 4; transaction-safe (originals tidak dideaktivasi jika AI tidak mengembalikan replacement valid)
   - `estimateTokenCount()` — heuristik ~3 chars/token
 - Job `ExtractConversationMemories` dengan debounce (15-menit delay, skip jika ada job lebih baru)
 - Memory context diinjeksi ke **semua** AI responses — termasuk streaming path
-- `ExtractConversationMemories` dispatched dari **semua** paths (regular + streaming)
+- `ExtractConversationMemories` dispatched dari **semua** paths (regular + streaming), satu dispatch per message (streaming path defer ke `processMessage` untuk action intents)
 - Artisan command `aspri:compact-memories [--user=ID]`
 - Auto-compaction dipanggil setelah extraction jika threshold terlampaui
 - Admin view per-user memory stats (active/inactive count, est tokens, last extraction, by_type) di `admin/users/Show`
 - `ai_context_length` setting di Admin Panel (preset: Gemini 32k, GPT-4 128k, Claude 200k, Gemini 1.5 1M)
-- 27 feature tests
+- 34 feature tests
 
 ### ✅ Notes Module
 - CRUD notes dengan title + content

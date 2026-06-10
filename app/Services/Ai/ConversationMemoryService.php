@@ -6,10 +6,21 @@ use App\Models\ChatThread;
 use App\Models\ConversationMemory;
 use App\Models\User;
 use App\Services\Admin\SettingsService;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class ConversationMemoryService
 {
+    /**
+     * Memory types accepted from AI output; anything else falls back to 'fact'.
+     */
+    protected const VALID_MEMORY_TYPES = ['fact', 'preference', 'event', 'pattern', 'summary'];
+
+    /**
+     * Max characters of conversation text sent to the extraction prompt (~8k tokens).
+     */
+    protected const MAX_EXTRACTION_CHARS = 24000;
+
     public function __construct(
         protected AiProviderInterface $provider,
         protected SettingsService $settingsService
@@ -29,8 +40,10 @@ class ConversationMemoryService
             return;
         }
 
-        // 2. Format conversation text for the AI
-        $conversationText = $messages->map(fn ($m) => "{$m->role}: {$m->content}")->join("\n");
+        // 2. Format conversation text for the AI, keeping the most recent
+        // messages within the character budget so long threads don't blow
+        // the provider's token limit.
+        $conversationText = $this->buildConversationText($messages);
 
         // 3. Prepare extraction prompt
         $prompt = <<<PROMPT
@@ -89,9 +102,9 @@ PROMPT;
                 if (! $exists) {
                     ConversationMemory::create([
                         'user_id' => $user->id,
-                        'memory_type' => $memoryData['type'] ?? 'fact',
+                        'memory_type' => $this->normalizeMemoryType($memoryData['type'] ?? null),
                         'content' => $memoryData['content'],
-                        'importance' => $memoryData['importance'] ?? 3,
+                        'importance' => $this->clampImportance($memoryData['importance'] ?? null),
                         'metadata' => $memoryData['metadata'] ?? [],
                         'source_thread_id' => (string) $thread->id,
                         'is_active' => true,
@@ -122,6 +135,7 @@ PROMPT;
 
         $context = '';
         $usedTokens = 0;
+        $usedIds = [];
 
         foreach ($memories as $memory) {
             $text = "- {$memory->content}\n";
@@ -133,9 +147,16 @@ PROMPT;
 
             $context .= $text;
             $usedTokens += $tokens;
+            $usedIds[] = $memory->id;
+        }
 
-            // Record access for aging/importance tracking
-            $memory->recordAccess();
+        // Record access for aging/importance tracking in a single bulk write
+        // instead of two queries per memory.
+        if ($usedIds !== []) {
+            ConversationMemory::whereIn('id', $usedIds)->update([
+                'access_count' => DB::raw('access_count + 1'),
+                'last_accessed_at' => now(),
+            ]);
         }
 
         return trim($context);
@@ -208,26 +229,82 @@ PROMPT;
             $newMemories = $this->parseJsonResponse($response);
 
             if (is_array($newMemories)) {
-                // Deactivate the old memories that were compacted
-                ConversationMemory::whereIn('id', $memories->pluck('id'))->update(['is_active' => false]);
+                $validMemories = array_values(array_filter($newMemories, fn ($m) => ! empty($m['content'])));
 
-                // Save the new summarized memories
-                foreach ($newMemories as $mData) {
-                    ConversationMemory::create([
-                        'user_id' => $user->id,
-                        'memory_type' => 'summary',
-                        'content' => $mData['content'],
-                        'importance' => $mData['importance'] ?? 3,
-                        'metadata' => array_merge($mData['metadata'] ?? [], ['compacted_at' => now()->toDateTimeString()]),
-                        'is_active' => true,
-                    ]);
+                // Never deactivate originals unless the AI returned at least
+                // one usable replacement — otherwise memories would be lost.
+                if ($validMemories === []) {
+                    Log::warning('Memory compaction returned no valid memories, keeping originals', ['user_id' => $user->id]);
+
+                    return;
                 }
+
+                DB::transaction(function () use ($user, $memories, $validMemories) {
+                    // Deactivate the old memories that were compacted
+                    ConversationMemory::whereIn('id', $memories->pluck('id'))->update(['is_active' => false]);
+
+                    // Save the new summarized memories
+                    foreach ($validMemories as $mData) {
+                        ConversationMemory::create([
+                            'user_id' => $user->id,
+                            'memory_type' => 'summary',
+                            'content' => $mData['content'],
+                            'importance' => $this->clampImportance($mData['importance'] ?? null),
+                            'metadata' => array_merge($mData['metadata'] ?? [], ['compacted_at' => now()->toDateTimeString()]),
+                            'is_active' => true,
+                        ]);
+                    }
+                });
 
                 Log::info('Memory compaction completed for user '.$user->id);
             }
         } catch (\Exception $e) {
             Log::error('Memory compaction failed', ['error' => $e->getMessage()]);
         }
+    }
+
+    /**
+     * Build conversation text from messages, keeping the newest messages
+     * within the extraction character budget.
+     */
+    protected function buildConversationText($messages): string
+    {
+        $lines = [];
+        $usedChars = 0;
+
+        foreach ($messages->reverse() as $message) {
+            $line = "{$message->role}: {$message->content}";
+            $lineLength = mb_strlen($line) + 1; // +1 for newline
+
+            if ($usedChars + $lineLength > self::MAX_EXTRACTION_CHARS) {
+                break;
+            }
+
+            $lines[] = $line;
+            $usedChars += $lineLength;
+        }
+
+        return implode("\n", array_reverse($lines));
+    }
+
+    /**
+     * Normalize AI-provided memory type to a known value.
+     */
+    protected function normalizeMemoryType(?string $type): string
+    {
+        return in_array($type, self::VALID_MEMORY_TYPES, true) ? $type : 'fact';
+    }
+
+    /**
+     * Clamp AI-provided importance to the 1-5 range.
+     */
+    protected function clampImportance(mixed $importance): int
+    {
+        if (! is_numeric($importance)) {
+            return 3;
+        }
+
+        return max(1, min(5, (int) $importance));
     }
 
     /**

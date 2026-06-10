@@ -156,6 +156,67 @@ class ConversationMemoryServiceTest extends TestCase
         $this->assertDatabaseHas('conversation_memories', ['content' => 'Real content']);
     }
 
+    public function test_extract_clamps_importance_and_normalizes_unknown_type(): void
+    {
+        $user = User::factory()->create();
+        $thread = ChatThread::factory()->create(['user_id' => $user->id]);
+        ChatMessage::factory()->fromUser()->create([
+            'thread_id' => $thread->id,
+            'user_id' => $user->id,
+        ]);
+
+        $provider = Mockery::mock(AiProviderInterface::class);
+        $provider->shouldReceive('chat')->once()->andReturn(json_encode([
+            ['type' => 'banana', 'content' => 'Weird type', 'importance' => 10],
+            ['type' => 'preference', 'content' => 'Too low importance', 'importance' => 0],
+        ]));
+
+        $this->makeService($provider)->extractMemoriesFromThread($thread, $user);
+
+        $this->assertDatabaseHas('conversation_memories', [
+            'content' => 'Weird type',
+            'memory_type' => 'fact',
+            'importance' => 5,
+        ]);
+        $this->assertDatabaseHas('conversation_memories', [
+            'content' => 'Too low importance',
+            'memory_type' => 'preference',
+            'importance' => 1,
+        ]);
+    }
+
+    public function test_extract_truncates_long_conversations_keeping_recent_messages(): void
+    {
+        $user = User::factory()->create();
+        $thread = ChatThread::factory()->create(['user_id' => $user->id]);
+
+        for ($i = 0; $i < 5; $i++) {
+            ChatMessage::factory()->fromUser()->create([
+                'thread_id' => $thread->id,
+                'user_id' => $user->id,
+                'content' => "MARKER_{$i} ".str_repeat('x', 10000),
+                'created_at' => now()->addMinutes($i),
+            ]);
+        }
+
+        $capturedPrompt = null;
+        $provider = Mockery::mock(AiProviderInterface::class);
+        $provider->shouldReceive('chat')
+            ->once()
+            ->with(Mockery::on(function ($messages) use (&$capturedPrompt) {
+                $capturedPrompt = $messages[1]['content'];
+
+                return true;
+            }), Mockery::any())
+            ->andReturn('[]');
+
+        $this->makeService($provider)->extractMemoriesFromThread($thread, $user);
+
+        $this->assertLessThan(30000, mb_strlen($capturedPrompt));
+        $this->assertStringContainsString('MARKER_4', $capturedPrompt); // newest kept
+        $this->assertStringNotContainsString('MARKER_0', $capturedPrompt); // oldest dropped
+    }
+
     public function test_extract_logs_warning_on_invalid_json(): void
     {
         $user = User::factory()->create();
@@ -375,6 +436,81 @@ class ConversationMemoryServiceTest extends TestCase
             'id' => $critical->id,
             'is_active' => true,
         ]);
+    }
+
+    public function test_compact_skips_items_without_content_and_clamps_importance(): void
+    {
+        $user = User::factory()->create();
+        ConversationMemory::factory()->count(12)->create([
+            'user_id' => $user->id,
+            'memory_type' => 'fact',
+            'importance' => 2,
+            'is_active' => true,
+        ]);
+
+        $provider = Mockery::mock(AiProviderInterface::class);
+        $provider->shouldReceive('chat')->once()->andReturn(json_encode([
+            ['type' => 'summary', 'importance' => 3], // missing content — must be skipped
+            ['type' => 'summary', 'content' => 'Valid summary', 'importance' => 9],
+        ]));
+
+        $this->makeService($provider)->compact($user);
+
+        $this->assertSame(0, ConversationMemory::where('user_id', $user->id)->where('importance', 2)->active()->count());
+        $this->assertDatabaseHas('conversation_memories', [
+            'user_id' => $user->id,
+            'content' => 'Valid summary',
+            'importance' => 5,
+            'is_active' => true,
+        ]);
+        $this->assertSame(
+            1,
+            ConversationMemory::where('user_id', $user->id)->where('memory_type', 'summary')->count()
+        );
+    }
+
+    public function test_compact_keeps_originals_when_no_valid_new_memories(): void
+    {
+        $user = User::factory()->create();
+        ConversationMemory::factory()->count(12)->create([
+            'user_id' => $user->id,
+            'importance' => 2,
+            'is_active' => true,
+        ]);
+
+        $provider = Mockery::mock(AiProviderInterface::class);
+        $provider->shouldReceive('chat')->once()->andReturn(json_encode([
+            ['type' => 'summary', 'importance' => 3], // every item lacks content
+        ]));
+
+        $this->makeService($provider)->compact($user);
+
+        $this->assertSame(12, ConversationMemory::where('user_id', $user->id)->active()->count());
+    }
+
+    public function test_build_memory_context_records_access_in_bounded_queries(): void
+    {
+        $user = User::factory()->create();
+        ConversationMemory::factory()->count(10)->create([
+            'user_id' => $user->id,
+            'is_active' => true,
+            'content' => 'short memory',
+            'access_count' => 0,
+        ]);
+
+        $provider = Mockery::mock(AiProviderInterface::class);
+        $service = $this->makeService($provider);
+
+        \DB::enableQueryLog();
+        $service->buildMemoryContext($user, 1000);
+        $queries = \DB::getQueryLog();
+        \DB::disableQueryLog();
+
+        $this->assertLessThanOrEqual(3, count($queries), 'buildMemoryContext should not issue per-memory write queries');
+        $this->assertSame(
+            10,
+            ConversationMemory::where('user_id', $user->id)->where('access_count', 1)->whereNotNull('last_accessed_at')->count()
+        );
     }
 
     public function test_compact_handles_invalid_json_safely(): void

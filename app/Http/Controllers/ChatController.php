@@ -278,6 +278,7 @@ class ChatController extends Controller
 
             // Process message through ChatOrchestrator with streaming
             $fullResponse = '';
+            $shouldStream = false;
 
             try {
                 // Parse intent first
@@ -350,10 +351,14 @@ class ChatController extends Controller
             // Update thread
             $thread->update(['last_message_at' => now()]);
 
-            // Dispatch memory extraction (mirrors ChatOrchestrator::processMessage debounce)
-            $dispatchTime = now()->toDateTimeString();
-            Cache::put("memory_extraction_last_dispatch_{$thread->id}", $dispatchTime, now()->addMinutes(30));
-            ExtractConversationMemories::dispatch($thread, $dispatchTime)->delay(now()->addMinutes(15));
+            // Dispatch memory extraction only for the direct-streaming branch;
+            // the non-streaming branch goes through ChatOrchestrator::processMessage,
+            // which already dispatches with the same debounce.
+            if ($shouldStream) {
+                $dispatchTime = now()->toDateTimeString();
+                Cache::put("memory_extraction_last_dispatch_{$thread->id}", $dispatchTime, now()->addMinutes(30));
+                ExtractConversationMemories::dispatch($thread, $dispatchTime)->delay(now()->addMinutes(15));
+            }
 
             // Send completion event with metadata
             echo "event: complete\n";
