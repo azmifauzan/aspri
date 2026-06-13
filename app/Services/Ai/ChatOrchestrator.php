@@ -18,14 +18,8 @@ class ChatOrchestrator
      */
     protected const MAX_ITERATIONS = 3;
 
-    /**
-     * The current user message being processed, used for language detection.
-     */
-    protected string $currentUserMessage = '';
-
     public function __construct(
         protected ChatService $chatService,
-        protected IntentParserService $intentParser,
         protected ActionExecutorService $actionExecutor,
         protected AiProviderInterface $aiProvider,
         protected PluginManager $pluginManager,
@@ -41,9 +35,6 @@ class ChatOrchestrator
      */
     public function processMessage(User $user, string $message, ChatThread $thread, array $conversationHistory = []): array
     {
-        // Store user message for language detection in all downstream responses
-        $this->currentUserMessage = $message;
-
         [$callName, $lang] = $this->templateContext($user, $message);
 
         // Fetch memory context
@@ -494,42 +485,5 @@ class ChatOrchestrator
         $lang = ResponseTemplates::detectLanguage($message);
 
         return [$callName, $lang];
-    }
-
-    /**
-     * Parse user intent from message.
-     *
-     * @return array{module: string, action: string, entities: array, confidence: float, raw_intent: string}
-     */
-    public function parseIntent(User $user, string $message, array $conversationHistory = []): array
-    {
-        return $this->intentParser->parse($user, $message, $conversationHistory);
-    }
-
-    /**
-     * Build memory context string for the given user, applying the configured budget.
-     */
-    public function buildMemoryContext(User $user): string
-    {
-        $contextLength = (int) $this->settingsService->get('ai_context_length', 32000);
-        $memoryBudget = (int) ($contextLength * 0.15);
-
-        return $this->memoryService->buildMemoryContext($user, $memoryBudget);
-    }
-
-    /**
-     * Get ChatService instance.
-     */
-    public function getChatService(): ChatService
-    {
-        return $this->chatService;
-    }
-
-    /**
-     * Get AiProvider instance.
-     */
-    public function getAiProvider(): AiProviderInterface
-    {
-        return $this->aiProvider;
     }
 }

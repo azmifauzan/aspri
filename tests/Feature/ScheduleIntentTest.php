@@ -7,9 +7,6 @@ use App\Models\PendingAction;
 use App\Models\Schedule;
 use App\Models\User;
 use App\Services\Ai\ActionExecutorService;
-use App\Services\Ai\AiProviderInterface;
-use App\Services\Ai\ChatOrchestrator;
-use App\Services\Ai\IntentParserService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -306,106 +303,6 @@ class ScheduleIntentTest extends TestCase
 
         $this->assertFalse($result['success']);
         $this->assertDatabaseHas('schedules', ['id' => $otherSchedule->id]);
-    }
-
-    /**
-     * Helper to mock AI provider and intent parser for orchestrator tests.
-     */
-    private function mockAiAndIntent(array $intentReturn): void
-    {
-        $mockIntentParser = \Mockery::mock(IntentParserService::class);
-        $mockIntentParser->shouldReceive('parse')->andReturn($intentReturn);
-        $this->app->instance(IntentParserService::class, $mockIntentParser);
-
-        $mockAiProvider = \Mockery::mock(AiProviderInterface::class);
-        $mockAiProvider->shouldReceive('chat')->andReturn('Konfirmasi: apakah Anda yakin?');
-        $this->app->instance(AiProviderInterface::class, $mockAiProvider);
-    }
-
-    // ==========================================
-    // ChatOrchestrator: update_schedule intent routing
-    // ==========================================
-
-    public function test_orchestrator_routes_update_schedule_to_pending_action(): void
-    {
-        $this->mockAiAndIntent([
-            'action' => 'update_schedule',
-            'module' => 'schedule',
-            'entities' => [
-                'title' => 'Team Sync',
-                'new_title' => 'Team Standup',
-                'start_time' => '2026-02-20 10:00',
-            ],
-            'confidence' => 0.9,
-            'requires_confirmation' => true,
-        ]);
-
-        $orchestrator = app(ChatOrchestrator::class);
-
-        $result = $orchestrator->processMessage($this->user, 'ubah jadwal Team Sync jadi Team Standup besok jam 10', $this->thread, []);
-
-        $this->assertArrayHasKey('pending_action', $result);
-        $this->assertNotNull($result['pending_action']);
-
-        $this->assertDatabaseHas('pending_actions', [
-            'user_id' => $this->user->id,
-            'thread_id' => $this->thread->id,
-            'action_type' => 'update_schedule',
-            'module' => 'schedule',
-        ]);
-    }
-
-    public function test_orchestrator_asks_for_schedule_identifier_on_update(): void
-    {
-        $this->mockAiAndIntent([
-            'action' => 'update_schedule',
-            'module' => 'schedule',
-            'entities' => [
-                'new_title' => 'Something New',
-                // Missing 'title' and 'schedule_id'
-            ],
-            'confidence' => 0.9,
-            'requires_confirmation' => true,
-        ]);
-
-        $orchestrator = app(ChatOrchestrator::class);
-
-        $result = $orchestrator->processMessage($this->user, 'ubah jadwal', $this->thread, []);
-
-        // Should NOT create a pending action (asks for more info instead)
-        $this->assertNull($result['pending_action']);
-        $this->assertNotEmpty($result['response']);
-    }
-
-    // ==========================================
-    // ChatOrchestrator: delete_schedule intent routing
-    // ==========================================
-
-    public function test_orchestrator_routes_delete_schedule_to_pending_action(): void
-    {
-        $this->mockAiAndIntent([
-            'action' => 'delete_schedule',
-            'module' => 'schedule',
-            'entities' => [
-                'title' => 'Old Meeting',
-            ],
-            'confidence' => 0.9,
-            'requires_confirmation' => true,
-        ]);
-
-        $orchestrator = app(ChatOrchestrator::class);
-
-        $result = $orchestrator->processMessage($this->user, 'hapus jadwal Old Meeting', $this->thread, []);
-
-        $this->assertArrayHasKey('pending_action', $result);
-        $this->assertNotNull($result['pending_action']);
-
-        $this->assertDatabaseHas('pending_actions', [
-            'user_id' => $this->user->id,
-            'thread_id' => $this->thread->id,
-            'action_type' => 'delete_schedule',
-            'module' => 'schedule',
-        ]);
     }
 
     // ==========================================

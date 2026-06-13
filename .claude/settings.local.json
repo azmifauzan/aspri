@@ -23,7 +23,18 @@
       "Bash(echo \"exit: $?\")",
       "Bash(echo \"legal errors: $?\")",
       "Bash(npx prettier *)",
-      "Skill(claude-api)"
+      "Skill(claude-api)",
+      "Bash(git checkout *)",
+      "Bash(git commit *)",
+      "PowerShell(php artisan test tests/Feature/ChatOrchestratorToolUseTest.php --compact)",
+      "Bash(php -l app/Services/Ai/ChatOrchestrator.php)",
+      "Bash(php -l app/Services/Ai/ResponseTemplates.php)",
+      "Bash(php -l app/Providers/AppServiceProvider.php)",
+      "Bash(php -l app/Http/Controllers/ChatController.php)",
+      "Bash(php -l tests/Feature/ChatStreamToolUseTest.php)",
+      "Bash(php -l tests/Feature/ChatStreamMemoryDispatchTest.php)",
+      "PowerShell(php artisan test --filter=ClaudeProviderCacheTest)",
+      "PowerShell(vendor/bin/pint --dirty)"
     ]
   }
 }

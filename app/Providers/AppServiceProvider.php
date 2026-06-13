@@ -9,7 +9,6 @@ use App\Services\Ai\ChatOrchestrator;
 use App\Services\Ai\ChatService;
 use App\Services\Ai\ClaudeProvider;
 use App\Services\Ai\GeminiProvider;
-use App\Services\Ai\IntentParserService;
 use App\Services\Ai\OpenAiProvider;
 use App\Services\Ai\ResilientAiProvider;
 use App\Services\Ai\ToolRegistry;
@@ -106,13 +105,6 @@ class AppServiceProvider extends ServiceProvider
             return $manager;
         });
 
-        $this->app->singleton(IntentParserService::class, function ($app) {
-            return new IntentParserService(
-                $app->make(AiProviderInterface::class),
-                $app->make(PluginManager::class)
-            );
-        });
-
         $this->app->singleton(ActionExecutorService::class, function ($app) {
             return new ActionExecutorService;
         });
@@ -120,7 +112,6 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(ChatOrchestrator::class, function ($app) {
             return new ChatOrchestrator(
                 $app->make(ChatService::class),
-                $app->make(IntentParserService::class),
                 $app->make(ActionExecutorService::class),
                 $app->make(AiProviderInterface::class),
                 $app->make(PluginManager::class),

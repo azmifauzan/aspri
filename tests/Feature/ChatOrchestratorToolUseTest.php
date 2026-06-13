@@ -7,7 +7,6 @@ use App\Models\PendingAction;
 use App\Models\User;
 use App\Services\Ai\AiProviderInterface;
 use App\Services\Ai\ChatOrchestrator;
-use App\Services\Ai\IntentParserService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Mockery;
@@ -52,11 +51,6 @@ class ChatOrchestratorToolUseTest extends TestCase
     private function orchestratorWithProvider(AiProviderInterface $provider): ChatOrchestrator
     {
         $this->app->instance(AiProviderInterface::class, $provider);
-
-        // The IntentParserService must NOT be invoked in the new tool-use flow.
-        $intentParser = Mockery::mock(IntentParserService::class);
-        $intentParser->shouldNotReceive('parse');
-        $this->app->instance(IntentParserService::class, $intentParser);
 
         return $this->app->make(ChatOrchestrator::class);
     }
