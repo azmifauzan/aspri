@@ -33,10 +33,19 @@ class SettingsService
             'ai_provider' => $this->get('ai_provider', 'gemini'),
             'gemini_model' => $this->get('gemini_model', 'gemini-pro'),
             'gemini_base_url' => $this->get('gemini_base_url'),
+            'gemini_fast_model' => $this->get('gemini_fast_model'),
+            'gemini_fallback_model' => $this->get('gemini_fallback_model'),
+            'gemini_fast_fallback_model' => $this->get('gemini_fast_fallback_model'),
             'openai_model' => $this->get('openai_model', 'gpt-4-turbo'),
             'openai_base_url' => $this->get('openai_base_url'),
+            'openai_fast_model' => $this->get('openai_fast_model'),
+            'openai_fallback_model' => $this->get('openai_fallback_model'),
+            'openai_fast_fallback_model' => $this->get('openai_fast_fallback_model'),
             'anthropic_model' => $this->get('anthropic_model', 'claude-3-sonnet'),
             'anthropic_base_url' => $this->get('anthropic_base_url'),
+            'anthropic_fast_model' => $this->get('anthropic_fast_model'),
+            'anthropic_fallback_model' => $this->get('anthropic_fallback_model'),
+            'anthropic_fast_fallback_model' => $this->get('anthropic_fast_fallback_model'),
             'has_gemini_key' => (bool) $this->get('gemini_api_key'),
             'has_openai_key' => (bool) $this->get('openai_api_key'),
             'has_anthropic_key' => (bool) $this->get('anthropic_api_key'),
@@ -100,6 +109,16 @@ class SettingsService
             $this->set('anthropic_base_url', $data['anthropic_base_url'], ['group' => 'ai']);
         }
 
+        foreach (['gemini', 'openai', 'anthropic'] as $provider) {
+            foreach (['fast_model', 'fallback_model', 'fast_fallback_model'] as $suffix) {
+                $key = "{$provider}_{$suffix}";
+
+                if (array_key_exists($key, $data)) {
+                    $this->set($key, $data[$key], ['group' => 'ai']);
+                }
+            }
+        }
+
         if (array_key_exists('ai_context_length', $data) && $data['ai_context_length']) {
             $this->set('ai_context_length', (int) $data['ai_context_length'], ['group' => 'ai']);
         }
@@ -149,11 +168,18 @@ class SettingsService
             };
         }
 
+        $fastModel = $this->get("{$provider}_fast_model");
+        $fallbackModel = $this->get("{$provider}_fallback_model");
+        $fastFallbackModel = $this->get("{$provider}_fast_fallback_model") ?: $fallbackModel;
+
         return [
             'provider' => $provider,
             'api_key' => $apiKey,
             'model' => $model,
             'base_url' => $baseUrl,
+            'fast_model' => $fastModel,
+            'fallback_model' => $fallbackModel,
+            'fast_fallback_model' => $fastFallbackModel,
         ];
     }
 
