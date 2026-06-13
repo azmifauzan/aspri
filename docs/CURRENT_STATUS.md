@@ -7,6 +7,14 @@
 
 ASPRI adalah aplikasi asisten pribadi berbasis AI yang sudah fully functional. Semua modul utama (Chat, Finance, Schedule, Notes, Admin, Plugins, Subscription, Telegram, Google OAuth) sudah diimplementasi dan di-test. Aplikasi sudah ter-dockerize dan siap untuk production deployment.
 
+### Native Tool-Use Rewrite — Juni 2026
+- Arsitektur chat: satu agent loop berbasis native tool calling (Anthropic/OpenAI/Gemini function calling). `IntentParserService` + `personalizeResponse` dihapus.
+- Respons hibrida: data deterministik (saldo, list, konfirmasi) via `ResponseTemplates` (0 call LLM, angka dijamin akurat); respons percakapan via LLM (streamed, persona).
+- Mutasi tetap lewat Confirmation Flow; "ya"/"batal" 0 call LLM.
+- Model bertingkat: model utama untuk agent loop, fast model untuk background job (memory extraction, judul thread). Admin set Fast / Fallback / Fast-Fallback model per provider.
+- Prompt caching system prompt + tool definitions (ClaudeProvider).
+- Call LLM per pesan: chat/aksi 1 (sebelumnya 3–6), konfirmasi 0.
+
 ---
 
 ## Implementation Stats
@@ -56,7 +64,7 @@ ASPRI adalah aplikasi asisten pribadi berbasis AI yang sudah fully functional. S
 - Web-based chat interface (threaded)
 - Multi-thread management (create, switch, delete)
 - Telegram bot integration (webhook-based, full parity)
-- Intent parsing: finance, schedule, notes, plugin, general
+- Native tool-use (function calling): 11 tool inti (finance, schedule, notes) + tool dari plugin aktif
 - Confirmation flow untuk semua mutation actions (keyword + AI detection)
 - Dynamic context window (token-budget-based pruning, configurable via admin)
 - Language auto-detect (Bahasa/English)
@@ -192,7 +200,7 @@ ASPRI adalah aplikasi asisten pribadi berbasis AI yang sudah fully functional. S
 | Claude (Anthropic) | ✅ Supported | Configured via admin panel |
 
 **Current AI Features:**
-- Intent parsing (action + module + entities + confidence)
+- Native tool-use (function calling) — agent loop, maks 3 iterasi per pesan
 - Conversational response generation
 - System prompt dengan persona + date/time context
 - Dynamic conversation history (token-budget-based, configurable context length)

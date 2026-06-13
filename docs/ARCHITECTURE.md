@@ -135,7 +135,7 @@ aspri/
 ### 3. Chat Module
 - Web-based chat interface dengan thread management
 - Telegram bot integration (webhook-based)
-- Intent parsing via AI provider
+- Native tool-use (function calling) via AI provider — agent loop dengan tool definitions
 - Confirmation flow untuk mutation actions (create/update/delete)
 - Natural language command execution
 - Context-aware responses (conversation history dalam 1 thread)
@@ -184,11 +184,14 @@ aspri/
 | `AiProviderInterface` | Contract untuk semua AI provider |
 | `GeminiProvider` | Google Gemini implementation |
 | `OpenAiProvider` | OpenAI GPT implementation |
-| `ClaudeProvider` | Anthropic Claude implementation |
-| `ChatOrchestrator` | Orkestrasi alur chat (intent → action → response) |
-| `ChatService` | Build system prompt + format messages |
-| `IntentParserService` | Parse user intent (action, module, entities) |
-| `ActionExecutorService` | Execute parsed intents ke modul terkait |
+| `ClaudeProvider` | Anthropic Claude implementation (prompt caching via `cache_control`) |
+| `ResilientAiProvider` | Decorator: fallback model + retry untuk semua AI provider |
+| `ChatOrchestrator` | Agent loop: `provider.chat(tools)` → eksekusi tool / konfirmasi → respons |
+| `ChatService` | Build system prompt (byte-stable, cache-friendly) + format messages |
+| `ToolRegistry` | Definisi tool-use (11 tool inti + tool plugin aktif) + resolve nama tool → executor |
+| `ActionExecutorService` | Eksekusi tool read/mutate ke modul terkait |
+| `ResponseTemplates` | Render respons deterministik (saldo, list, konfirmasi) tanpa LLM call kedua |
+| `ConversationMemoryService` | Cross-session memory extraction + injeksi ke system prompt |
 
 ### Admin Services (`app/Services/Admin/`)
 
@@ -231,25 +234,39 @@ sequenceDiagram
   participant W as Web/Telegram
   participant C as ChatController
   participant O as ChatOrchestrator
-  participant IP as IntentParserService
-  participant AE as ActionExecutorService
   participant AI as AI Provider
+  participant AE as ActionExecutorService
+  participant RT as ResponseTemplates
   participant DB as Database
 
   U->>W: Send Message
   W->>C: POST /chat/message
   C->>DB: Save user message
   C->>O: processMessage(user, message, thread, history)
-  O->>O: Check PendingAction (keyword detect first)
-  O->>IP: parse(user, message, history)
-  IP->>AI: Parse intent prompt
-  AI-->>IP: {action, module, entities, confidence}
-  O->>AE: execute(pendingAction) [if mutation]
-  AE->>DB: Create/Update/Delete data
-  O->>AI: Generate response text
-  AI-->>O: Response
-  O->>DB: Save assistant message
-  O-->>C: {response, action_taken, pending_action}
+  O->>DB: Check PendingAction (confirm/cancel keyword)
+  alt confirmation keyword (0 LLM call)
+    O->>AE: execute(pendingAction)
+    AE->>DB: Create/Update/Delete data
+    O->>RT: render result
+    O-->>C: {response, action_taken}
+  else normal message
+    O->>AI: chat(messages, tools) [system prompt + tools cached]
+    alt AI returns function_call
+      AI-->>O: {function_name, arguments}
+      alt mutating tool
+        O->>DB: Create pending_action
+        O->>RT: confirmation message
+      else read-only tool
+        O->>AE: execute tool
+        AE->>DB: Query data
+        O->>RT: render data (saldo/list)
+      end
+    else AI returns text
+      AI-->>O: text response (streamed)
+    end
+    O->>DB: Save assistant message
+    O-->>C: {response, action_taken, pending_action}
+  end
   C-->>W: Display response
 ```
 
@@ -259,16 +276,20 @@ sequenceDiagram
 sequenceDiagram
   participant U as User
   participant O as ChatOrchestrator
+  participant AI as AI Provider
+  participant RT as ResponseTemplates
   participant DB as Database
 
   U->>O: "Hapus transaksi kemarin"
-  O->>O: Parse intent (module=finance, action=delete)
+  O->>AI: chat(messages, tools)
+  AI-->>O: function_call delete_transaction {...}
   O->>DB: Save pending_action {action_type, module, payload}
-  O-->>U: "Apakah {call_preference} yakin? (ya/batal)"
+  O->>RT: deleteConfirmation(...)
+  O-->>U: "PERINGATAN: kamu akan menghapus ... (ya/batal)"
   U->>O: "ya"
-  O->>O: Keyword detect → isConfirmation=true
-  O->>DB: pending_action.confirm()
-  O->>DB: Execute delete
+  O->>O: Keyword detect → isConfirmation=true (0 LLM call)
+  O->>DB: pending_action.confirm() + execute delete
+  O->>RT: actionResult(...)
   O-->>U: "Transaksi berhasil dihapus"
 ```
 
