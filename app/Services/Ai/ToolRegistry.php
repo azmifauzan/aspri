@@ -32,8 +32,10 @@ class ToolRegistry
      */
     public function resolve(string $name): ?array
     {
-        if (isset($this->coreTools()[$name])) {
-            $tool = $this->coreTools()[$name];
+        $coreTools = $this->coreTools();
+
+        if (isset($coreTools[$name])) {
+            $tool = $coreTools[$name];
 
             $resolved = [
                 'name' => $name,
