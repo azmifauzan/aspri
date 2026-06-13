@@ -12,6 +12,7 @@ use App\Services\Ai\GeminiProvider;
 use App\Services\Ai\IntentParserService;
 use App\Services\Ai\OpenAiProvider;
 use App\Services\Ai\ResilientAiProvider;
+use App\Services\Ai\ToolRegistry;
 use App\Services\Plugin\PluginConfigurationService;
 use App\Services\Plugin\PluginManager;
 use App\Services\Plugin\PluginSchedulerService;
@@ -125,6 +126,7 @@ class AppServiceProvider extends ServiceProvider
                 $app->make(PluginManager::class),
                 $app->make(\App\Services\Ai\ConversationMemoryService::class),
                 $app->make(\App\Services\Admin\SettingsService::class),
+                $app->make(ToolRegistry::class),
             );
         });
 

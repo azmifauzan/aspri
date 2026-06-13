@@ -403,4 +403,15 @@ class ResponseTemplates
 
         return "Oke {$callName}, dibatalkan ya.";
     }
+
+    /**
+     * Render the result of an executed action, prefixed with the user's call name.
+     *
+     * `$message` is `ActionExecutorService::execute()`'s human-readable result
+     * message, which is already localized and contains the correct numbers.
+     */
+    public static function actionResult(string $message, string $callName, string $lang = 'id'): string
+    {
+        return "{$callName}, {$message}";
+    }
 }
