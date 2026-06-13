@@ -11,6 +11,7 @@ use App\Services\Ai\ClaudeProvider;
 use App\Services\Ai\GeminiProvider;
 use App\Services\Ai\IntentParserService;
 use App\Services\Ai\OpenAiProvider;
+use App\Services\Ai\ResilientAiProvider;
 use App\Services\Plugin\PluginConfigurationService;
 use App\Services\Plugin\PluginManager;
 use App\Services\Plugin\PluginSchedulerService;
@@ -30,7 +31,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(AiProviderInterface::class, function ($app) {
+        // The "base" provider is the concrete AI provider resolved from the
+        // active configuration (database settings, falling back to env config
+        // during migrations or before any settings have been saved).
+        $this->app->singleton('ai.provider.base', function ($app) {
             // Get AI config from database via SettingsService
             // Only if database is available (not during migrations)
             if (Schema::hasTable('system_settings')) {
@@ -66,6 +70,30 @@ class AppServiceProvider extends ServiceProvider
                 config('services.openai.api_key'),
                 config('services.openai.model'),
                 config('services.openai.base_url')
+            );
+        });
+
+        // General-purpose provider used by ChatService, ChatOrchestrator, etc.
+        // Wraps the base provider with a fallback model for resilience.
+        $this->app->singleton(AiProviderInterface::class, function ($app) {
+            $config = $this->resolveAiConfig($app);
+
+            return new ResilientAiProvider(
+                $app->make('ai.provider.base'),
+                null,
+                $config['fallback_model'] ?? null,
+            );
+        });
+
+        // Provider used by background jobs (conversation memory extraction,
+        // thread title generation) that prefer a faster/cheaper model.
+        $this->app->singleton('ai.provider.fast', function ($app) {
+            $config = $this->resolveAiConfig($app);
+
+            return new ResilientAiProvider(
+                $app->make('ai.provider.base'),
+                $config['fast_model'] ?? null,
+                $config['fast_fallback_model'] ?? null,
             );
         });
 
@@ -107,6 +135,30 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(PluginSchedulerService::class, function ($app) {
             return new PluginSchedulerService($app->make(PluginManager::class));
         });
+
+        // Background jobs (memory extraction, thread title generation) use the
+        // "fast" provider instead of the default AiProviderInterface binding.
+        $this->app->singleton(\App\Services\Ai\ConversationMemoryService::class, function ($app) {
+            return new \App\Services\Ai\ConversationMemoryService(
+                $app->make('ai.provider.fast'),
+                $app->make(SettingsService::class),
+            );
+        });
+    }
+
+    /**
+     * Resolve the active AI configuration from settings, or an empty array
+     * when the settings table is not yet available (e.g. during migrations).
+     *
+     * @return array<string, mixed>
+     */
+    protected function resolveAiConfig(\Illuminate\Contracts\Foundation\Application $app): array
+    {
+        if (Schema::hasTable('system_settings')) {
+            return $app->make(SettingsService::class)->getActiveAiConfig();
+        }
+
+        return [];
     }
 
     /**
