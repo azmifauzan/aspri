@@ -19,7 +19,7 @@ class ClaudeProvider implements AiProviderInterface
     {
         $this->apiKey = $apiKey ?? config('services.anthropic.api_key', '');
         $this->model = $model ?? config('services.anthropic.model', 'claude-4-5-haiku');
-        $this->baseUrl = !empty($baseUrl) ? rtrim($baseUrl, '/') : rtrim(config('services.anthropic.base_url', 'https://api.anthropic.com/v1'), '/');
+        $this->baseUrl = ! empty($baseUrl) ? rtrim($baseUrl, '/') : rtrim(config('services.anthropic.base_url', 'https://api.anthropic.com/v1'), '/');
     }
 
     /**
@@ -47,12 +47,21 @@ class ClaudeProvider implements AiProviderInterface
         ];
 
         if ($systemMessage) {
-            $payload['system'] = $systemMessage;
+            // Wrap the system prompt as a content block with an ephemeral cache
+            // breakpoint. The persona/system prompt is constant per request, so
+            // caching it is the biggest latency/cost win.
+            $payload['system'] = [
+                [
+                    'type' => 'text',
+                    'text' => $systemMessage,
+                    'cache_control' => ['type' => 'ephemeral'],
+                ],
+            ];
         }
 
         // Add function/tool definitions if provided
-        if (isset($options['functions'])) {
-            $payload['tools'] = array_map(function ($func) {
+        if (isset($options['functions']) && ! empty($options['functions'])) {
+            $tools = array_map(function ($func) {
                 return [
                     'name' => $func['name'],
                     'description' => $func['description'],
@@ -63,6 +72,14 @@ class ClaudeProvider implements AiProviderInterface
                     ],
                 ];
             }, $options['functions']);
+
+            // Mark the LAST tool definition with an ephemeral cache breakpoint.
+            // Anthropic renders `tools` before `system`, so both breakpoints
+            // extend the same cached prefix.
+            $lastIndex = count($tools) - 1;
+            $tools[$lastIndex]['cache_control'] = ['type' => 'ephemeral'];
+
+            $payload['tools'] = $tools;
         }
 
         Log::debug('Claude API Request', ['model' => $payload['model'], 'message_count' => count($chatMessages)]);
@@ -147,7 +164,13 @@ class ClaudeProvider implements AiProviderInterface
         ];
 
         if ($systemMessage) {
-            $payload['system'] = $systemMessage;
+            $payload['system'] = [
+                [
+                    'type' => 'text',
+                    'text' => $systemMessage,
+                    'cache_control' => ['type' => 'ephemeral'],
+                ],
+            ];
         }
 
         $response = Http::withHeaders([

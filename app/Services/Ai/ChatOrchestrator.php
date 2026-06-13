@@ -435,6 +435,13 @@ class ChatOrchestrator
             $messages[] = ['role' => 'user', 'content' => $message];
         }
 
+        // Inject the current date/time as a prefix on the LAST message (never the
+        // system block at index 0) so the cached system prefix stays byte-stable
+        // while the model still receives the current time for relative date parsing.
+        $lastIndex = count($messages) - 1;
+        $now = now();
+        $messages[$lastIndex]['content'] = "[Konteks waktu saat ini: {$now->format('l, d F Y')}, {$now->format('H:i')}]\n\n".$messages[$lastIndex]['content'];
+
         return $messages;
     }
 

@@ -23,9 +23,6 @@ class ChatService
         $aspriName = $profile?->aspri_name ?? 'ASPRI';
         $aspriPersona = $profile?->aspri_persona ?? 'friendly and helpful assistant';
 
-        $currentDate = now()->format('l, d F Y');
-        $currentTime = now()->format('H:i');
-
         $prompt = <<<PROMPT
 You are {$aspriName}, {$aspriPersona}.
 You are an AI-powered personal assistant helping manage daily schedules and finances.
@@ -33,10 +30,6 @@ You are an AI-powered personal assistant helping manage daily schedules and fina
 User information:
 - Name: {$user->name}
 - Preferred address: {$callPreference} {$user->name}
-
-Current time:
-- Date: {$currentDate}
-- Time: {$currentTime}
 
 Your capabilities:
 1. Help record and manage financial transactions (income/expenses)
