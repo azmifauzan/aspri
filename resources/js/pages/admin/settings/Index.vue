@@ -36,12 +36,21 @@ const aiForm = useForm({
     gemini_api_key: '',
     gemini_model: props.aiSettings.gemini_model,
     gemini_base_url: props.aiSettings.gemini_base_url || '',
+    gemini_fast_model: props.aiSettings.gemini_fast_model || '',
+    gemini_fallback_model: props.aiSettings.gemini_fallback_model || '',
+    gemini_fast_fallback_model: props.aiSettings.gemini_fast_fallback_model || '',
     openai_api_key: '',
     openai_model: props.aiSettings.openai_model,
     openai_base_url: props.aiSettings.openai_base_url || '',
+    openai_fast_model: props.aiSettings.openai_fast_model || '',
+    openai_fallback_model: props.aiSettings.openai_fallback_model || '',
+    openai_fast_fallback_model: props.aiSettings.openai_fast_fallback_model || '',
     anthropic_api_key: '',
     anthropic_model: props.aiSettings.anthropic_model,
     anthropic_base_url: props.aiSettings.anthropic_base_url || '',
+    anthropic_fast_model: props.aiSettings.anthropic_fast_model || '',
+    anthropic_fallback_model: props.aiSettings.anthropic_fallback_model || '',
+    anthropic_fast_fallback_model: props.aiSettings.anthropic_fast_fallback_model || '',
     ai_context_length: props.aiSettings.ai_context_length || 32000,
 });
 
@@ -52,14 +61,23 @@ const submitAi = () => {
             payload.gemini_api_key = data.gemini_api_key;
             payload.gemini_model = data.gemini_model;
             payload.gemini_base_url = data.gemini_base_url;
+            payload.gemini_fast_model = data.gemini_fast_model;
+            payload.gemini_fallback_model = data.gemini_fallback_model;
+            payload.gemini_fast_fallback_model = data.gemini_fast_fallback_model;
         } else if (data.ai_provider === 'openai') {
             payload.openai_api_key = data.openai_api_key;
             payload.openai_model = data.openai_model;
             payload.openai_base_url = data.openai_base_url;
+            payload.openai_fast_model = data.openai_fast_model;
+            payload.openai_fallback_model = data.openai_fallback_model;
+            payload.openai_fast_fallback_model = data.openai_fast_fallback_model;
         } else if (data.ai_provider === 'anthropic') {
             payload.anthropic_api_key = data.anthropic_api_key;
             payload.anthropic_model = data.anthropic_model;
             payload.anthropic_base_url = data.anthropic_base_url;
+            payload.anthropic_fast_model = data.anthropic_fast_model;
+            payload.anthropic_fallback_model = data.anthropic_fallback_model;
+            payload.anthropic_fast_fallback_model = data.anthropic_fast_fallback_model;
         }
         payload.ai_context_length = data.ai_context_length;
         return payload;
@@ -426,6 +444,21 @@ const formatCurrency = (value: number) => {
                                             <Label>Base URL (Optional)</Label>
                                             <Input v-model="aiForm.gemini_base_url" placeholder="Provide alternate base URL if using a proxy or compatible provider" />
                                         </div>
+                                        <div class="space-y-2">
+                                            <Label>Fast Model (Background)</Label>
+                                            <Input v-model="aiForm.gemini_fast_model" placeholder="gemini-2.5-flash-lite" />
+                                            <p class="text-xs text-muted-foreground">Model murah untuk background job (ekstraksi memori, judul thread).</p>
+                                        </div>
+                                        <div class="space-y-2">
+                                            <Label>Fallback Model</Label>
+                                            <Input v-model="aiForm.gemini_fallback_model" placeholder="gemini-2.5-flash" />
+                                            <p class="text-xs text-muted-foreground">Model alternatif jika model utama gagal merespons.</p>
+                                        </div>
+                                        <div class="space-y-2">
+                                            <Label>Fast Fallback Model</Label>
+                                            <Input v-model="aiForm.gemini_fast_fallback_model" placeholder="gemini-2.0-flash" />
+                                            <p class="text-xs text-muted-foreground">Fallback untuk Fast Model. Kosongkan untuk pakai Fallback Model di atas.</p>
+                                        </div>
                                     </div>
 
                                     <!-- OpenAI -->
@@ -452,6 +485,21 @@ const formatCurrency = (value: number) => {
                                             <Label>Base URL (Optional)</Label>
                                             <Input v-model="aiForm.openai_base_url" placeholder="https://api.openai.com/v1" />
                                         </div>
+                                        <div class="space-y-2">
+                                            <Label>Fast Model (Background)</Label>
+                                            <Input v-model="aiForm.openai_fast_model" placeholder="gpt-4o-mini" />
+                                            <p class="text-xs text-muted-foreground">Model murah untuk background job (ekstraksi memori, judul thread).</p>
+                                        </div>
+                                        <div class="space-y-2">
+                                            <Label>Fallback Model</Label>
+                                            <Input v-model="aiForm.openai_fallback_model" placeholder="gpt-4o" />
+                                            <p class="text-xs text-muted-foreground">Model alternatif jika model utama gagal merespons.</p>
+                                        </div>
+                                        <div class="space-y-2">
+                                            <Label>Fast Fallback Model</Label>
+                                            <Input v-model="aiForm.openai_fast_fallback_model" placeholder="gpt-4o-mini" />
+                                            <p class="text-xs text-muted-foreground">Fallback untuk Fast Model. Kosongkan untuk pakai Fallback Model di atas.</p>
+                                        </div>
                                     </div>
 
                                     <!-- Anthropic -->
@@ -477,6 +525,21 @@ const formatCurrency = (value: number) => {
                                         <div class="space-y-2">
                                             <Label>Base URL (Optional)</Label>
                                             <Input v-model="aiForm.anthropic_base_url" placeholder="https://api.anthropic.com" />
+                                        </div>
+                                        <div class="space-y-2">
+                                            <Label>Fast Model (Background)</Label>
+                                            <Input v-model="aiForm.anthropic_fast_model" placeholder="claude-haiku-4-5" />
+                                            <p class="text-xs text-muted-foreground">Model murah untuk background job (ekstraksi memori, judul thread).</p>
+                                        </div>
+                                        <div class="space-y-2">
+                                            <Label>Fallback Model</Label>
+                                            <Input v-model="aiForm.anthropic_fallback_model" placeholder="claude-opus-4-8" />
+                                            <p class="text-xs text-muted-foreground">Model alternatif jika model utama gagal merespons.</p>
+                                        </div>
+                                        <div class="space-y-2">
+                                            <Label>Fast Fallback Model</Label>
+                                            <Input v-model="aiForm.anthropic_fast_fallback_model" placeholder="claude-haiku-4-5" />
+                                            <p class="text-xs text-muted-foreground">Fallback untuk Fast Model. Kosongkan untuk pakai Fallback Model di atas.</p>
                                         </div>
                                     </div>
                                 </div>

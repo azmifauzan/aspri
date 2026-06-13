@@ -114,6 +114,15 @@ export interface AiSettings {
     gemini_base_url: string | null;
     openai_base_url: string | null;
     anthropic_base_url: string | null;
+    gemini_fast_model: string | null;
+    gemini_fallback_model: string | null;
+    gemini_fast_fallback_model: string | null;
+    openai_fast_model: string | null;
+    openai_fallback_model: string | null;
+    openai_fast_fallback_model: string | null;
+    anthropic_fast_model: string | null;
+    anthropic_fallback_model: string | null;
+    anthropic_fast_fallback_model: string | null;
     has_gemini_key: boolean;
     has_openai_key: boolean;
     has_anthropic_key: boolean;
