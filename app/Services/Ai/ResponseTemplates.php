@@ -383,7 +383,7 @@ class ResponseTemplates
             $tags = $note['tags'] ?? null;
             if (! empty($tags)) {
                 $tagsText = implode(', ', $tags);
-                $line .= $lang === 'en' ? " (Tags: {$tagsText})" : " (Tags: {$tagsText})";
+                $line .= " (Tags: {$tagsText})";
             }
 
             $lines[] = $line;
