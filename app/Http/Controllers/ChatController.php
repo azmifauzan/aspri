@@ -3,15 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Chat\SendMessageRequest;
-use App\Jobs\ExtractConversationMemories;
 use App\Models\ChatMessage;
 use App\Models\ChatThread;
 use App\Models\ChatUsageLog;
-use App\Models\PendingAction;
 use App\Services\Ai\ChatOrchestrator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -243,9 +240,7 @@ class ChatController extends Controller
             ->map(fn ($m) => ['role' => $m->role, 'content' => $m->content])
             ->toArray();
 
-        $memoryContext = $this->chatOrchestrator->buildMemoryContext($user);
-
-        return response()->stream(function () use ($user, $messageContent, $thread, $history, $userMessage, $memoryContext) {
+        return response()->stream(function () use ($user, $messageContent, $thread, $history, $userMessage) {
             // Set headers for SSE
             header('Content-Type: text/event-stream');
             header('Cache-Control: no-cache');
@@ -276,54 +271,22 @@ class ChatController extends Controller
             }
             flush();
 
-            // Process message through ChatOrchestrator with streaming
+            // Process message through ChatOrchestrator. The orchestrator now
+            // always returns a final response string and owns memory-extraction
+            // dispatch for every code path that needs it.
             $fullResponse = '';
-            $shouldStream = false;
 
             try {
-                // Parse intent first
-                $intent = $this->chatOrchestrator->parseIntent($user, $messageContent, $history);
+                $result = $this->chatOrchestrator->processMessage($user, $messageContent, $thread, $history);
+                $fullResponse = $result['response'];
 
-                // Check for pending actions
-                $pendingAction = PendingAction::where('thread_id', $thread->id)
-                    ->pending()
-                    ->latest()
-                    ->first();
-
-                $streamableGeneralActions = ['query'];
-                $shouldStream = $intent['module'] === 'general'
-                    && in_array($intent['action'], $streamableGeneralActions, true);
-
-                // For simple general chat, use streaming
-                if ($shouldStream) {
-                    // Build messages using ChatService
-                    $messages = $this->chatOrchestrator->getChatService()->formatMessages($user, $messageContent, $history, $memoryContext);
-
-                    // Stream response
-                    $fullResponse = $this->chatOrchestrator->getAiProvider()->chatStream($messages, function ($chunk) {
-                        echo "event: message_chunk\n";
-                        echo 'data: '.json_encode(['content' => $chunk])."\n\n";
-                        if (ob_get_level() > 0) {
-                            ob_flush();
-                        }
-                        flush();
-                    }, [
-                        'temperature' => 0.8,
-                        'max_tokens' => 1500,
-                    ]);
-                } else {
-                    // For actions, use regular processing
-                    $result = $this->chatOrchestrator->processMessage($user, $messageContent, $thread, $history);
-                    $fullResponse = $result['response'];
-
-                    // Send full response at once
-                    echo "event: message_chunk\n";
-                    echo 'data: '.json_encode(['content' => $fullResponse])."\n\n";
-                    if (ob_get_level() > 0) {
-                        ob_flush();
-                    }
-                    flush();
+                // Send full response at once
+                echo "event: message_chunk\n";
+                echo 'data: '.json_encode(['content' => $fullResponse])."\n\n";
+                if (ob_get_level() > 0) {
+                    ob_flush();
                 }
+                flush();
             } catch (\Exception $e) {
                 Log::error('Chat streaming error', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
 
@@ -350,15 +313,6 @@ class ChatController extends Controller
 
             // Update thread
             $thread->update(['last_message_at' => now()]);
-
-            // Dispatch memory extraction only for the direct-streaming branch;
-            // the non-streaming branch goes through ChatOrchestrator::processMessage,
-            // which already dispatches with the same debounce.
-            if ($shouldStream) {
-                $dispatchTime = now()->toDateTimeString();
-                Cache::put("memory_extraction_last_dispatch_{$thread->id}", $dispatchTime, now()->addMinutes(30));
-                ExtractConversationMemories::dispatch($thread, $dispatchTime)->delay(now()->addMinutes(15));
-            }
 
             // Send completion event with metadata
             echo "event: complete\n";

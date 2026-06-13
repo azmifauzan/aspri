@@ -3,10 +3,10 @@
 namespace Tests\Feature;
 
 use App\Jobs\ExtractConversationMemories;
+use App\Models\ChatThread;
+use App\Models\PendingAction;
 use App\Models\User;
 use App\Services\Ai\AiProviderInterface;
-use App\Services\Ai\ChatOrchestrator;
-use App\Services\Ai\ChatService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Mockery;
@@ -16,31 +16,29 @@ class ChatStreamMemoryDispatchTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_stream_dispatches_extraction_once_for_streamed_general_chat(): void
+    protected function tearDown(): void
+    {
+        Mockery::close();
+        parent::tearDown();
+    }
+
+    public function test_stream_dispatches_extraction_once_for_agent_loop(): void
     {
         Queue::fake();
-        $user = User::factory()->create();
 
-        $provider = Mockery::mock(AiProviderInterface::class);
-        $provider->shouldReceive('chatStream')->once()->andReturnUsing(function ($messages, $callback) {
-            $callback('Halo!');
-
-            return 'Halo!';
-        });
-
-        $orchestrator = Mockery::mock(ChatOrchestrator::class);
-        $orchestrator->shouldReceive('buildMemoryContext')->andReturn('');
-        $orchestrator->shouldReceive('parseIntent')->andReturn([
-            'action' => 'query',
-            'module' => 'general',
-            'entities' => [],
-            'confidence' => 0.9,
-            'requires_confirmation' => false,
+        $user = User::factory()->create(['name' => 'Budi']);
+        $user->profile()->create([
+            'call_preference' => 'Kak',
+            'aspri_name' => 'ASPRI',
+            'aspri_persona' => 'asisten yang ramah',
         ]);
-        $orchestrator->shouldReceive('getChatService')->andReturn(app(ChatService::class));
-        $orchestrator->shouldReceive('getAiProvider')->andReturn($provider);
 
-        $this->app->instance(ChatOrchestrator::class, $orchestrator);
+        // The real orchestrator runs the agent loop, which dispatches memory
+        // extraction. Only the AI provider is mocked.
+        $provider = Mockery::mock(AiProviderInterface::class);
+        $provider->shouldReceive('chat')->once()->andReturn('Halo!');
+        $provider->shouldNotReceive('chatStream');
+        $this->app->instance(AiProviderInterface::class, $provider);
 
         $response = $this->actingAs($user)->post('/chat/message/stream', [
             'message' => 'Halo apa kabar?',
@@ -52,41 +50,48 @@ class ChatStreamMemoryDispatchTest extends TestCase
         Queue::assertPushed(ExtractConversationMemories::class, 1);
     }
 
-    public function test_stream_does_not_dispatch_extraction_when_processing_via_orchestrator(): void
+    public function test_stream_does_not_dispatch_extraction_for_confirmation(): void
     {
         Queue::fake();
-        $user = User::factory()->create();
 
-        $orchestrator = Mockery::mock(ChatOrchestrator::class);
-        $orchestrator->shouldReceive('buildMemoryContext')->andReturn('');
-        $orchestrator->shouldReceive('parseIntent')->andReturn([
-            'action' => 'create',
+        $user = User::factory()->create(['name' => 'Budi']);
+        $user->profile()->create([
+            'call_preference' => 'Kak',
+            'aspri_name' => 'ASPRI',
+            'aspri_persona' => 'asisten yang ramah',
+        ]);
+
+        $thread = ChatThread::factory()->create(['user_id' => $user->id]);
+
+        PendingAction::create([
+            'user_id' => $user->id,
+            'thread_id' => $thread->id,
+            'action_type' => 'create_transaction',
             'module' => 'finance',
-            'entities' => [],
-            'confidence' => 0.9,
-            'requires_confirmation' => true,
-        ]);
-        // processMessage dispatches extraction itself in production; the
-        // controller must not dispatch a second job for this branch.
-        $orchestrator->shouldReceive('processMessage')->once()->andReturn([
-            'response' => 'Transaksi dicatat.',
+            'payload' => [
+                'tx_type' => 'expense',
+                'amount' => 50000,
+                'category' => 'Makanan',
+            ],
+            'status' => 'pending',
+            'expires_at' => now()->addMinutes(5),
         ]);
 
-        $this->app->instance(ChatOrchestrator::class, $orchestrator);
+        // Confirmation is resolved by keyword with ZERO LLM calls and does NOT
+        // dispatch memory extraction.
+        $provider = Mockery::mock(AiProviderInterface::class);
+        $provider->shouldNotReceive('chat');
+        $provider->shouldNotReceive('chatStream');
+        $this->app->instance(AiProviderInterface::class, $provider);
 
         $response = $this->actingAs($user)->post('/chat/message/stream', [
-            'message' => 'catat pengeluaran 50 ribu',
+            'message' => 'ya',
+            'thread_id' => $thread->id,
         ]);
 
         $response->assertOk();
         $response->streamedContent();
 
         Queue::assertNotPushed(ExtractConversationMemories::class);
-    }
-
-    protected function tearDown(): void
-    {
-        Mockery::close();
-        parent::tearDown();
     }
 }
