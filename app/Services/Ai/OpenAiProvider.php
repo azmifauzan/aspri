@@ -74,7 +74,11 @@ class OpenAiProvider implements AiProviderInterface
         }
 
         // Handle different response formats (some models use 'content', others may use 'refusal' for safety, etc.)
-        $content = $data['choices'][0]['message']['content'] ?? '';
+        $message = $data['choices'][0]['message'] ?? [];
+        $content = $message['content'] ?? '';
+        if (empty($content)) {
+            $content = $message['reasoning_content'] ?? '';
+        }
 
         // Log for debugging
         Log::debug('OpenAI API Response', [
@@ -156,7 +160,11 @@ class OpenAiProvider implements AiProviderInterface
                 }
 
                 $json = json_decode($data, true);
-                $content = $json['choices'][0]['delta']['content'] ?? '';
+                $delta = $json['choices'][0]['delta'] ?? [];
+                $content = $delta['content'] ?? '';
+                if (empty($content)) {
+                    $content = $delta['reasoning_content'] ?? '';
+                }
 
                 if ($content) {
                     $fullResponse .= $content;
