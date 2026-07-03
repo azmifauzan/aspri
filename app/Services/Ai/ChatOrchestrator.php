@@ -133,11 +133,36 @@ class ChatOrchestrator
 
             // Plain text response → this is the final reply.
             if (is_string($response)) {
-                return [
-                    'response' => $response,
-                    'action_taken' => false,
-                    'pending_action' => null,
-                ];
+                // Check if the model wrote a fake confirmation without calling the tool.
+                // Some models (e.g. DeepSeek) write "Mohon konfirmasi... Balas ya"
+                // as plain text instead of calling create_transaction.
+                if ($this->looksLikeFakeConfirmation($response, $message)) {
+                    Log::warning('Model returned fake confirmation text, retrying with tool_choice=required', [
+                        'thread_id' => $thread->id,
+                        'message_snippet' => mb_substr($response, 0, 100),
+                    ]);
+
+                    // Retry with tool_choice forced to 'required' so the model MUST call a tool.
+                    $response = $this->aiProvider->chat($messages, [
+                        'functions' => $functions,
+                        'tool_choice' => 'required',
+                    ]);
+
+                    // If still plain text after forced tool_choice, return as-is.
+                    if (is_string($response)) {
+                        return [
+                            'response' => $response,
+                            'action_taken' => false,
+                            'pending_action' => null,
+                        ];
+                    }
+                } else {
+                    return [
+                        'response' => $response,
+                        'action_taken' => false,
+                        'pending_action' => null,
+                    ];
+                }
             }
 
             // Provider now returns an array of tool calls: [{function_name, arguments}, ...]
@@ -252,6 +277,36 @@ class ChatOrchestrator
             'action_taken' => false,
             'pending_action' => null,
         ];
+    }
+
+    /**
+     * Detect whether a plain-text response looks like a fake confirmation
+     * (model wrote "mohon konfirmasi... Balas ya" instead of calling the tool).
+     *
+     * Only triggers when the user's original message looks like a create/record
+     * request — otherwise we'd wrongly retry normal conversational replies.
+     */
+    protected function looksLikeFakeConfirmation(string $response, string $userMessage): bool
+    {
+        // The user message must look like a create/record request
+        $isActionRequest = (bool) preg_match(
+            '/\b(catat|record|tambah|buat|simpan|create|save|bayar|beli|jual|terima|topup|transfer|jajan| isi|withdraw|tarik)\b/i',
+            $userMessage
+        );
+
+        if (! $isActionRequest) {
+            return false;
+        }
+
+        // The response must look like a confirmation prompt with amounts
+        $hasConfirmKeyword = (bool) preg_match(
+            '/(mohon konfirmasi|please confirm|konfirmasi transaksi|balas.*ya|reply.*yes|balas.*batal)/i',
+            $response
+        );
+
+        $hasAmount = (bool) preg_match('/(rp\.?\s*\d|Rp\d)/i', $response);
+
+        return $hasConfirmKeyword && $hasAmount;
     }
 
     /**
