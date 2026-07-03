@@ -18,6 +18,11 @@ class ActionExecutorService
      */
     public function execute(PendingAction $pendingAction): array
     {
+        // Handle batch actions (multiple transactions/actions at once)
+        if ($pendingAction->module === 'batch' && $pendingAction->action_type === 'batch') {
+            return $this->executeBatch($pendingAction);
+        }
+
         $user = $pendingAction->user;
         $payload = $pendingAction->payload;
 
@@ -27,6 +32,61 @@ class ActionExecutorService
             'notes' => $this->executeNotesAction($user, $pendingAction->action_type, $payload),
             default => ['success' => false, 'message' => 'Modul tidak dikenali', 'data' => null],
         };
+    }
+
+    /**
+     * Execute a batch of actions stored in a single PendingAction.
+     *
+     * @return array{success: bool, message: string, data: array|null}
+     */
+    protected function executeBatch(PendingAction $pendingAction): array
+    {
+        $user = $pendingAction->user;
+        $actions = $pendingAction->payload['actions'] ?? [];
+
+        if (empty($actions)) {
+            return ['success' => false, 'message' => 'Batch kosong', 'data' => null];
+        }
+
+        $results = [];
+        $successCount = 0;
+        $failCount = 0;
+
+        foreach ($actions as $action) {
+            $module = $action['module'] ?? null;
+            $actionType = $action['action_type'] ?? null;
+            $payload = $action['payload'] ?? [];
+
+            $result = match ($module) {
+                'finance' => $this->executeFinanceAction($user, $actionType, $payload),
+                'schedule' => $this->executeScheduleAction($user, $actionType, $payload),
+                'notes' => $this->executeNotesAction($user, $actionType, $payload),
+                default => ['success' => false, 'message' => 'Modul tidak dikenali', 'data' => null],
+            };
+
+            if ($result['success']) {
+                $successCount++;
+            } else {
+                $failCount++;
+            }
+
+            $results[] = $result;
+        }
+
+        // Build summary message
+        if ($failCount === 0) {
+            $message = "{$successCount} transaksi berhasil dicatat!";
+        } elseif ($successCount === 0) {
+            $message = "Gagal mencatat semua transaksi.";
+        } else {
+            $message = "{$successCount} transaksi berhasil, {$failCount} gagal dicatat.";
+        }
+
+        return [
+            'success' => $failCount === 0,
+            'message' => $message,
+            'data' => ['results' => $results],
+        ];
     }
 
     /**

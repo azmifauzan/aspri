@@ -96,14 +96,19 @@ class ClaudeProvider implements AiProviderInterface
 
         $data = $response->json();
 
-        // Handle tool/function calls
-        if (isset($data['content'][0]['type']) && $data['content'][0]['type'] === 'tool_use') {
-            $toolUse = $data['content'][0];
+        // Handle tool/function calls — return ALL tool_use blocks (not just the first)
+        $toolUseBlocks = [];
+        foreach ($data['content'] ?? [] as $block) {
+            if (($block['type'] ?? null) === 'tool_use') {
+                $toolUseBlocks[] = [
+                    'function_name' => $block['name'],
+                    'arguments' => $block['input'],
+                ];
+            }
+        }
 
-            return [
-                'function_name' => $toolUse['name'],
-                'arguments' => $toolUse['input'],
-            ];
+        if (! empty($toolUseBlocks)) {
+            return $toolUseBlocks;
         }
 
         // Handle text response

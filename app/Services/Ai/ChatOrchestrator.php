@@ -140,11 +140,11 @@ class ChatOrchestrator
                 ];
             }
 
-            $toolName = $response['function_name'] ?? null;
-            $arguments = $response['arguments'] ?? [];
+            // Provider now returns an array of tool calls: [{function_name, arguments}, ...]
+            // Normalize legacy single-call format for backward compatibility.
+            $toolCalls = $this->normalizeToolCalls($response);
 
-            if (! $toolName) {
-                // Malformed tool call without a function name.
+            if (empty($toolCalls)) {
                 return [
                     'response' => $this->loopFallback($callName, $lang),
                     'action_taken' => false,
@@ -152,60 +152,95 @@ class ChatOrchestrator
                 ];
             }
 
-            $tool = $this->toolRegistry->resolve($toolName);
+            // --- Process all tool calls in this turn ---
+            $mutatingCalls = [];   // tool calls that need confirmation
+            $readResults = [];     // messages to feed back for read tools
 
-            if ($tool === null) {
-                Log::warning('Unknown tool requested by model', ['tool' => $toolName]);
-                $messages[] = [
-                    'role' => 'user',
-                    'content' => "[Hasil tool {$toolName}]: tool tidak dikenali. Sampaikan ke user bahwa permintaan itu belum bisa dilakukan dengan gaya bahasamu.",
-                ];
+            foreach ($toolCalls as $call) {
+                $toolName = $call['function_name'] ?? null;
+                $arguments = $call['arguments'] ?? [];
 
-                continue;
-            }
-
-            // --- Mutating tools → confirmation via PendingAction (stop loop) ---
-            if ($tool['mutates'] === true) {
-                // Notes create/update are non-destructive: execute directly and
-                // let the model frame the confirmation (continue the loop).
-                if ($tool['module'] === 'notes' && in_array($tool['action_type'], ['create_note', 'update_note'], true)) {
-                    $result = $this->actionExecutor->executeDirectNotesAction($user, $tool['action_type'], $arguments);
-                    $messages[] = $this->toolResultMessage($toolName, $result['message'], $result['data'] ?? null);
-
+                if (! $toolName) {
                     continue;
                 }
 
-                $pendingAction = $this->createPendingAction($user, $thread, $tool['action_type'], $tool['module'], $arguments);
+                $tool = $this->toolRegistry->resolve($toolName);
 
-                return [
-                    'response' => $this->confirmationFor($tool, $arguments, $callName, $lang),
-                    'action_taken' => false,
-                    'pending_action' => $pendingAction->toArray(),
-                ];
+                if ($tool === null) {
+                    Log::warning('Unknown tool requested by model', ['tool' => $toolName]);
+                    $readResults[] = [
+                        'role' => 'user',
+                        'content' => "[Hasil tool {$toolName}]: tool tidak dikenali. Sampaikan ke user bahwa permintaan itu belum bisa dilakukan dengan gaya bahasamu.",
+                    ];
+                    continue;
+                }
+
+                if ($tool['mutates'] === true) {
+                    // Notes create/update are non-destructive: execute directly.
+                    if ($tool['module'] === 'notes' && in_array($tool['action_type'], ['create_note', 'update_note'], true)) {
+                        $result = $this->actionExecutor->executeDirectNotesAction($user, $tool['action_type'], $arguments);
+                        $readResults[] = $this->toolResultMessage($toolName, $result['message'], $result['data'] ?? null);
+                        continue;
+                    }
+
+                    // Mutating tools → collect for batch confirmation
+                    $mutatingCalls[] = [
+                        'tool' => $tool,
+                        'tool_name' => $toolName,
+                        'arguments' => $arguments,
+                    ];
+                    continue;
+                }
+
+                // --- Read tools ---
+                if ($tool['module'] === 'plugin') {
+                    $readResults[] = $this->executePluginTool($user, $tool, $arguments, $toolName);
+                    continue;
+                }
+
+                $templated = $this->renderReadTool($user, $tool, $arguments, $callName, $lang);
+
+                if ($templated !== null) {
+                    // Read tool with a deterministic template → collect as final reply candidate
+                    $readResults[] = $templated;
+                    continue;
+                }
+
+                // Read tool without a template → feed result back to model
+                $data = $this->executeReadTool($user, $tool, $arguments);
+                $readResults[] = $this->toolResultMessage($toolName, null, $data);
             }
 
-            // --- Read tools ---
-            if ($tool['module'] === 'plugin') {
-                $messages[] = $this->executePluginTool($user, $tool, $arguments, $toolName);
+            // --- If we have mutating calls, create pending action(s) and stop ---
+            if (! empty($mutatingCalls)) {
+                // Single mutating call → existing behavior (backward compatible)
+                if (count($mutatingCalls) === 1) {
+                    $mc = $mutatingCalls[0];
+                    $pendingAction = $this->createPendingAction($user, $thread, $mc['tool']['action_type'], $mc['tool']['module'], $mc['arguments']);
 
-                continue;
+                    return [
+                        'response' => $this->confirmationFor($mc['tool'], $mc['arguments'], $callName, $lang),
+                        'action_taken' => false,
+                        'pending_action' => $pendingAction->toArray(),
+                    ];
+                }
+
+                // Multiple mutating calls → batch confirmation
+                return $this->createBatchPendingAction($user, $thread, $mutatingCalls, $callName, $lang);
             }
 
-            $templated = $this->renderReadTool($user, $tool, $arguments, $callName, $lang);
-
-            if ($templated !== null) {
-                // Read tool with a deterministic template → final reply, stop loop.
-                return [
-                    'response' => $templated,
-                    'action_taken' => false,
-                    'pending_action' => null,
-                ];
+            // --- No mutating calls: feed read results back and continue loop ---
+            foreach ($readResults as $result) {
+                if (is_string($result)) {
+                    // Deterministic template → final reply
+                    return [
+                        'response' => $result,
+                        'action_taken' => false,
+                        'pending_action' => null,
+                    ];
+                }
+                $messages[] = $result;
             }
-
-            // Read tool without a template (e.g. view_transactions) → feed the
-            // result back and let the model compose the reply.
-            $data = $this->executeReadTool($user, $tool, $arguments);
-            $messages[] = $this->toolResultMessage($toolName, null, $data);
         }
 
         Log::warning('Agent loop reached max iterations without a text response', [
@@ -217,6 +252,111 @@ class ChatOrchestrator
             'action_taken' => false,
             'pending_action' => null,
         ];
+    }
+
+    /**
+     * Normalize the provider response into a list of tool calls.
+     *
+     * Providers now return: [{function_name, arguments}, ...]
+     * Legacy format: {function_name, arguments}
+     *
+     * @param  array<string, mixed>  $response
+     * @return array<int, array{function_name: string, arguments: array}>
+     */
+    protected function normalizeToolCalls(array $response): array
+    {
+        // New format: array of calls (detected by sequential numeric keys)
+        if (array_is_list($response) && isset($response[0]['function_name'])) {
+            return $response;
+        }
+
+        // Legacy format: single call
+        if (isset($response['function_name'])) {
+            return [['function_name' => $response['function_name'], 'arguments' => $response['arguments'] ?? []]];
+        }
+
+        return [];
+    }
+
+    /**
+     * Create a batch pending action for multiple mutating tool calls.
+     *
+     * @param  array<int, array{tool: array, tool_name: string, arguments: array}>  $mutatingCalls
+     * @return array{response: string, action_taken: bool, pending_action: array|null}
+     */
+    protected function createBatchPendingAction(User $user, ChatThread $thread, array $mutatingCalls, string $callName, string $lang): array
+    {
+        $batchPayload = [];
+        $confirmations = [];
+
+        foreach ($mutatingCalls as $mc) {
+            $tool = $mc['tool'];
+            $arguments = $mc['arguments'];
+
+            $batchPayload[] = [
+                'action_type' => $tool['action_type'],
+                'module' => $tool['module'],
+                'payload' => $arguments,
+            ];
+
+            $confirmations[] = $this->confirmationFor($tool, $arguments, $callName, $lang);
+        }
+
+        $pendingAction = PendingAction::create([
+            'user_id' => $user->id,
+            'thread_id' => $thread->id,
+            'action_type' => 'batch',
+            'module' => 'batch',
+            'payload' => ['actions' => $batchPayload],
+            'status' => 'pending',
+            'expires_at' => now()->addMinutes(5),
+        ]);
+
+        Log::info('Batch pending action created', [
+            'pending_action_id' => $pendingAction->id,
+            'action_count' => count($batchPayload),
+        ]);
+
+        // Build a combined confirmation message listing all actions
+        $response = $this->batchConfirmation($confirmations, $callName, $lang);
+
+        return [
+            'response' => $response,
+            'action_taken' => false,
+            'pending_action' => $pendingAction->toArray(),
+        ];
+    }
+
+    /**
+     * Build a combined confirmation message from multiple action confirmations.
+     * Strips the per-item footer and call name so only the details are listed.
+     *
+     * @param  array<int, string>  $confirmations
+     */
+    protected function batchConfirmation(array $confirmations, string $callName, string $lang): string
+    {
+        $header = $lang === 'en'
+            ? "{$callName}, please confirm the following transactions:"
+            : "{$callName}, mohon konfirmasi transaksi berikut:";
+
+        $lines = [$header, ''];
+
+        foreach ($confirmations as $i => $conf) {
+            // Strip the per-item footer ("Balas ya..." / "Reply yes...")
+            $conf = preg_replace('/\n*Balas "ya"[^\n]*\.$/', '', $conf);
+            $conf = preg_replace('/\n*Reply "yes"[^\n]*\.$/', '', $conf);
+
+            // Strip the per-item header (first line containing call name + "mohon konfirmasi")
+            $conf = preg_replace('/^[^\n]*mohon konfirmasi transaksi berikut:\n*/', '', $conf);
+            $conf = preg_replace('/^[^\n]*please confirm this transaction:\n*/', '', $conf);
+
+            $lines[] = ($i + 1).'. '.trim($conf);
+            $lines[] = '';
+        }
+
+        $lines[] = ResponseTemplates::confirmFooter($lang);
+
+        return implode("\n", $lines);
     }
 
     /**

@@ -57,16 +57,18 @@ class GeminiProvider implements AiProviderInterface
 
         $data = $response->json();
 
-        // Handle function/tool calls
-        if (isset($data['choices'][0]['message']['tool_calls'][0])) {
-            $toolCall = $data['choices'][0]['message']['tool_calls'][0];
-            $functionName = $toolCall['function']['name'];
-            $arguments = json_decode($toolCall['function']['arguments'], true) ?? [];
+        // Handle function/tool calls — return ALL tool calls (not just the first)
+        $toolCalls = $data['choices'][0]['message']['tool_calls'] ?? [];
+        if (! empty($toolCalls)) {
+            $calls = [];
+            foreach ($toolCalls as $toolCall) {
+                $calls[] = [
+                    'function_name' => $toolCall['function']['name'],
+                    'arguments' => json_decode($toolCall['function']['arguments'], true) ?? [],
+                ];
+            }
 
-            return [
-                'function_name' => $functionName,
-                'arguments' => $arguments,
-            ];
+            return $calls;
         }
 
         // Handle content response
