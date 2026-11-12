@@ -471,6 +471,8 @@ const features = computed(() => [
                     <Link href="/privacy-policy" class="hover:text-foreground transition-colors">{{ $t('legal.privacyPolicy') }}</Link>
                     <span>&middot;</span>
                     <Link href="/terms-of-service" class="hover:text-foreground transition-colors">{{ $t('legal.termsOfService') }}</Link>
+                    <span>&middot;</span>
+                    <Link href="/panduan/mencatat-pengeluaran-harian-bank-dan-e-wallet" class="hover:text-foreground transition-colors">Panduan</Link>
                 </div>
             </div>
         </footer>

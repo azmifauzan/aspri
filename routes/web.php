@@ -12,6 +12,7 @@ use App\Http\Controllers\ChatController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FinanceBudgetController;
 use App\Http\Controllers\FinanceController;
+use App\Http\Controllers\GuideController;
 use App\Http\Controllers\NoteController;
 use App\Http\Controllers\PluginController;
 use App\Http\Controllers\PluginRatingController;
@@ -94,6 +95,8 @@ Route::get('/explore-plugins', function (Request $request) {
         'filters' => $request->only(['search', 'min_rating', 'sort_by']),
     ]);
 })->name('explore-plugins');
+
+Route::get('/panduan/{guide}', [GuideController::class, 'show'])->name('guide.show');
 
 Route::get('/privacy-policy', function () {
     return Inertia::render('legal/PrivacyPolicy', [
