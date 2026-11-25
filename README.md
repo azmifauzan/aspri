@@ -1,3 +1,5 @@
+
+
 # ASPRI - Asisten Pribadi Berbasis AI
 
 **ASPRI** adalah aplikasi asisten pribadi cerdas yang dirancang untuk membantu pengelolaan jadwal, keuangan, dan catatan harian Anda melalui interaksi percakapan natural dengan AI.
@@ -249,6 +251,9 @@ composer lint
 # Format JS/Vue code
 npm run format
 
+# Check formatting (without modifying files)
+npm run format:check
+
 # Check linting
 npm run lint
 ```
@@ -275,4 +280,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**ASPRI** - Siap Mengatur Hidup Lebih Baik? 
+**ASPRI** - Siap Mengatur Hidup Lebih Baik?
